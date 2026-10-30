@@ -765,6 +765,114 @@ fn bitmap_tiles_class_self_test() ! {
  }
 }
 
+fn window_animations_profile() NarrowProfile {
+ window := 'android/view/Window.smali'
+ callback := 'android/view/Window$Callback.smali'
+ activity := 'android/app/Activity.smali'
+ dialog := 'android/app/Dialog.smali'
+ notification := 'onWindowAttributesChanged(Landroid/view/WindowManager$LayoutParams;)V'
+ return NarrowProfile{
+  name: 'window-animations'
+  baseline_name: 'combined-account-webview-bitmap-tiles-framework-2026-10-30-r1'
+  manifest_pin: 'bf8626569c82826e4d6b6379a3e2266741db3d2919d2eda4cf647b18c5b5f7df'
+  jar_pin: '741641c30098cf2f682672889c7ac653c6b2f23b9c09001a7af8f56bb01d9500'
+  baseline_classes: 2106
+  providers: ['framework_window_animations.v']
+  calls: {window: 'framework_window_animations_source', callback: 'framework_window_animations_callback_source',
+   activity: 'framework_window_animations_activity_source', dialog: 'framework_window_animations_dialog_source'}
+  methods: {window: ['setWindowAnimations(I)V', 'dispatchWindowAttributesChanged(Landroid/view/WindowManager$LayoutParams;)V'],
+   callback: [notification], activity: [notification], dialog: [notification]}
+  changed: {window: 0, callback: 0, activity: 0, dialog: 0}
+  added: {window: 2, callback: 1, activity: 1, dialog: 1}
+ }
+}
+
+fn window_animations_method_headers(target string) !map[string]string {
+ notification := 'onWindowAttributesChanged(Landroid/view/WindowManager$LayoutParams;)V'
+ return match target {
+  'android/view/Window.smali' { {'setWindowAnimations(I)V': 'public',
+   'dispatchWindowAttributesChanged(Landroid/view/WindowManager$LayoutParams;)V': 'protected'} }
+  'android/view/Window$Callback.smali' { map[string]string{notification: 'public abstract'} }
+  'android/app/Activity.smali', 'android/app/Dialog.smali' { map[string]string{notification: 'public'} }
+  else { return error('unexpected window animations target') }
+ }
+}
+
+fn window_animations_abi(target string, source string) ! {
+ parts := store_parts(source)!
+ for signature, flags in window_animations_method_headers(target)! {
+  method := parts.methods[signature] or { return error('missing window animations ABI member: ' + signature) }
+  expected := '.method ' + flags + ' ' + signature
+  if method.all_before('\n').trim_space() != expected { return error('unexpected window animations ABI flags: ' + signature) }
+  if flags == 'public abstract' && method != expected + '\n.end method' {
+   return error('window attribute callback interface member must remain declaration-only')
+  }
+ }
+}
+
+fn window_animations_self_test() ! {
+ profile := window_animations_profile()
+ window := 'android/view/Window.smali'
+ callback := 'android/view/Window$Callback.smali'
+ activity := 'android/app/Activity.smali'
+ dialog := 'android/app/Dialog.smali'
+ notification := 'onWindowAttributesChanged(Landroid/view/WindowManager$LayoutParams;)V'
+ if profile.baseline_classes != 2106 || profile.methods != {
+  window: ['setWindowAnimations(I)V', 'dispatchWindowAttributesChanged(Landroid/view/WindowManager$LayoutParams;)V'],
+  callback: [notification], activity: [notification], dialog: [notification]}
+  || profile.calls != {window: 'framework_window_animations_source', callback: 'framework_window_animations_callback_source',
+   activity: 'framework_window_animations_activity_source', dialog: 'framework_window_animations_dialog_source'}
+  || profile.changed != {window: 0, callback: 0, activity: 0, dialog: 0}
+  || profile.added != {window: 2, callback: 1, activity: 1, dialog: 1}
+  || profile.providers != ['framework_window_animations.v'] || profile.fields.len != 0
+  || profile.extra_classes.len != 0 || profile.class_provider != '' || profile.directory_provider != '' {
+  return error('window animations require exactly five additive methods in four existing classes')
+ }
+ for target, signatures in profile.methods {
+  narrow_method_self_test(signatures, 0, profile.added[target]!)!
+  metadata := '.class public LExample;\n.super Ljava/lang/Object;\n'
+  retained := '.method public retained()V\n.locals 0\nreturn-void\n.end method\n'
+  before := metadata + retained
+  mut after := before
+  for signature, flags in window_animations_method_headers(target)! {
+   after += '.method ' + flags + ' ' + signature + if flags == 'public abstract' { '\n.end method\n' } else { '\n.locals 2\nreturn-void\n.end method\n' }
+  }
+  narrow_member_delta(before, after, signatures, 0, profile.added[target]!, []string{})!
+  window_animations_abi(target, after)!
+  for signature, flags in window_animations_method_headers(target)! {
+   header := '.method ' + flags + ' ' + signature
+   for replacement in ['.method public static ' + signature, '.method private ' + signature,
+    '.method public native ' + signature, '.method public final ' + signature] {
+    window_animations_abi(target, after.replace(header, replacement)) or { continue }
+    return error('invalid window animations method flags accepted')
+   }
+  }
+  if target == callback {
+   changed := after.replace('\n.end method\n', '\n.locals 0\nreturn-void\n.end method\n')
+   window_animations_abi(target, changed) or { continue }
+   return error('window callback interface body accepted')
+  }
+ }
+ mut old := map[string]string{}
+ for target in profile.methods.keys() { old[target] = 'old' }
+ for i in 0 .. 2102 { old['other/' + i.str() + '.smali'] = 'same' }
+ mut good := old.clone()
+ for target in profile.methods.keys() { good[target] = 'new' }
+ narrow_profile_class_delta(old, good, profile.methods.keys(), []string{}, 2106)!
+ for case in 0 .. 5 {
+  mut bad := good.clone()
+  match case {
+   0 { bad[window] = 'old' }
+   1 { bad['other/0.smali'] = 'changed' }
+   2 { bad.delete(callback) }
+   3 { bad['unrelated.smali'] = 'new' }
+   else { bad.delete(dialog); bad['substituted.smali'] = 'new' }
+  }
+  narrow_profile_class_delta(old, bad, profile.methods.keys(), []string{}, 2106) or { continue }
+  return error('invalid window animations class scope accepted')
+ }
+}
+
 fn window_system_ui_self_test() ! {
  profile := window_system_ui_profile()
  layout := 'android/view/WindowManager$LayoutParams.smali'
@@ -1537,6 +1645,7 @@ fn self_test() ! {
  seed_account_options_self_test()!
  persistent_data_block_self_test()!
  bitmap_tiles_self_test()!
+ window_animations_self_test()!
  query_profile := service_query_profile()
  narrow_method_self_test(query_profile.methods['android/content/pm/PackageManager.smali']!, 1, 0)!
  boot_profile := direct_boot_profile()
@@ -1809,6 +1918,7 @@ fn build_narrow(profile NarrowProfile, baseline string, manifest_pin string, jar
   if profile.name == 'seed-account-options' { seed_account_options_abi(target, os.read_file(root + '/smali/' + target)!)! }
   if profile.name == 'persistent-data-block' { persistent_data_block_abi(target, os.read_file(root + '/smali/' + target)!)! }
   if profile.name == 'bitmap-tiles' { bitmap_tiles_abi(os.read_file(root + '/smali/' + target)!)! }
+  if profile.name == 'window-animations' { window_animations_abi(target, os.read_file(root + '/smali/' + target)!)! }
  }
  if profile.name == 'platform-fragments' {
   for target in profile.extra_classes { platform_fragments_abi(os.read_file(root + '/smali/' + target)!, target)! }
@@ -1836,6 +1946,7 @@ fn build_narrow(profile NarrowProfile, baseline string, manifest_pin string, jar
   if profile.name == 'seed-account-options' { seed_account_options_abi(target, os.read_file(root + '/new-dex/' + target)!)! }
   if profile.name == 'persistent-data-block' { persistent_data_block_abi(target, os.read_file(root + '/new-dex/' + target)!)! }
   if profile.name == 'bitmap-tiles' { bitmap_tiles_abi(os.read_file(root + '/new-dex/' + target)!)! }
+  if profile.name == 'window-animations' { window_animations_abi(target, os.read_file(root + '/new-dex/' + target)!)! }
  }
  if profile.name == 'platform-fragments' {
   for target in profile.extra_classes { platform_fragments_abi(os.read_file(root + '/new-dex/' + target)!, target)! }
@@ -2125,11 +2236,15 @@ fn main() {
   build_narrow(bitmap_tiles_profile(), os.abs_path(os.args[2]), os.args[3], os.args[4], os.abs_path(os.args[5])) or { eprintln(err); exit(1) }
   return
  }
+ if os.args.len == 6 && os.args[1] == '--window-animations' {
+  build_narrow(window_animations_profile(), os.abs_path(os.args[2]), os.args[3], os.args[4], os.abs_path(os.args[5])) or { eprintln(err); exit(1) }
+  return
+ }
  if os.args.len == 6 && os.args[1] in ['--store', '--auth', '--cache', '--descriptions', '--protected-storage', '--service-query', '--direct-boot', '--credential-storage', '--broadcast-result', '--onboarding', '--application-restrictions', '--auth-exception', '--binder-identity', '--service-lifecycle', '--platform-fragments', '--imageview-bounds', '--window-system-ui'] {
   profile := match os.args[1] { '--store' { storage_profile() } '--auth' { auth_profile() } '--cache' { cache_profile() } '--descriptions' { descriptions_profile() } '--protected-storage' { protected_storage_profile() } '--service-query' { service_query_profile() } '--direct-boot' { direct_boot_profile() } '--credential-storage' { credential_storage_profile() } '--broadcast-result' { broadcast_result_profile() } '--application-restrictions' { application_restrictions_profile() } '--auth-exception' { auth_exception_profile() } '--binder-identity' { binder_identity_profile() } '--service-lifecycle' { service_lifecycle_profile() } '--platform-fragments' { platform_fragments_profile() } '--imageview-bounds' { imageview_bounds_profile() } '--window-system-ui' { window_system_ui_profile() } else { onboarding_profile() } }
   build_narrow(profile, os.abs_path(os.args[2]), os.args[3], os.args[4], os.abs_path(os.args[5])) or { eprintln(err); exit(1) }
   return
  }
- if os.args.len != 5 { eprintln('usage: combined-account-webview-build [--store|--auth|--cache|--descriptions|--protected-storage|--service-query|--direct-boot|--credential-storage|--broadcast-result|--onboarding|--application-restrictions|--auth-exception|--binder-identity|--service-lifecycle|--platform-fragments|--imageview-bounds|--window-system-ui|--bitmap-tiles] BASELINE BASELINE_MANIFEST_SHA256 BASELINE_JAR_SHA256 FRESH_OUTPUT | --self-test'); exit(2) }
+ if os.args.len != 5 { eprintln('usage: combined-account-webview-build [--store|--auth|--cache|--descriptions|--protected-storage|--service-query|--direct-boot|--credential-storage|--broadcast-result|--onboarding|--application-restrictions|--auth-exception|--binder-identity|--service-lifecycle|--platform-fragments|--imageview-bounds|--window-system-ui|--bitmap-tiles|--window-animations] BASELINE BASELINE_MANIFEST_SHA256 BASELINE_JAR_SHA256 FRESH_OUTPUT | --self-test'); exit(2) }
  build(os.abs_path(os.args[1]), os.args[2], os.args[3], os.abs_path(os.args[4])) or { eprintln(err); exit(1) }
 }
