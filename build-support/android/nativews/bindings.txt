@@ -194,7 +194,7 @@ android/view/View|nativeRequestFocus|ws_focus(e,this)
 android/view/View|nativeIsFocused|return u8((&WsView(p0)).focused)
 android/view/View|nativeIsAttachedToWindow|return u8(get_object(e, this, c'android/view/View', c'vinixWindowToken', c'Landroid/os/IBinder;') != nil)
 android/view/View|native_getMatrix|ws_matrix_reset(p1); return 0
-android/view/View|native_get_window|return obj(e,ws.activity,c'android/app/Activity',c'getWindow',c'()Landroid/view/Window;',nil)
+android/view/View|native_get_window|if ws == nil { return nil }; if ws.activity == nil { return nil }; if pending(e) { return nil }; return obj(e,ws.activity,c'android/app/Activity',c'getWindow',c'()Landroid/view/Window;',nil)
 android/view/View|getWindowVisibleDisplayFrame|put_int(e,p0,c'android/graphics/Rect',c'left',0); put_int(e,p0,c'android/graphics/Rect',c'top',0); put_int(e,p0,c'android/graphics/Rect',c'right',ws.width); put_int(e,p0,c'android/graphics/Rect',c'bottom',ws.height)
 android/view/View|nativeSetFullscreen|// Desktop window policy controls fullscreen.
 android/view/View|native_addClass|// CSS style classes do not apply to native widgets.
