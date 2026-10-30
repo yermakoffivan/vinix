@@ -556,6 +556,90 @@ fn seed_account_options_self_test() ! {
  return error('unrelated class change accepted for seed account options')
 }
 
+fn persistent_data_block_profile() NarrowProfile {
+ context := 'android/app/ContextImpl.smali'
+ return NarrowProfile{
+  name: 'persistent-data-block'
+  baseline_name: 'combined-account-webview-seed-account-options-framework-2026-10-30-r1'
+  manifest_pin: '470636b2812f339d58071ba59986282ac5107e5256aa2588dd9305d7ef5b45e9'
+  jar_pin: 'cb2e3fabab652c65351da16770ae98c4113781df0830440b734395bb35b6f265'
+  baseline_classes: 2105
+  providers: ['framework_persistent_data_block.v']
+  calls: {context: 'framework_persistent_data_block_source'}
+  methods: {context: ['getSystemService(Ljava/lang/Class;)Ljava/lang/Object;']}
+  changed: {context: 1}
+  added: {context: 0}
+  class_provider: 'framework_persistent_data_block_classes'
+  extra_classes: ['android/service/persistentdata/PersistentDataBlockManager.smali']
+ }
+}
+
+fn persistent_data_block_abi(target string, source string) ! {
+ if target == 'android/app/ContextImpl.smali' {
+  signature := 'getSystemService(Ljava/lang/Class;)Ljava/lang/Object;'
+  method := store_parts(source)!.methods[signature] or { return error('missing typed service lookup ABI') }
+  if method.all_before('\n').trim_space() != '.method public ' + signature {
+   return error('unexpected typed service lookup ABI')
+  }
+ } else if target == 'android/service/persistentdata/PersistentDataBlockManager.smali' {
+  parts := store_parts(source)!
+  if parts.methods.len != 0 || parts.metadata.split_into_lines().map(it.trim_space()).filter(it != '') != [
+   '.class public Landroid/service/persistentdata/PersistentDataBlockManager;', '.super Ljava/lang/Object;'] {
+   return error('persistent data block type must remain public, nonfinal and memberless')
+  }
+ } else { return error('unexpected persistent data block target') }
+}
+
+fn persistent_data_block_self_test() ! {
+ profile := persistent_data_block_profile()
+ context := 'android/app/ContextImpl.smali'
+ helper := 'android/service/persistentdata/PersistentDataBlockManager.smali'
+ signature := 'getSystemService(Ljava/lang/Class;)Ljava/lang/Object;'
+ if profile.baseline_classes != 2105 || profile.methods != {context: [signature]}
+  || profile.calls != {context: 'framework_persistent_data_block_source'}
+  || profile.changed != {context: 1} || profile.added != {context: 0}
+  || profile.fields.len != 0 || profile.extra_classes != [helper]
+  || profile.providers != ['framework_persistent_data_block.v']
+  || profile.class_provider != 'framework_persistent_data_block_classes' || profile.directory_provider != '' {
+  return error('persistent data block scope requires one changed lookup and one memberless type')
+ }
+ narrow_method_self_test([signature], 1, 0)!
+ method := '.method public ' + signature + '\n.locals 1\nconst/4 v0, 0x0\nreturn-object v0\n.end method\n'
+ persistent_data_block_abi(context, method)!
+ for flags in ['private', 'public static', 'public final', 'public synthetic'] {
+  persistent_data_block_abi(context, method.replace('.method public ', '.method ' + flags + ' ')) or { continue }
+  return error('invalid typed service lookup flags accepted')
+ }
+ empty_class := '.class public Landroid/service/persistentdata/PersistentDataBlockManager;\n.super Ljava/lang/Object;\n'
+ persistent_data_block_abi(helper, empty_class)!
+ for bad in [empty_class.replace('.class public ', '.class public final '),
+  empty_class.replace('.class public ', '.class private '), empty_class.replace('Ljava/lang/Object;', 'Landroid/os/Bundle;'),
+  empty_class + '.field public state:I\n', empty_class + '.implements Ljava/io/Serializable;\n',
+  empty_class + '.method public constructor <init>()V\n.locals 0\nreturn-void\n.end method\n',
+  empty_class + '.method public getDataBlockSize()I\n.locals 1\nconst/4 v0, 0x0\nreturn v0\n.end method\n'] {
+  persistent_data_block_abi(helper, bad) or { continue }
+  return error('persistent data block type acquired unsupported state or behavior')
+ }
+ mut before := {context: 'old'}
+ for i in 0 .. 2104 { before['other/' + i.str() + '.smali'] = 'same' }
+ mut after := before.clone()
+ after[context] = 'new'
+ after[helper] = 'new'
+ narrow_profile_class_delta(before, after, [context], [helper], 2105)!
+ for case in 0 .. 5 {
+  mut bad := after.clone()
+  match case {
+   0 { bad.delete(helper) }
+   1 { bad[context] = 'old' }
+   2 { bad['other/0.smali'] = 'changed' }
+   3 { bad['extra.smali'] = 'new' }
+   else { bad.delete(helper); bad['substitute.smali'] = 'new' }
+  }
+  narrow_profile_class_delta(before, bad, [context], [helper], 2105) or { continue }
+  return error('invalid persistent data block class scope accepted')
+ }
+}
+
 fn window_system_ui_self_test() ! {
  profile := window_system_ui_profile()
  layout := 'android/view/WindowManager$LayoutParams.smali'
@@ -1326,6 +1410,7 @@ fn self_test() ! {
  imageview_bounds_self_test()!
  window_system_ui_self_test()!
  seed_account_options_self_test()!
+ persistent_data_block_self_test()!
  query_profile := service_query_profile()
  narrow_method_self_test(query_profile.methods['android/content/pm/PackageManager.smali']!, 1, 0)!
  boot_profile := direct_boot_profile()
@@ -1596,9 +1681,13 @@ fn build_narrow(profile NarrowProfile, baseline string, manifest_pin string, jar
   }
   if profile.name == 'imageview-bounds' { imageview_bounds_abi(os.read_file(root + '/smali/' + target)!)! }
   if profile.name == 'seed-account-options' { seed_account_options_abi(target, os.read_file(root + '/smali/' + target)!)! }
+  if profile.name == 'persistent-data-block' { persistent_data_block_abi(target, os.read_file(root + '/smali/' + target)!)! }
  }
  if profile.name == 'platform-fragments' {
   for target in profile.extra_classes { platform_fragments_abi(os.read_file(root + '/smali/' + target)!, target)! }
+ }
+ if profile.name == 'persistent-data-block' {
+  for target in profile.extra_classes { persistent_data_block_abi(target, os.read_file(root + '/smali/' + target)!)! }
  }
  command(root, 'assemble', [java, '-Xmx512m', '-XX:ActiveProcessorCount=2', '-cp', classpath.join(':'), 'org.jf.smali.Main', 'assemble', '--jobs', '2', root + '/smali', '-o', root + '/classes.dex'])!
  if !os.is_file(root + '/classes.dex') || os.file_size(root + '/classes.dex') < 112 { return error('store assembly produced no fresh DEX') }
@@ -1618,9 +1707,13 @@ fn build_narrow(profile NarrowProfile, baseline string, manifest_pin string, jar
   }
   if profile.name == 'imageview-bounds' { imageview_bounds_abi(os.read_file(root + '/new-dex/' + target)!)! }
   if profile.name == 'seed-account-options' { seed_account_options_abi(target, os.read_file(root + '/new-dex/' + target)!)! }
+  if profile.name == 'persistent-data-block' { persistent_data_block_abi(target, os.read_file(root + '/new-dex/' + target)!)! }
  }
  if profile.name == 'platform-fragments' {
   for target in profile.extra_classes { platform_fragments_abi(os.read_file(root + '/new-dex/' + target)!, target)! }
+ }
+ if profile.name == 'persistent-data-block' {
+  for target in profile.extra_classes { persistent_data_block_abi(target, os.read_file(root + '/new-dex/' + target)!)! }
  }
  write_json(root + '/framework-dex-before.json', old)!
  write_json(root + '/framework-dex-after.json', new)!
@@ -1894,6 +1987,10 @@ fn main() {
  }
  if os.args.len == 6 && os.args[1] == '--seed-account-options' {
   build_narrow(seed_account_options_profile(), os.abs_path(os.args[2]), os.args[3], os.args[4], os.abs_path(os.args[5])) or { eprintln(err); exit(1) }
+  return
+ }
+ if os.args.len == 6 && os.args[1] == '--persistent-data-block' {
+  build_narrow(persistent_data_block_profile(), os.abs_path(os.args[2]), os.args[3], os.args[4], os.abs_path(os.args[5])) or { eprintln(err); exit(1) }
   return
  }
  if os.args.len == 6 && os.args[1] in ['--store', '--auth', '--cache', '--descriptions', '--protected-storage', '--service-query', '--direct-boot', '--credential-storage', '--broadcast-result', '--onboarding', '--application-restrictions', '--auth-exception', '--binder-identity', '--service-lifecycle', '--platform-fragments', '--imageview-bounds', '--window-system-ui'] {
