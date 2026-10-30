@@ -390,6 +390,35 @@ const bitmap_tiles_generated = '256807c4a8ff63a2e86cd726bf9782ac93ffa1a6b22ca3ed
 const bitmap_tiles_before = '29cf11d5b112e4525cdaf77cd66a83551589f3de19b43f8f2faf67ebb3ca8e2b'
 const bitmap_tiles_raw = 'c743a4258c33fd97aa3f2dc628c040322dc109451005066bb3966bfc93c5caa8'
 const bitmap_tiles_canonical = '82ffe62e6a4460403ebb7c194072750543f414d9c1013c76dd8de1821a70ae68'
+const window_animations_base = '/Users/alex/.local/state/vinix/android/maps-bitmap-tiles-r1'
+const window_animations_base_seal = 'f3e218fe2794477e4728d9fc0a8d160f6dee5e76622b7503e2b3e155788eeeb6'
+const window_animations_boot = 'b29ed174fbc1341b503f4160ee3b5c1112504df7cf1c341152ba39aac102f56f'
+const window_animations_base_overlay = '2db9d319cb1b3364f1453245be65e45f0b37e083ab011bd83587676274e82c9b'
+const window_animations_old_deployment = '907a2dfce7b608cd3b6fd63af58b4409d3252fc9dcae6841a946ec9add4fa41e'
+const window_animations_old_headless = 'c9321b9d3d67d21aa2f71fec236639911dca9a08e8aeba65745e2d16a7f1683b'
+const window_animations_framework = '/Users/alex/.local/state/vinix/android/combined-account-webview-window-animations-framework-2026-10-30-r1'
+const window_animations_seal = '19d67639dce414866deab4c3de57ac8576b5542dff6d58c8b0b78caf066f3e53'
+const window_animations_build = '09f702986f4a71cbfbae3146d996b5c50a48087ee9e2b52bcaaf35158067ef52'
+const window_animations_jar = '255718e8a943f8d3e276f99694c52ed5ec39af86d5d06abef3c9b14d7b9aa197'
+const window_animations_dex = 'b9c402c9b18c8be1104f4aa59e2d76721a4be609e4713a0984e462a8e626b7c0'
+const window_animations_native = '/Users/alex/.local/state/vinix/android/current-native-build-2026-10-30-window-animations-r1'
+const window_animations_native_seal = '6c8df7ccadb79ebe4fb4949b86a37aba177a9573a33f8afa7a8441cfec5af432'
+const window_animations_native_build = 'a5848fedb670b4c88fc5bef04eacca00edbe6e3a7d10981cdca4f1810e1895b6'
+const window_animations_native_pin = 'a1f27a68285dfe6d5cef34ad077bde7537ee41c136fd40d82ad42e14097377ba'
+const window_animations_framework_helper = '9df5ea9974ec629875f09a35212df7f34a20c6552ca9ed1d14736a17874ecc5e'
+const window_animations_provider_helper = 'ee414e021f2eed17c8ee43cf9f806f61e74480f45e6488c5b3808cb076a6a60b'
+const window_animations_before = '2de4d54a1f8496109c6b8d808214855ea211dea06dd46bcc54bb946260547110'
+const window_animations_raw = '7e62a9fb0eb156ec175bfb541d64e840321c07596756b842ca5fa6bbf6dd39ba'
+const window_animations_canonical = '07d3c0eaa7544cbbad30ad4b9cd8dc15b91701e550ed86cc378fa359b83da609'
+const window_animations_activity_before = '8a0bba8b9b2837522a51f18a5f9889c6865f224ce5655577458b3c74690ff54a'
+const window_animations_activity_raw = 'f78108370ef1191e6487c4e0a3a279336401522ce40741792dd1a43ca688a17a'
+const window_animations_activity_canonical = 'c86becf08c6c84b0698cb8f700c96af236f80271683d8b4d3e89a7555e9b8a74'
+const window_animations_dialog_before = '4cc1f00aff50c1f780560b71aca4af12f0bfda7730fdda432834f40006017650'
+const window_animations_dialog_raw = 'e29b5ed4e10c610ad189630dece1d6788a06ada0663027ee14049e32ff3c2f7a'
+const window_animations_dialog_canonical = 'c8d540de367c81da168db8f4f9a6a7a5fdb4e891edab269675d34906ff02c82a'
+const window_animations_callback_before = 'a33394adae723152081f7c61c285bac11bd8303d4928673a4c4d1b6358a26743'
+const window_animations_callback_raw = '5da411461e025fd7509bd35f415888e5aea87df9a1556ad3eb473b09a0b7a3d9'
+const window_animations_callback_canonical = '5da411461e025fd7509bd35f415888e5aea87df9a1556ad3eb473b09a0b7a3d9'
 const source = $embed_file(@FILE).to_string()
 
 struct Profile {
@@ -3317,6 +3346,190 @@ fn bitmap_tiles_baseline(receipt map[string]json2.Any, stage Stage) !string {
 	return bitmap_tiles_base + '/boot.img'
 }
 
+fn window_animations_profile() Profile {
+	mut modules := bitmap_tiles_profile().modules.clone()
+	modules << 'maps-bitmap-tiles.tar'
+	return Profile{'maps-window-animations', window_animations_boot, 'maps-window-animations.tar', modules}
+}
+fn window_animations_modules() map[string]string {
+	mut modules := bitmap_tiles_modules()
+	modules['maps-bitmap-tiles.tar'] = window_animations_base_overlay
+	return modules
+}
+fn window_animations_fields() map[string]string {
+	mut fields := bitmap_tiles_fields()
+	fields['kind'] = 'vinix-maps-window-animations-v1'
+	fields['base_root'] = window_animations_base
+	fields['base_manifest_sha256'] = window_animations_base_seal
+	fields['framework_build_root'] = window_animations_framework
+	fields['framework_manifest_sha256'] = window_animations_seal
+	fields['framework_jar_sha256'] = window_animations_jar
+	fields['framework_dex_sha256'] = window_animations_dex
+	fields['retained_framework_manifest_sha256'] = bitmap_tiles_seal
+	fields['native_compatibility_framework_manifest_sha256'] = bitmap_tiles_seal
+	fields['native_build_root'] = window_animations_native
+	fields['native_manifest_sha256'] = window_animations_native_seal
+	fields['native_build_sha256'] = window_animations_native_build
+	fields['native_sha256'] = window_animations_native_pin
+	fields['retained_native_manifest_sha256'] = bitmap_tiles_native_seal
+	fields['native_framework_manifest_sha256'] = window_animations_seal
+	fields['generated_jni_sha256'] = bitmap_tiles_generated
+	return fields
+}
+fn window_animations_inputs() map[string]string {
+	mut inputs := bitmap_tiles_inputs()
+	inputs[window_animations_base + '/sha256.json'] = window_animations_base_seal
+	inputs[window_animations_framework + '/sha256.json'] = window_animations_seal
+	inputs[window_animations_native + '/sha256.json'] = window_animations_native_seal
+	for path, pin in window_animations_relink_inputs() { inputs[path] = pin }
+	return inputs
+}
+fn window_animations_relink_root() string {
+	return '/Users/alex/.local/state/vinix/android/window-animations-prefix-map-proof-2026-10-30-r1'
+}
+fn window_animations_relink_files() map[string]string {
+	return {'compile.guard.json': 'e53d125527330a21fe4f52ccc9a788621fcc1c58e9002f909f1bb1dcf3a85433',
+		'compile.log': '7388071829dedc86cc2c4df62724e8c1859fd184302db4849efee7ac3606e4be',
+		'original-build-native.json': '80e511372dd5e55a012e19c25ad6b700d46573abd2fdcd93b1d68b6515c8ab5e',
+		'input-pins.sha256': '536d12820d1ab3456ca021617f02388e372e6a85d706aff6618eb09c8872a712',
+		'out/canonical.so': bitmap_tiles_native_pin}
+}
+fn window_animations_relink_inputs() map[string]string {
+	mut inputs := map[string]string{}
+	for name, pin in window_animations_relink_files() { inputs[window_animations_relink_root() + '/' + name] = pin }
+	return inputs
+}
+fn window_animations_relink_description() map[string]json2.Any {
+	mut files := map[string]json2.Any{}
+	for name, pin in window_animations_relink_files() { files[name] = json2.Any(pin) }
+	return {'root': json2.Any(window_animations_relink_root()), 'files_sha256': json2.Any(files),
+		'input_entry_count': json2.Any(5), 'canonical_dso_sha256': json2.Any(bitmap_tiles_native_pin),
+		'deployed_dso_sha256': json2.Any(window_animations_native_pin)}
+}
+fn window_animations_known_delta() map[string]string {
+	mut delta := {'/' + service_query_jar_path: window_animations_jar,
+		'/' + service_query_dex_path: window_animations_dex,
+		'/' + native_onboarding_trace_path: window_animations_native_pin,
+		'/' + service_query_headless + '/framework-build.json': window_animations_build,
+		'/' + service_query_headless + '/framework-sha256.json': window_animations_seal}
+	if window_animations_native_pin == bitmap_tiles_native_pin { delta.delete('/' + native_onboarding_trace_path) }
+	return delta
+}
+fn window_animations_proofs() map[string]string {
+	return {
+		'headless_input_delta': json2.encode({'/' + service_query_jar_path: window_animations_jar})
+		'headless_top_level_delta': json2.encode(['inputs_sha256'])
+		'deployment_top_level_delta': json2.encode(['inputs_sha256', 'framework_manifest_sha256', 'native_manifest_sha256'])
+		'framework_class_count': json2.encode(2106)
+		'framework_source_delta': json2.encode({
+			'smali/android/view/Window.smali': window_animations_raw,
+			'smali/android/view/Window$Callback.smali': window_animations_callback_raw,
+			'smali/android/app/Activity.smali': window_animations_activity_raw,
+			'smali/android/app/Dialog.smali': window_animations_dialog_raw})
+		'framework_canonical_delta': json2.encode({
+			'new-dex/android/view/Window.smali': window_animations_canonical,
+			'new-dex/android/view/Window$Callback.smali': window_animations_callback_canonical,
+			'new-dex/android/app/Activity.smali': window_animations_activity_canonical,
+			'new-dex/android/app/Dialog.smali': window_animations_dialog_canonical})
+		'native_source_delta': json2.encode(map[string]string{})
+		'native_builder_helper_delta': json2.encode({'tests/native-android-tools/androidtools/framework.v': window_animations_framework_helper,
+			'tests/native-android-tools/androidtools/framework_window_animations.v': window_animations_provider_helper})
+		'native_relink_proof': json2.encode(window_animations_relink_description())
+		'native_bindings_delta': json2.encode(map[string][]string{})
+		'native_generated_jni_delta': json2.encode(map[string][]string{})
+		'native_consumed_class_count': json2.encode(69)
+		'native_consumed_raw_delta': json2.encode({
+			'smali/android/view/Window.smali': [window_animations_before, window_animations_raw],
+			'smali/android/app/Activity.smali': [window_animations_activity_before, window_animations_activity_raw],
+			'smali/android/app/Dialog.smali': [window_animations_dialog_before, window_animations_dialog_raw],
+			'smali/android/graphics/drawable/BitmapDrawable.smali': [bitmap_tiles_raw, bitmap_tiles_canonical]})
+		'native_consumed_canonical_delta': json2.encode({
+			'android/view/Window.smali': [window_animations_before, window_animations_canonical],
+			'android/app/Activity.smali': [window_animations_activity_before, window_animations_activity_canonical],
+			'android/app/Dialog.smali': [window_animations_dialog_before, window_animations_dialog_canonical]})
+		'native_consumed_raw_additions': json2.encode(map[string]string{})
+		'native_consumed_canonical_additions': json2.encode(map[string]string{})
+	}
+}
+fn verify_window_animations_overlay(receipt map[string]json2.Any) ! {
+	if 'deployment_input_additions' in receipt || 'deployment_top_level_additions' in receipt {
+		return error('window animations changes existing framework/native inputs only')
+	}
+	delta := json2.decode[map[string]string](json2.encode(receipt['deployment_input_delta'] or { return error('window animations deployment delta absent') }))!
+	mut expected := window_animations_known_delta()
+	guest := '/' + service_query_headless + '/guest-inputs.json'
+	guest_pin := delta[guest] or { return error('window animations headless pin absent') }
+	if !digest_valid(guest_pin) || guest_pin == window_animations_old_headless { return error('new window animations headless receipt required') }
+	expected[guest] = guest_pin
+	if delta != expected { return error('window animations exact deployment input changes differ') }
+	entries := json2.decode[[]ServiceQueryEntry](json2.encode(receipt['overlay_inventory'] or { return error('window animations overlay inventory absent') }))!
+	paths := bitmap_tiles_overlay_paths()
+	mut regulars := map[string]string{}
+	mut seen := map[string]bool{}
+	for entry in entries {
+		if entry.name in seen || !relative(entry.name) || entry.mode & 0o7022 != 0 { return error('unsafe window animations overlay inode') }
+		seen[entry.name] = true
+		if entry.kind == 'regular' {
+			mode := if entry.name == native_onboarding_trace_path { u32(0o755) } else { u32(0o644) }
+			if entry.name !in paths || !digest_valid(entry.sha256) || entry.mode != mode { return error('window animations regular allowlist or mode differs') }
+			regulars[entry.name] = entry.sha256
+		} else if entry.kind != 'directory' || entry.mode != 0o755 || !paths.any(it.starts_with(entry.name + '/')) {
+			return error('unexpected window animations overlay inode')
+		}
+	}
+	if regulars.len != 7 || regulars[service_query_deployment] or { '' } == window_animations_old_deployment { return error('exact seven window animations files required') }
+	if regulars[native_onboarding_trace_path] or { '' } != window_animations_native_pin { return error('window animations coupled native DSO differs') }
+	for path, pin in expected { if regulars[path.trim_left('/')] or { '' } != pin { return error('window animations input differs from inventory') } }
+}
+fn verify_window_animations_receipt(receipt map[string]json2.Any, stage Stage) ! {
+	for pin in [window_animations_base_seal, window_animations_boot, window_animations_base_overlay,
+		window_animations_old_deployment, window_animations_old_headless, window_animations_seal,
+		window_animations_build, window_animations_jar, window_animations_dex, window_animations_native_seal,
+		window_animations_native_build, window_animations_native_pin, window_animations_framework_helper,
+		window_animations_provider_helper, window_animations_before, window_animations_raw, window_animations_canonical,
+		window_animations_activity_before, window_animations_activity_raw, window_animations_activity_canonical,
+		window_animations_dialog_before, window_animations_dialog_raw, window_animations_dialog_canonical,
+		window_animations_callback_before, window_animations_callback_raw, window_animations_callback_canonical] {
+		if !digest_valid(pin) { return error('completed window animations framework/native producers required') }
+	}
+	if window_animations_seal == bitmap_tiles_seal || window_animations_jar == bitmap_tiles_jar
+		|| window_animations_dex == bitmap_tiles_dex || window_animations_native_seal == bitmap_tiles_native_seal
+		|| window_animations_canonical == window_animations_before || window_animations_activity_canonical == window_animations_activity_before
+		|| window_animations_dialog_canonical == window_animations_dialog_before || window_animations_callback_canonical == window_animations_callback_before {
+		return error('new window animations framework and coupled native receipt required')
+	}
+	for name, expected in window_animations_fields() {
+		if receipt[name] or { json2.Any('absent') } != json2.Any(expected) { return error('window animations receipt differs: ' + name) }
+	}
+	for name, expected in window_animations_proofs() {
+		if receipt[name] or { json2.Any('absent') } != json2.decode[json2.Any](expected)! { return error('window animations proof differs: ' + name) }
+	}
+	mut seals := map[string]string{}
+	for path, pin in stage.inputs_sha256 { if path.ends_with('/sha256.json') { seals[path] = pin } }
+	expected_inputs := window_animations_inputs()
+	mut expected_seals := map[string]string{}
+	for path, pin in expected_inputs { if path.ends_with('/sha256.json') { expected_seals[path] = pin } }
+	if seals.len != 79 || seals != expected_seals { return error('window animations exact seventy-nine dependency seals differ') }
+	mut relink := map[string]string{}
+	for path, pin in stage.inputs_sha256 {
+		if path == window_animations_relink_root() || path.starts_with(window_animations_relink_root() + '/') { relink[path] = pin }
+	}
+	if relink != window_animations_relink_inputs() { return error('window animations exact five relink proof inputs differ') }
+	if stage.format != 1 || stage.original_modules_sha256 != window_animations_modules()
+		|| stage.preserved_modules_sha256 != window_animations_modules() { return error('window animations original thirty-three modules differ') }
+	verify_window_animations_overlay(receipt)!
+}
+fn window_animations_baseline(receipt map[string]json2.Any, stage Stage) !string {
+	verify_window_animations_receipt(receipt, stage)!
+	path := window_animations_base + '/sha256.json'
+	regular(path)!
+	if os.lstat(path)!.size > 8 * 1024 * 1024 || hash(path)! != window_animations_base_seal { return error('window animations original bitmap manifest differs') }
+	pins := json2.decode[map[string]string](os.read_file(path)!)!
+	if pins['boot.img'] or { '' } != window_animations_boot
+		|| pins['maps-bitmap-tiles.tar'] or { '' } != window_animations_base_overlay { return error('window animations original boot or bitmap overlay differs') }
+	return window_animations_base + '/boot.img'
+}
+
 fn service_query_modules() map[string]string {
 	mut modules := controller_modules()
 	modules['maps-controller-diagnostic.tar'] = 'bef5f25859e77a9671a6a144ccb56891da5ed2f7b4324a93a96da7fdcab1987a'
@@ -3935,6 +4148,8 @@ fn patch(root string, build_root string, receipt_sha string, profile Profile) ! 
 		baseline = persistent_data_block_baseline(stage_map, stage)!
 	} else if profile.name == 'maps-bitmap-tiles' {
 		baseline = bitmap_tiles_baseline(stage_map, stage)!
+	} else if profile.name == 'maps-window-animations' {
+		baseline = window_animations_baseline(stage_map, stage)!
 	} else {
 		for path, expected in stage.inputs_sha256 {
 			if os.file_name(path) == 'boot.img' && expected == baseline_pin {
@@ -7438,6 +7653,197 @@ fn bitmap_tiles_profile_self_test() ! {
 	println('MAPS-BITMAP-TILES KERNEL-PROFILE-SELF-TEST PASS seven files exact framework/native receipt replacements seventy-six seals thirty-two inherited modules one bitmap sampling bridge and historical rejection')
 }
 
+fn window_animations_entries_fixture() []ServiceQueryEntry {
+	mut entries := bitmap_tiles_entries_fixture()
+	mut pins := window_animations_known_delta()
+	pins['/' + native_onboarding_trace_path] = window_animations_native_pin
+	pins['/' + service_query_headless + '/guest-inputs.json'] = 'c'.repeat(64)
+	pins['/' + service_query_deployment] = 'd'.repeat(64)
+	for index, entry in entries {
+		if entry.kind == 'regular' { entries[index] = ServiceQueryEntry{...entry, sha256: pins['/' + entry.name]!} }
+	}
+	return entries
+}
+fn window_animations_receipt_fixture() !map[string]json2.Any {
+	mut receipt := map[string]json2.Any{}
+	for name, value in window_animations_fields() { receipt[name] = json2.Any(value) }
+	for name, value in window_animations_proofs() { receipt[name] = json2.decode[json2.Any](value)! }
+	mut delta := window_animations_known_delta()
+	delta['/' + service_query_headless + '/guest-inputs.json'] = 'c'.repeat(64)
+	receipt['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(delta))!
+	receipt['overlay_inventory'] = json2.decode[json2.Any](json2.encode(window_animations_entries_fixture()))!
+	return receipt
+}
+fn window_animations_profile_self_test() ! {
+	profile := window_animations_profile()
+	if profile.baseline_sha != window_animations_boot || profile.modules.len != 33
+		|| profile.modules.last() != 'maps-bitmap-tiles.tar' || window_animations_inputs().len != 84 {
+		return error('window animations strict profile differs')
+	}
+	mut final_modules := profile.modules.clone()
+	final_modules << profile.overlay
+	if final_modules.len != 34 || bitmap_tiles_overlay_paths().len != 7
+		|| window_animations_known_delta().len != (if window_animations_native_pin == bitmap_tiles_native_pin { 4 } else { 5 }) {
+		return error('window animations module, payload or actual input change count differs')
+	}
+	verify_modules(profile, Config{'vinix', profile.modules}, Config{'vinix', final_modules})!
+	for bad in [Config{'vinix', profile.modules}, Config{'vinix', final_modules.reverse()}, Config{'other', final_modules}] {
+		if _ := verify_modules(profile, Config{'vinix', profile.modules}, bad) { return error('wrong window animations module order accepted') }
+	}
+	stage := Stage{format: 1, inputs_sha256: window_animations_inputs(), original_modules_sha256: window_animations_modules(), preserved_modules_sha256: window_animations_modules()}
+	receipt := window_animations_receipt_fixture()!
+	verify_window_animations_receipt(receipt, stage)!
+	mut fields := window_animations_fields().keys()
+	fields << window_animations_proofs().keys()
+	fields << ['deployment_input_delta', 'overlay_inventory']
+	for field in fields {
+		mut bad := window_animations_receipt_fixture()!
+		bad[field] = json2.Any('changed')
+		if _ := verify_window_animations_receipt(bad, stage) { return error('changed window animations field/proof accepted') }
+		bad.delete(field)
+		if _ := verify_window_animations_receipt(bad, stage) { return error('missing window animations field/proof accepted') }
+	}
+	for proof in ['native_builder_helper_delta', 'framework_source_delta', 'framework_canonical_delta',
+		'native_source_delta', 'native_bindings_delta', 'native_generated_jni_delta',
+		'native_consumed_raw_delta', 'native_consumed_canonical_delta', 'native_consumed_raw_additions',
+		'native_consumed_canonical_additions', 'headless_input_delta', 'native_relink_proof'] {
+		original := json2.decode[map[string]json2.Any](json2.encode(receipt[proof]!))!
+		for path in original.keys() {
+			mut changed := json2.decode[map[string]json2.Any](json2.encode(original))!
+			changed[path] = json2.Any('0'.repeat(64))
+			mut bad := window_animations_receipt_fixture()!
+			bad[proof] = json2.Any(changed)
+			if _ := verify_window_animations_receipt(bad, stage) { return error('changed window animations proof map member accepted') }
+			changed.delete(path)
+			bad[proof] = json2.Any(changed)
+			if _ := verify_window_animations_receipt(bad, stage) { return error('missing window animations proof map member accepted') }
+		}
+		mut extra := json2.decode[map[string]json2.Any](json2.encode(original))!
+		extra['unreviewed'] = json2.Any('a'.repeat(64))
+		mut bad := window_animations_receipt_fixture()!
+		bad[proof] = json2.Any(extra)
+		if _ := verify_window_animations_receipt(bad, stage) { return error('extra window animations proof map member accepted') }
+	}
+	for path in window_animations_relink_files().keys() {
+		mut changed := window_animations_relink_files()
+		changed[path] = '0'.repeat(64)
+		for remove in [false, true] {
+			if remove { changed.delete(path) }
+			mut description := window_animations_relink_description()
+			description['files_sha256'] = json2.decode[json2.Any](json2.encode(changed))!
+			mut bad := window_animations_receipt_fixture()!
+			bad['native_relink_proof'] = json2.Any(description)
+			if _ := verify_window_animations_receipt(bad, stage) { return error('changed relink proof receipt leaf accepted') }
+		}
+	}
+	mut extra_relink := window_animations_inputs()
+	extra_relink[window_animations_relink_root() + '/unreviewed'] = 'a'.repeat(64)
+	if _ := verify_window_animations_receipt(receipt, Stage{...stage, inputs_sha256: extra_relink}) { return error('extra relink proof input accepted') }
+	for proof in ['native_consumed_raw_delta', 'native_consumed_canonical_delta'] {
+		original := json2.decode[map[string][]string](json2.encode(receipt[proof]!))!
+		for path, pair in original {
+			for index in 0 .. 2 {
+				mut changed := pair.clone()
+				changed[index] = '0'.repeat(64)
+				mut bad_map := json2.decode[map[string][]string](json2.encode(original))!
+				bad_map[path] = changed
+				mut bad := window_animations_receipt_fixture()!
+				bad[proof] = json2.decode[json2.Any](json2.encode(bad_map))!
+				if _ := verify_window_animations_receipt(bad, stage) { return error('changed window animations before/after proof accepted') }
+			}
+		}
+	}
+	for path in stage.inputs_sha256.keys() {
+		mut pins := window_animations_inputs()
+		pins[path] = '0'.repeat(64)
+		if _ := verify_window_animations_receipt(receipt, Stage{...stage, inputs_sha256: pins}) { return error('changed window animations dependency accepted') }
+		pins.delete(path)
+		if _ := verify_window_animations_receipt(receipt, Stage{...stage, inputs_sha256: pins}) { return error('missing window animations dependency accepted') }
+	}
+	mut extra_inputs := window_animations_inputs()
+	extra_inputs['/unreviewed/sha256.json'] = 'a'.repeat(64)
+	if _ := verify_window_animations_receipt(receipt, Stage{...stage, inputs_sha256: extra_inputs}) { return error('extra window animations dependency accepted') }
+	for bad in [Stage{...stage, format: 0}, Stage{...stage, original_modules_sha256: bitmap_tiles_modules()}, Stage{...stage, preserved_modules_sha256: bitmap_tiles_modules()}] {
+		if _ := verify_window_animations_receipt(receipt, bad) { return error('wrong window animations module inventory accepted') }
+	}
+	for addition in ['deployment_input_additions', 'deployment_top_level_additions'] {
+		mut bad := window_animations_receipt_fixture()!
+		bad[addition] = json2.Any(map[string]json2.Any{})
+		if _ := verify_window_animations_receipt(bad, stage) { return error('window animations deployment addition accepted') }
+	}
+	delta := json2.decode[map[string]string](json2.encode(receipt['deployment_input_delta']!))!
+	for path in delta.keys() {
+		mut incomplete := delta.clone()
+		incomplete.delete(path)
+		mut bad := window_animations_receipt_fixture()!
+		bad['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(incomplete))!
+		if _ := verify_window_animations_receipt(bad, stage) { return error('missing window animations deployment change accepted') }
+	}
+	for path, pin in {'/opt/vinix-maps-account/bin/maps-account-guest': seed_companion_controller_pin,
+		'/' + account_handoff_broker_path: broker_tail_broker_pin, '/' + seed_companion_vending_path: seed_companion_vending_pin} {
+		mut changed := delta.clone()
+		changed[path] = pin
+		mut bad := window_animations_receipt_fixture()!
+		bad['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(changed))!
+		if _ := verify_window_animations_receipt(bad, stage) { return error('unrelated window animations deployment input change accepted') }
+	}
+	entries := window_animations_entries_fixture()
+	mut stale_delta := delta.clone()
+	stale_delta['/' + service_query_headless + '/guest-inputs.json'] = window_animations_old_headless
+	mut stale_entries := entries.clone()
+	for index, entry in stale_entries {
+		if entry.name == service_query_headless + '/guest-inputs.json' { stale_entries[index] = ServiceQueryEntry{...entry, sha256: window_animations_old_headless} }
+	}
+	mut stale := window_animations_receipt_fixture()!
+	stale['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(stale_delta))!
+	stale['overlay_inventory'] = json2.decode[json2.Any](json2.encode(stale_entries))!
+	if _ := verify_window_animations_receipt(stale, stage) { return error('stale window animations headless receipt accepted') }
+	for index, entry in entries {
+		for changed in [ServiceQueryEntry{...entry, name: '../escape'}, ServiceQueryEntry{...entry, kind: 'symlink'},
+			ServiceQueryEntry{...entry, mode: 0o777}, ServiceQueryEntry{...entry, mode: 0o4755}] {
+			mut bad_entries := entries.clone()
+			bad_entries[index] = changed
+			mut bad := window_animations_receipt_fixture()!
+			bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(bad_entries))!
+			if _ := verify_window_animations_receipt(bad, stage) { return error('unsafe window animations inode accepted') }
+		}
+		if entry.kind == 'regular' {
+			mut bad_entries := entries.clone()
+			bad_entries.delete(index)
+			mut bad := window_animations_receipt_fixture()!
+			bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(bad_entries))!
+			if _ := verify_window_animations_receipt(bad, stage) { return error('missing window animations file accepted') }
+			if entry.name != service_query_deployment {
+				mut corrupt := entries.clone()
+				corrupt[index] = ServiceQueryEntry{...entry, sha256: '0'.repeat(64)}
+				bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(corrupt))!
+				if _ := verify_window_animations_receipt(bad, stage) { return error('changed window animations overlay hash accepted') }
+			}
+		}
+	}
+	for extra in [entries.last(), ServiceQueryEntry{name: seed_companion_vending_path, kind: 'regular', mode: 0o644, sha256: seed_companion_vending_pin}] {
+		mut bad_entries := entries.clone()
+		bad_entries << extra
+		mut bad := window_animations_receipt_fixture()!
+		bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(bad_entries))!
+		if _ := verify_window_animations_receipt(bad, stage) { return error('extra or duplicated window animations overlay file accepted') }
+	}
+	if window_animations_native_pin == bitmap_tiles_native_pin {
+		mut unchanged := delta.clone()
+		unchanged['/' + native_onboarding_trace_path] = window_animations_native_pin
+		mut bad := window_animations_receipt_fixture()!
+		bad['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(unchanged))!
+		if _ := verify_window_animations_receipt(bad, stage) { return error('unchanged window animations DSO declared changed') }
+	}
+	for old in [bitmap_tiles_receipt_fixture()!, persistent_data_block_receipt_fixture()!, seed_companion_receipt_fixture()!] {
+		if _ := verify_window_animations_receipt(old, stage) { return error('historical receipt accepted by window animations profile') }
+	}
+	if _ := verify_bitmap_tiles_receipt(receipt, stage) { return error('window animations receipt accepted by bitmap profile') }
+	if _ := verify_persistent_data_block_receipt(receipt, stage) { return error('window animations receipt accepted by persistent data profile') }
+	if _ := verify_seed_companion_receipt(receipt, stage) { return error('window animations receipt accepted by seed companion profile') }
+	println('MAPS-WINDOW-ANIMATIONS KERNEL-PROFILE-SELF-TEST PASS seven files exact framework/native receipt replacements seventy-nine seals thirty-three inherited modules preserved native code and historical rejection')
+}
+
 fn self_test() ! {
 	protected_profile_self_test()!
 	controller_profile_self_test()!
@@ -7465,6 +7871,7 @@ fn self_test() ! {
 	seed_companion_profile_self_test()!
 	persistent_data_block_profile_self_test()!
 	bitmap_tiles_profile_self_test()!
+	window_animations_profile_self_test()!
 	maps := maps_profile()
 	before := Config{'vinix', maps.modules}
 	mut modules := maps.modules.clone()
@@ -7536,6 +7943,7 @@ fn self_test() ! {
 	fat_self_test(root + '/account-handoff', 'maps-account-handoff.tar', account_handoff_profile().modules)!
 	fat_self_test(root + '/persistent-data-block', 'maps-persistent-data-block.tar', persistent_data_block_profile().modules)!
 	fat_self_test(root + '/bitmap-tiles', 'maps-bitmap-tiles.tar', bitmap_tiles_profile().modules)!
+	fat_self_test(root + '/window-animations', 'maps-window-animations.tar', window_animations_profile().modules)!
 	println('BROWSER-KERNEL-PATCH SELF-TEST PASS configuration inventory digest symlink launched-stage guards')
 }
 
@@ -7574,9 +7982,10 @@ fn main() {
 	is_seed_companion := os.args.len == 5 && os.args[1] == '--maps-seed-account-companion'
 	is_persistent_data_block := os.args.len == 5 && os.args[1] == '--maps-persistent-data-block'
 	is_bitmap_tiles := os.args.len == 5 && os.args[1] == '--maps-bitmap-tiles'
-	is_selected := is_maps || is_protected || is_controller || is_service_query || is_controller_memory || is_direct_boot || is_context_storage || is_broadcast_result || is_onboarding_trace || is_native_onboarding_trace || is_onboarding_framework || is_native_heartbeat || is_browser_poll || is_account_pump || is_application_restrictions || is_account_handoff || is_auth_exception || is_auth_worker || is_binder_identity || is_service_lifecycle || is_platform_fragments || is_imageview_bounds || is_window_system_ui || is_broker_tail || is_seed_companion || is_persistent_data_block || is_bitmap_tiles
+	is_window_animations := os.args.len == 5 && os.args[1] == '--maps-window-animations'
+	is_selected := is_maps || is_protected || is_controller || is_service_query || is_controller_memory || is_direct_boot || is_context_storage || is_broadcast_result || is_onboarding_trace || is_native_onboarding_trace || is_onboarding_framework || is_native_heartbeat || is_browser_poll || is_account_pump || is_application_restrictions || is_account_handoff || is_auth_exception || is_auth_worker || is_binder_identity || is_service_lifecycle || is_platform_fragments || is_imageview_bounds || is_window_system_ui || is_broker_tail || is_seed_companion || is_persistent_data_block || is_bitmap_tiles || is_window_animations
 	if os.args.len != 4 && !is_selected {
-		eprintln('usage: patch-kernel [--maps-account|--protected-storage-maps|--maps-controller|--maps-service-query|--maps-controller-memory|--maps-direct-boot|--maps-context-storage|--maps-broadcast-result|--maps-onboarding-trace|--maps-native-onboarding-trace|--maps-onboarding-framework|--maps-native-heartbeat|--maps-browser-poll|--maps-account-pump|--maps-application-restrictions|--maps-account-handoff|--maps-auth-exception|--maps-auth-worker|--maps-binder-identity|--maps-service-lifecycle|--maps-platform-fragments|--maps-imageview-bounds|--maps-window-system-ui|--maps-broker-tail|--maps-seed-account-companion|--maps-persistent-data-block|--maps-bitmap-tiles] FRESH_STAGE FROZEN_KERNEL_BUILD BUILD_JSON_SHA256')
+		eprintln('usage: patch-kernel [--maps-account|--protected-storage-maps|--maps-controller|--maps-service-query|--maps-controller-memory|--maps-direct-boot|--maps-context-storage|--maps-broadcast-result|--maps-onboarding-trace|--maps-native-onboarding-trace|--maps-onboarding-framework|--maps-native-heartbeat|--maps-browser-poll|--maps-account-pump|--maps-application-restrictions|--maps-account-handoff|--maps-auth-exception|--maps-auth-worker|--maps-binder-identity|--maps-service-lifecycle|--maps-platform-fragments|--maps-imageview-bounds|--maps-window-system-ui|--maps-broker-tail|--maps-seed-account-companion|--maps-persistent-data-block|--maps-bitmap-tiles|--maps-window-animations] FRESH_STAGE FROZEN_KERNEL_BUILD BUILD_JSON_SHA256')
 		exit(2)
 	}
 	offset := if is_selected { 1 } else { 0 }
@@ -7589,7 +7998,7 @@ fn main() {
 		exit(1)
 	}
 	profile := if is_seed_companion { seed_companion_profile() } else if is_broker_tail { broker_tail_profile() } else if is_window_system_ui { window_system_ui_profile() } else if is_imageview_bounds { imageview_bounds_profile() } else if is_platform_fragments { platform_fragments_profile() } else if is_service_lifecycle { service_lifecycle_profile() } else if is_binder_identity { binder_identity_profile() } else if is_auth_worker { auth_worker_profile() } else if is_auth_exception { auth_exception_profile() } else if is_account_handoff { account_handoff_profile() } else if is_application_restrictions { application_restrictions_profile() } else if is_account_pump { account_pump_profile() } else if is_browser_poll { browser_poll_profile() } else if is_native_heartbeat { native_heartbeat_profile() } else if is_onboarding_framework { onboarding_framework_profile() } else if is_native_onboarding_trace { native_onboarding_trace_profile() } else if is_onboarding_trace { onboarding_trace_profile() } else if is_broadcast_result { broadcast_result_profile() } else if is_context_storage { context_storage_profile() } else if is_direct_boot { direct_boot_profile() } else if is_controller_memory { controller_memory_profile() } else if is_service_query { service_query_profile() } else if is_controller { controller_profile() } else if is_protected { protected_maps_profile() } else if is_maps { maps_profile() } else { browser_profile() }
-	selected_profile := if is_bitmap_tiles { bitmap_tiles_profile() } else if is_persistent_data_block { persistent_data_block_profile() } else { profile }
+	selected_profile := if is_window_animations { window_animations_profile() } else if is_bitmap_tiles { bitmap_tiles_profile() } else if is_persistent_data_block { persistent_data_block_profile() } else { profile }
 	patch(root, build_root, os.args[3 + offset], selected_profile) or {
 		eprintln(err)
 		exit(1)
