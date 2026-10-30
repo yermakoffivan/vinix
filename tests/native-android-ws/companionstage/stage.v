@@ -16,7 +16,20 @@ fn C.lseek(i32, i64, i32) i64
 fn C.rename(&char, &char) i32
 
 const gms_package = 'com.google.android.gms'
+const vending_package = 'com.android.vending'
 const file_limit = u64(512) * 1024 * 1024
+
+enum SelectedPackage {
+	gms
+	vending
+}
+
+fn selected_name(selected SelectedPackage) string {
+	return match selected {
+		.gms { gms_package }
+		.vending { vending_package }
+	}
+}
 
 pub struct Config {
 pub:
@@ -64,6 +77,12 @@ mut:
 struct Work {
 mut:
 	objects []Owned
+}
+
+struct Admission {
+	source Object
+	data Object
+	fd int
 }
 
 fn canonical(path string) bool {
@@ -141,6 +160,50 @@ fn make_directory(mut work Work, path string, uid u32, gid u32) ! {
 	if !st.directory || st.uid != uid || st.gid != gid || st.mode != 0o700 {
 		return error('companion directory owner or mode differs')
 	}
+}
+
+fn ensure_owned_catalog(mut work Work, path string, uid u32, gid u32) ! {
+	if !os.exists(path) && !os.is_link(path) {
+		make_directory(mut work, path, uid, gid)!
+		return
+	}
+	current := object(path)!
+	if !current.directory || current.uid != uid || current.gid != gid || current.mode != 0o700 {
+		return error('companion shared catalog protection differs')
+	}
+	mut owned := false
+	for item in work.objects {
+		if item.active && item.path == path && same_inode(current, item.object) { owned = true }
+	}
+	if !owned { return error('companion shared catalog is not owned by this batch') }
+	for name in os.ls(path)! {
+		child := path + '/' + name
+		entry := object(child)!
+		mut admitted := false
+		for item in work.objects {
+			if item.active && item.path == child && same_inode(entry, item.object) { admitted = true }
+		}
+		if !admitted || entry.directory || entry.nlink != 1 || entry.uid != uid ||
+			entry.gid != gid || entry.mode != 0o400 ||
+			name !in [gms_package + '.apk', vending_package + '.apk'] {
+			return error('companion shared catalog entry differs')
+		}
+	}
+}
+
+// Removing the first private cache releases ledger capacity before the second
+// package. Retaining creation order keeps parents before their later children.
+fn prune_removed(mut work Work) {
+	mut retained := []Owned{cap: 1024}
+	retained.flags |= .noslices
+	for item in work.objects {
+		// Appending derives an independent copy of Owned.path. Release every
+		// old path after that copy, including paths retained as active entries.
+		if item.active { retained << item }
+		unsafe { item.path.free() }
+	}
+	unsafe { work.objects.free() }
+	work.objects = retained
 }
 
 // Only remove exact inodes created by this attempt, children before parents.
@@ -275,7 +338,7 @@ fn copy_regular(mut work Work, source string, expected Object, pin string,
 	if object(destination)! != actual { return error('companion copy path changed') }
 }
 
-fn stage_inner(config Config, mut work Work) !Record {
+fn admit(config Config, selected SelectedPackage) !Admission {
 	for path in [config.source, config.data, config.scratch] { parents(path, config.source_owner)! }
 	if config.sha256.len != 64 || !config.sha256.bytes().all((it >= `0` && it <= `9`) || (it >= `a` && it <= `f`)) ||
 		config.scratch == config.data || config.scratch.starts_with(config.data + '/') ||
@@ -293,11 +356,34 @@ fn stage_inner(config Config, mut work Work) !Record {
 		return error('companion data root owner or mode differs')
 	}
 	catalog := config.data + '/_installed_apks_'
-	package := config.data + '/' + gms_package + '_'
-	pending := config.data + '/.' + gms_package + '_.pending'
+	name := selected_name(selected)
+	package := config.data + '/' + name + '_'
+	pending := config.data + '/.' + name + '_.pending'
 	for path in [catalog, package, pending, config.scratch] { absent(path)! }
 	fd := open_regular(config.source, source)!
-	defer { C.close(fd) }
+	mut accepted := false
+	defer { if !accepted { C.close(fd) } }
+	verify_digest(fd, config.sha256)!
+	if fd_object(fd)! != source || object(config.source)! != source {
+		return error('companion source changed during admission')
+	}
+	accepted = true
+	return Admission{source, data, fd}
+}
+
+fn stage_inner(config Config, selected SelectedPackage, admission Admission, mut work Work) !Record {
+	source := admission.source
+	data := admission.data
+	fd := admission.fd
+	name := selected_name(selected)
+	catalog := config.data + '/_installed_apks_'
+	package := config.data + '/' + name + '_'
+	pending := config.data + '/.' + name + '_.pending'
+	for path in [package, pending, config.scratch] { absent(path)! }
+	if fd_object(fd)! != source || object(config.source)! != source {
+		return error('companion admitted source changed before staging')
+	}
+	data_unchanged(config.data, data)!
 	verify_digest(fd, config.sha256)!
 	make_directory(mut work, config.scratch, config.source_owner, config.source_group)!
 	make_directory(mut work, config.scratch + '/native-libraries', config.source_owner, config.source_group)!
@@ -309,20 +395,20 @@ fn stage_inner(config Config, mut work Work) !Record {
 	remember(mut work, libraries)!
 	names := os.ls(libraries)!
 	defer { unsafe { names.free() } }
-	for name in names { remember(mut work, libraries + '/' + name)! }
+	for cached_name in names { remember(mut work, libraries + '/' + cached_name)! }
 	if names.len == 0 || names.len > 256 { return error('companion native library count differs') }
 	if fd_object(fd)! != source || object(config.source)! != source { return error('companion source changed during extraction') }
 	verify_digest(fd, config.sha256)!
 	data_unchanged(config.data, data)!
-	make_directory(mut work, catalog, config.target_uid, config.target_gid)!
+	ensure_owned_catalog(mut work, catalog, config.target_uid, config.target_gid)!
 	make_directory(mut work, pending, config.target_uid, config.target_gid)!
 	make_directory(mut work, pending + '/lib', config.target_uid, config.target_gid)!
 	mut hashes := map[string]string{}
-	for name in names {
-		if nativeapk.library_name('lib/arm64-v8a/' + name, 'arm64-v8a')! != name {
+	for library_name in names {
+		if nativeapk.library_name('lib/arm64-v8a/' + library_name, 'arm64-v8a')! != library_name {
 			return error('companion extracted library name differs')
 		}
-		path := libraries + '/' + name
+		path := libraries + '/' + library_name
 		original := object(path)!
 		if original.directory || original.uid != config.source_owner || original.gid != config.source_group ||
 			original.mode != 0o500 || original.nlink != 1 {
@@ -331,40 +417,96 @@ fn stage_inner(config Config, mut work Work) !Record {
 		library_fd := open_regular(path, original)!
 		pin := digest_fd(library_fd) or { C.close(library_fd); return err }
 		C.close(library_fd)
-		copy_regular(mut work, path, original, pin, pending + '/lib/' + name,
+		copy_regular(mut work, path, original, pin, pending + '/lib/' + library_name,
 			config.target_uid, config.target_gid, 0o500) or { unsafe { pin.free() }; return err }
-		hashes[name.clone()] = pin
+		hashes[library_name.clone()] = pin
 	}
-	apk_pending := catalog + '/.' + gms_package + '.apk.pending'
+	apk_pending := catalog + '/.' + name + '.apk.pending'
 	copy_regular(mut work, config.source, source, config.sha256, apk_pending,
 		config.target_uid, config.target_gid, 0o400)!
 	if fd_object(fd)! != source || object(config.source)! != source { return error('companion source changed before publication') }
 	verify_digest(fd, config.sha256)!
 	data_unchanged(config.data, data)!
 	publish(mut work, pending, package)!
-	publish(mut work, apk_pending, catalog + '/' + gms_package + '.apk')!
+	publish(mut work, apk_pending, catalog + '/' + name + '.apk')!
 	data_unchanged(config.data, data)!
 	if object(config.source)! != source { return error('companion source identity changed after publication') }
-	return Record{source_sha256: config.sha256.clone(), apk_sha256: config.sha256.clone(),
+	return Record{package_name: name, source_sha256: config.sha256.clone(), apk_sha256: config.sha256.clone(),
 		target_uid: config.target_uid, target_gid: config.target_gid, native_libraries: hashes}
 }
 
 // The caller admits the fixed GMS APK's package, version and certificates and
 // ensures selected app UIDs have no processes before this one-use transaction.
 pub fn stage(config Config) !Record {
+	admission := admit(config, .gms)!
+	defer { C.close(admission.fd) }
 	mut work := Work{objects: []Owned{cap: 1024}}
 	work.objects.flags |= .noslices
 	defer {
 		for item in work.objects { unsafe { item.path.free() } }
 		unsafe { work.objects.free() }
 	}
-	result := stage_inner(config, mut work) or {
+	result := stage_inner(config, .gms, admission, mut work) or {
 		if !rollback(mut work, '') { return error(err.msg() + '; companion rollback incomplete') }
 		return err
 	}
 	if !rollback(mut work, config.scratch) {
 		rollback(mut work, '')
 		return error('companion scratch cleanup incomplete')
+	}
+	return result
+}
+
+fn overlaps(first string, second string) bool {
+	return first == second || first.starts_with(second + '/') || second.starts_with(first + '/')
+}
+
+fn stage_admitted_pair(gms Config, vending Config, first Admission, second Admission,
+	mut work Work) ![]Record {
+	first_record := stage_inner(gms, .gms, first, mut work)!
+	if !rollback(mut work, gms.scratch) { return error('first companion scratch cleanup incomplete') }
+	prune_removed(mut work)
+	second_record := stage_inner(vending, .vending, second, mut work)!
+	verify_digest(first.fd, gms.sha256)!
+	verify_digest(second.fd, vending.sha256)!
+	for selected in [first, second]! {
+		if fd_object(selected.fd)! != selected.source { return error('companion pair source descriptor changed') }
+	}
+	if object(gms.source)! != first.source || object(vending.source)! != second.source {
+		return error('companion pair source path changed')
+	}
+	data_unchanged(gms.data, first.data)!
+	return [first_record, second_record]
+}
+
+// Only these two package identities are selectable. The controller admits both
+// APKs first; no partially completed companion survives a later batch failure.
+pub fn stage_pair(gms Config, vending Config) ![]Record {
+	if gms.data != vending.data || gms.target_uid != vending.target_uid ||
+		gms.target_gid != vending.target_gid || gms.source_owner != vending.source_owner ||
+		gms.source_group != vending.source_group || overlaps(gms.source, vending.source) ||
+		overlaps(gms.scratch, vending.scratch) || overlaps(gms.scratch, vending.source) ||
+		overlaps(vending.scratch, gms.source) {
+		return error('companion pair identity or placement differs')
+	}
+	first := admit(gms, .gms)!
+	defer { C.close(first.fd) }
+	second := admit(vending, .vending)!
+	defer { C.close(second.fd) }
+	if same_inode(first.source, second.source) { return error('companion pair sources share an inode') }
+	mut work := Work{objects: []Owned{cap: 1024}}
+	work.objects.flags |= .noslices
+	defer {
+		for item in work.objects { unsafe { item.path.free() } }
+		unsafe { work.objects.free() }
+	}
+	result := stage_admitted_pair(gms, vending, first, second, mut work) or {
+		if !rollback(mut work, '') { return error(err.msg() + '; companion pair rollback incomplete') }
+		return err
+	}
+	if !rollback(mut work, vending.scratch) {
+		rollback(mut work, '')
+		return error('second companion scratch cleanup incomplete')
 	}
 	return result
 }

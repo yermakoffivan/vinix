@@ -389,3 +389,316 @@ fn test_companion_existing_targets_are_preserved_without_partial_work() ! {
 		if kind != 'scratch-directory' { assert !os.exists(config.scratch) && !os.is_link(config.scratch) }
 	}
 }
+
+fn companion_pair_fixture(name string, second_kind string) !(Config, Config) {
+	gms := companion_test_fixture(name, 'valid')!
+	root := os.dir(gms.data)
+	source := root + '/apks/vending.apk'
+	companion_test_apk(source, second_kind)!
+	if second_kind != 'not-zip' {
+		mut archive := szip.open(source, .no_compression, .append)!
+		archive.open_entry('assets/vending-identity')!
+		archive.write_entry('distinct Vending APK bytes'.bytes())!
+		archive.close_entry()
+		if second_kind == 'valid' {
+			vending_elf := companion_test_elf(41)
+			archive.open_entry('lib/arm64-v8a/libvending-only.so')!
+			archive.write_entry(vending_elf)!
+			archive.close_entry()
+			unsafe { vending_elf.free() }
+		}
+		archive.close()
+	}
+	os.chmod(source, 0o400)!
+	vending := Config{...gms, source: source, sha256: companion_test_digest(source)!,
+		scratch: root + '/vending-scratch'}
+	return gms, vending
+}
+
+fn companion_assert_pair_no_publication(gms Config, vending Config) ! {
+	companion_assert_no_publication(gms)!
+	for suffix in ['/com.android.vending_', '/.com.android.vending_.pending'] {
+		assert !os.exists(gms.data + suffix) && !os.is_link(gms.data + suffix)
+	}
+	assert !os.exists(vending.scratch) && !os.is_link(vending.scratch)
+}
+
+fn companion_expect_pair_rejected(gms Config, vending Config) ! {
+	mut rejected := false
+	stage_pair(gms, vending) or { rejected = true }
+	assert rejected
+}
+
+fn companion_assert_pair_package(record Record, config Config, package_name string,
+	expected map[string]u8) ! {
+	assert record.package_name == package_name
+	assert record.source_sha256 == config.sha256 && record.apk_sha256 == config.sha256
+	assert record.target_uid == config.target_uid && record.target_gid == config.target_gid
+	assert record.dir_mode == 0o700 && record.apk_mode == 0o400 && record.lib_mode == 0o500
+	for directory in [config.data + '/' + package_name + '_',
+		config.data + '/' + package_name + '_/lib'] {
+		st := companion_test_object(directory)!
+		assert st.kind == .directory && st.mode == 0o700
+		assert st.uid == config.target_uid && st.gid == config.target_gid
+	}
+	copy_path := config.data + '/_installed_apks_/' + package_name + '.apk'
+	copy_object := companion_test_object(copy_path)!
+	source_object := companion_test_object(config.source)!
+	assert copy_object.kind == .regular && copy_object.nlink == 1 && copy_object.mode == 0o400
+	assert copy_object.uid == config.target_uid && copy_object.gid == config.target_gid
+	assert copy_object.dev != source_object.dev || copy_object.inode != source_object.inode
+	assert companion_test_digest(copy_path)! == config.sha256
+	mut names := os.ls(config.data + '/' + package_name + '_/lib')!
+	names.sort()
+	mut expected_names := expected.keys()
+	expected_names.sort()
+	assert names == expected_names
+	assert record.native_libraries.len == expected.len
+	for name, tag in expected {
+		path := config.data + '/' + package_name + '_/lib/' + name
+		st := companion_test_object(path)!
+		assert st.kind == .regular && st.nlink == 1 && st.mode == 0o500
+		assert st.uid == config.target_uid && st.gid == config.target_gid
+		payload := companion_test_elf(tag)
+		actual := os.read_bytes(path)!
+		assert actual == payload
+		assert record.native_libraries[name]! == sha256.sum(payload).hex()
+		unsafe { payload.free(); actual.free() }
+	}
+}
+
+fn test_companion_pair_exact_shared_catalog_and_independent_packages() ! {
+	gms, vending := companion_pair_fixture('pair-exact-publication', 'valid')!
+	gms_before := companion_test_object(gms.source)!
+	vending_before := companion_test_object(vending.source)!
+	assert gms_before.nlink == 1 && vending_before.nlink == 1
+	assert gms_before.dev != vending_before.dev || gms_before.inode != vending_before.inode
+	assert gms.sha256 != vending.sha256
+	data := companion_test_root_identity(gms.data)!
+	cache := companion_test_object(gms.data + '/native-libraries/primary-sentinel')!
+	records := stage_pair(gms, vending)!
+	assert records.len == 2
+	companion_assert_pair_package(records[0], gms, 'com.google.android.gms',
+		{'libdemo-one.so': u8(17), 'libdemo+two.so': u8(29)})!
+	companion_assert_pair_package(records[1], vending, 'com.android.vending',
+		{'libdemo-one.so': u8(17), 'libdemo+two.so': u8(29), 'libvending-only.so': u8(41)})!
+	assert companion_test_object(gms.source)! == gms_before
+	assert companion_test_object(vending.source)! == vending_before
+	assert companion_test_digest(gms.source)! == gms.sha256
+	assert companion_test_digest(vending.source)! == vending.sha256
+	assert companion_test_root_identity(gms.data)! == data
+	assert companion_test_object(gms.data + '/native-libraries/primary-sentinel')! == cache
+	assert !os.exists(gms.scratch) && !os.is_link(gms.scratch)
+	assert !os.exists(vending.scratch) && !os.is_link(vending.scratch)
+	mut entries := os.ls(gms.data)!
+	entries.sort()
+	assert entries == ['_installed_apks_', 'com.android.vending_', 'com.google.android.gms_', 'native-libraries']
+	mut catalog := os.ls(gms.data + '/_installed_apks_')!
+	catalog.sort()
+	assert catalog == ['com.android.vending.apk', 'com.google.android.gms.apk']
+	catalog_identity := companion_test_object(gms.data + '/_installed_apks_')!
+	assert catalog_identity.kind == .directory && catalog_identity.mode == 0o700
+	assert catalog_identity.uid == gms.target_uid && catalog_identity.gid == gms.target_gid
+	companion_assert_primary_cache(gms)!
+}
+
+fn test_companion_pair_second_pin_is_checked_before_first_mutation() ! {
+	gms, vending := companion_pair_fixture('pair-second-pin-preflight', 'valid')!
+	root := os.dir(gms.data)
+	gms_before := companion_test_object(gms.source)!
+	vending_before := companion_test_object(vending.source)!
+	data := companion_test_root_identity(gms.data)!
+	// A historical mtime makes even create-then-rollback work observable.
+	// The bad second pin must prevent both first-scratch and DATA writes.
+	os.utime(root, 946684800, 946684800)!
+	os.utime(gms.data, 946684800, 946684800)!
+	assert os.lstat(root)!.mtime == 946684800
+	assert os.lstat(gms.data)!.mtime == 946684800
+	companion_expect_pair_rejected(gms, Config{...vending, sha256: '0'.repeat(64)})!
+	assert os.lstat(root)!.mtime == 946684800
+	assert os.lstat(gms.data)!.mtime == 946684800
+	assert companion_test_object(gms.source)! == gms_before
+	assert companion_test_object(vending.source)! == vending_before
+	assert companion_test_root_identity(gms.data)! == data
+	companion_assert_pair_no_publication(gms, vending)!
+}
+
+fn test_companion_pair_second_native_failure_rolls_back_first_package() ! {
+	for kind in ['bad-elf', 'wrong-machine', 'empty-arm', 'duplicate', 'traversal', 'not-zip', 'too-many'] {
+		gms, vending := companion_pair_fixture('pair-second-native-' + kind, kind)!
+		gms_before := companion_test_object(gms.source)!
+		vending_before := companion_test_object(vending.source)!
+		data := companion_test_root_identity(gms.data)!
+		cache := companion_test_object(gms.data + '/native-libraries/primary-sentinel')!
+		// Both byte pins are correct, so failure comes from the second APK's
+		// native contents after the first package can already be published.
+		assert companion_test_digest(gms.source)! == gms.sha256
+		assert companion_test_digest(vending.source)! == vending.sha256
+		companion_expect_pair_rejected(gms, vending)!
+		assert companion_test_object(gms.source)! == gms_before
+		assert companion_test_object(vending.source)! == vending_before
+		assert companion_test_root_identity(gms.data)! == data
+		assert companion_test_object(gms.data + '/native-libraries/primary-sentinel')! == cache
+		companion_assert_pair_no_publication(gms, vending)!
+		assert !os.exists(os.dir(gms.data) + '/libescape.so')
+	}
+}
+
+fn companion_pair_many_apk(path string, prefix string, count int) !map[string]u8 {
+	mut archive := szip.open(path, .no_compression, .write)!
+	defer { archive.close() }
+	mut expected := map[string]u8{}
+	for index in 0 .. count {
+		name := 'lib' + prefix + index.str() + '.so'
+		tag := u8(index % 251 + 1)
+		payload := companion_test_elf(tag)
+		archive.open_entry('lib/arm64-v8a/' + name)!
+		archive.write_entry(payload)!
+		archive.close_entry()
+		expected[name] = tag
+		unsafe { payload.free() }
+	}
+	return expected
+}
+
+fn companion_pair_with_library_count(config Config, prefix string, count int) !(Config, map[string]u8) {
+	os.chmod(config.source, 0o600)!
+	expected := companion_pair_many_apk(config.source, prefix, count)!
+	os.chmod(config.source, 0o400)!
+	return Config{...config, sha256: companion_test_digest(config.source)!}, expected
+}
+
+fn test_companion_pair_library_boundary_and_oversized_second_rollback() ! {
+	for second_count in [256, 257] {
+		initial_gms, initial_vending := companion_pair_fixture('pair-library-boundary-' + second_count.str(), 'valid')!
+		gms, gms_libraries := companion_pair_with_library_count(initial_gms, 'gms', 256)!
+		vending, vending_libraries := companion_pair_with_library_count(initial_vending, 'vending', second_count)!
+		gms_before := companion_test_object(gms.source)!
+		vending_before := companion_test_object(vending.source)!
+		data := companion_test_root_identity(gms.data)!
+		cache := companion_test_object(gms.data + '/native-libraries/primary-sentinel')!
+		if second_count == 256 {
+			records := stage_pair(gms, vending)!
+			assert records.len == 2
+			companion_assert_pair_package(records[0], gms, 'com.google.android.gms', gms_libraries)!
+			companion_assert_pair_package(records[1], vending, 'com.android.vending', vending_libraries)!
+			assert !os.exists(gms.scratch) && !os.is_link(gms.scratch)
+			assert !os.exists(vending.scratch) && !os.is_link(vending.scratch)
+		} else {
+			companion_expect_pair_rejected(gms, vending)!
+			companion_assert_pair_no_publication(gms, vending)!
+		}
+		assert companion_test_object(gms.source)! == gms_before
+		assert companion_test_object(vending.source)! == vending_before
+		assert companion_test_digest(gms.source)! == gms.sha256
+		assert companion_test_digest(vending.source)! == vending.sha256
+		assert companion_test_root_identity(gms.data)! == data
+		assert companion_test_object(gms.data + '/native-libraries/primary-sentinel')! == cache
+		companion_assert_primary_cache(gms)!
+	}
+}
+
+fn test_companion_pair_refuses_unowned_targets_and_aliased_configuration() ! {
+	for kind in ['vending-package', 'vending-package-symlink', 'vending-pending',
+		'catalog', 'empty-catalog', 'catalog-symlink', 'target-owner', 'target-group',
+		'source-owner', 'source-group', 'source-writable', 'different-data',
+		'scratch-alias', 'scratch-child', 'scratch-parent', 'same-source',
+		'hardlinked-source', 'source-symlink'] {
+		gms, vending := companion_pair_fixture('pair-refusal-' + kind, 'valid')!
+		root := os.dir(gms.data)
+		mut first := gms
+		mut second := vending
+		mut occupied := ''
+		mut watched := ''
+		mut sentinel := ''
+		match kind {
+			'vending-package' {
+				occupied = gms.data + '/com.android.vending_'
+				os.mkdir(occupied, mode: 0o700)!
+				sentinel = occupied + '/existing-package'
+				os.write_file(sentinel, 'existing Vending package must survive')!
+			}
+			'vending-package-symlink' {
+				occupied = gms.data + '/com.android.vending_'
+				watched = root + '/existing-vending'
+				os.mkdir(watched, mode: 0o700)!
+				sentinel = watched + '/keep'
+				os.write_file(sentinel, 'existing Vending symlink target must survive')!
+				os.symlink(watched, occupied)!
+			}
+			'vending-pending' {
+				occupied = gms.data + '/.com.android.vending_.pending'
+				os.mkdir(occupied, mode: 0o700)!
+				sentinel = occupied + '/existing-work'
+				os.write_file(sentinel, 'existing Vending pending work must survive')!
+			}
+			'catalog', 'empty-catalog' {
+				occupied = gms.data + '/_installed_apks_'
+				os.mkdir(occupied, mode: 0o700)!
+				if kind == 'catalog' {
+					sentinel = occupied + '/com.android.vending.apk'
+					os.write_file(sentinel, 'existing catalog APK must survive')!
+				}
+			}
+			'catalog-symlink' {
+				occupied = gms.data + '/_installed_apks_'
+				watched = root + '/existing-catalog'
+				os.mkdir(watched, mode: 0o700)!
+				sentinel = watched + '/com.android.vending.apk'
+				os.write_file(sentinel, 'existing catalog symlink target must survive')!
+				os.symlink(watched, occupied)!
+			}
+			'target-owner' { second = Config{...vending, target_uid: vending.target_uid + 1} }
+			'target-group' { second = Config{...vending, target_gid: vending.target_gid + 1} }
+			'source-owner' { second = Config{...vending, source_owner: vending.source_owner + 1} }
+			'source-group' { second = Config{...vending, source_group: vending.source_group + 1} }
+			'source-writable' { os.chmod(vending.source, 0o600)! }
+			'different-data' {
+				watched = root + '/different-data'
+				os.mkdir(watched, mode: 0o700)!
+				second = Config{...vending, data: watched}
+			}
+			'scratch-alias' { second = Config{...vending, scratch: gms.scratch} }
+			'scratch-child' { second = Config{...vending, scratch: gms.scratch + '/vending'} }
+			'scratch-parent' { first = Config{...gms, scratch: vending.scratch + '/gms'} }
+			'same-source' { second = Config{...vending, source: gms.source, sha256: gms.sha256} }
+			'hardlinked-source' {
+				watched = root + '/apks/gms-alias.apk'
+				assert unsafe { C.link(&char(gms.source.str), &char(watched.str)) } == 0
+				second = Config{...vending, source: watched, sha256: gms.sha256}
+			}
+			else {
+				watched = root + '/apks/vending-symlink.apk'
+				os.symlink(vending.source, watched)!
+				second = Config{...vending, source: watched}
+			}
+		}
+		gms_before := companion_test_object(gms.source)!
+		vending_before := companion_test_object(vending.source)!
+		data := companion_test_root_identity(gms.data)!
+		occupied_before := if occupied != '' { companion_test_object(occupied)! } else { CompanionTestObject{} }
+		watched_before := if watched != '' { companion_test_object(watched)! } else { CompanionTestObject{} }
+		sentinel_before := if sentinel != '' { companion_test_object(sentinel)! } else { CompanionTestObject{} }
+		content := if sentinel != '' { os.read_file(sentinel)! } else { '' }
+		companion_expect_pair_rejected(first, second)!
+		assert companion_test_object(gms.source)! == gms_before
+		assert companion_test_object(vending.source)! == vending_before
+		assert companion_test_digest(gms.source)! == gms.sha256
+		assert companion_test_digest(vending.source)! == vending.sha256
+		assert companion_test_root_identity(gms.data)! == data
+		if occupied != '' { assert companion_test_object(occupied)! == occupied_before }
+		if watched != '' { assert companion_test_object(watched)! == watched_before }
+		if sentinel != '' {
+			assert companion_test_object(sentinel)! == sentinel_before
+			assert os.read_file(sentinel)! == content
+		}
+		for suffix in ['/_installed_apks_', '/com.google.android.gms_', '/.com.google.android.gms_.pending',
+			'/com.android.vending_', '/.com.android.vending_.pending'] {
+			path := gms.data + suffix
+			if path != occupied { assert !os.exists(path) && !os.is_link(path) }
+		}
+		assert !os.exists(gms.scratch) && !os.is_link(gms.scratch)
+		assert !os.exists(vending.scratch) && !os.is_link(vending.scratch)
+		companion_assert_primary_cache(gms)!
+	}
+}
