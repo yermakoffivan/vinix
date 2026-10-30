@@ -663,14 +663,13 @@ fn bitmap_tiles_method_headers() map[string]string {
  return {
   'getPaint()Landroid/graphics/Paint;': 'public'
   'setTileModeX(Landroid/graphics/Shader$TileMode;)V': 'public'
-  'setTileModeY(Landroid/graphics/Shader$TileMode;)V': 'public'
+  'setTileModeY(Landroid/graphics/Shader$TileMode;)V': 'public final'
   'setTileModeXY(Landroid/graphics/Shader$TileMode;Landroid/graphics/Shader$TileMode;)V': 'public'
   'getTileModeX()Landroid/graphics/Shader$TileMode;': 'public'
   'getTileModeY()Landroid/graphics/Shader$TileMode;': 'public'
   'draw(Landroid/graphics/Canvas;)V': 'public'
-  'vinixTileAxis(IIILandroid/graphics/Shader$TileMode;[I)V': 'private static'
-  'vinixDrawTile(Landroid/graphics/Canvas;II[I[I)V': 'private'
-  'vinixDrawTiles(Landroid/graphics/Canvas;)V': 'private'
+  'vinixTileMode(Landroid/graphics/Shader$TileMode;)I': 'private static'
+  'nativeDrawTiles(Landroid/atl/GskCanvas;JIIIIJII)V': 'private static native'
  }
 }
 
@@ -685,6 +684,9 @@ fn bitmap_tiles_abi(source string) ! {
   if method.all_before('\n').trim_space() != '.method ' + flags + ' ' + signature {
    return error('unexpected bitmap tile method ABI: ' + signature)
   }
+  if flags == 'private static native' && method != '.method ' + flags + ' ' + signature + '\n.end method' {
+   return error('bitmap tile native bridge must remain declaration-only')
+  }
  }
 }
 
@@ -697,7 +699,7 @@ fn bitmap_tiles_self_test() ! {
   || profile.calls != {drawable: 'framework_bitmap_tiles_source'}
   || profile.providers != ['framework_bitmap_tiles.v'] || profile.extra_classes.len != 0
   || profile.class_provider != '' || profile.directory_provider != ''
-  || allowed.len != 10 || profile.changed != {drawable: 2} || profile.added != {drawable: 8}
+  || allowed.len != 9 || profile.changed != {drawable: 2} || profile.added != {drawable: 7}
   || fields != ['.field private vinixTileX:Landroid/graphics/Shader$TileMode;',
    '.field private vinixTileY:Landroid/graphics/Shader$TileMode;',
    '.field private vinixPaint:Landroid/graphics/Paint;'] {
@@ -713,7 +715,9 @@ fn bitmap_tiles_self_test() ! {
   if signature in ['getPaint()Landroid/graphics/Paint;', 'setTileModeX(Landroid/graphics/Shader$TileMode;)V'] {
    before += header + '\n.locals 1\nreturn-void\n.end method\n'
   }
-  after += header + '\n.locals 2\nreturn-void\n.end method\n'
+  after += if flags == 'private static native' { header + '\n.end method\n' } else {
+   header + '\n.locals 2\nreturn-void\n.end method\n'
+  }
  }
  narrow_member_delta(before, after, allowed, 2, allowed.len - 2, fields)!
  bitmap_tiles_abi(after)!
@@ -732,6 +736,16 @@ fn bitmap_tiles_self_test() ! {
    return error('invalid bitmap tile method flags accepted: ' + signature)
   }
  }
+ bridge := '.method private static native nativeDrawTiles(Landroid/atl/GskCanvas;JIIIIJII)V\n.end method'
+ bitmap_tiles_abi(after.replace(bridge, bridge.replace('\n.end method', '\n.locals 0\nreturn-void\n.end method'))) or {
+  bitmap_tiles_class_self_test()!
+  return
+ }
+ return error('bitmap tile native bridge body accepted')
+}
+
+fn bitmap_tiles_class_self_test() ! {
+ drawable := 'android/graphics/drawable/BitmapDrawable.smali'
  mut old_classes := {drawable: 'old'}
  for i in 0 .. 2105 { old_classes['other/' + i.str() + '.smali'] = 'same' }
  mut good := old_classes.clone()

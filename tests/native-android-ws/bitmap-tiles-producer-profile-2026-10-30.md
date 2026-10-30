@@ -9,11 +9,13 @@ The complete class count remains 2,106, with exactly one changed class,
 `android.graphics.drawable.BitmapDrawable`.
 
 The explicit member scope replaces `getPaint` and `setTileModeX`, adds public
-Y/XY setters, X/Y getters and `draw`, and adds three private tiling helpers.
+Y/XY setters, X/Y getters and `draw`, a private tile-mode converter and a private
+static native drawing bridge. The Y setter retains its public/final Android ABI.
 Three new private fields retain the two nullable tile modes and one Paint.
 No constructors, other existing methods, fields, class metadata or classes may
-change. Public and private/static helper method flags are checked separately
-before assembly and after complete DEX disassembly. Full class inventories and
+change. Before assembly and after complete DEX disassembly, checks enforce
+public and private/static method flags and a declaration-only native bridge.
+Full class inventories and
 all other JAR entry payloads must remain equal to the pinned baseline.
 
 The maintained producer self-tests reject missing/duplicate/wrong-access fields,
@@ -23,16 +25,19 @@ remain enabled. This profile does not itself establish correct pixels or a
 successful Google account screen; the provider and runtime require their own
 checks.
 
-Working source is based on repository revision `275c7f369`. The first builder
+Working source is based on repository revision `5594c206f`. The final builder
 compilation and complete self-test passed under the unchanged 600 MiB aggregate
 RSS, 300-second, 1 GiB reserve and 512 MiB observed-growth limits. Compilation
-took 2.610 seconds at 346,521,600 sampled RSS bytes; self-tests took 0.370 seconds
+took 3.250 seconds at 347,406,336 sampled RSS bytes; self-tests took 0.267 seconds
 at 1,245,184 sampled RSS bytes. Both guard/child exits were zero with complete
 cleanup and zero reported swaps. Complete controls are retained at
-`/Users/alex/.local/state/vinix/android/bitmap-tiles-framework-builder-2026-10-30-r1`.
+`/Users/alex/.local/state/vinix/android/bitmap-tiles-framework-builder-2026-10-30-r2`.
 Builder source SHA-256:
-`9fe0bf1fbb9ea56a72438107bdf253b4d5840f146b45d42b85f7b27ff40546be`.
+`3cf6ceabff4dbebbcd60e989c26dbe4184d914d82d6e897caac6b1bbcf970e01`.
 Qualified executable SHA-256:
-`9a1df83dd9273598291f146946deb31dc8ee7ec26aceb2af9d5dc6d4b1c00f41`.
+`d01495362423c000b91833f534a0c55fe434023941b85d81b92f0bb9d7b757f6`.
+
+The earlier builder qualification remains retained in the adjacent `r1` root;
+the final profile delegates clipped pixel sampling to the native renderer.
 
 Full framework production and the coupled native build remain pending.
