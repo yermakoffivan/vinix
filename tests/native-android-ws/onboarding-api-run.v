@@ -71,6 +71,11 @@ const persistent_data_block_framework_sha = '7c1b2fa03924003c7717e07ef463bff81c6
 const persistent_data_block_native_sha = '192411171dec072c89a64a81d8b35f36e92d060c75505fadceb47d683e9ed2e5'
 const persistent_data_block_apk_sha = '0acd05b909c7c2d3b798cb515a799df8c40263af9be1e7ab4334f7b4f113b7a8'
 const persistent_data_block_pass_marker = 'PERSISTENT-DATA-BLOCK-PASS class-shape named-null typed-null null-cast user-service seed-options immutable-empty'
+// Bitmap tiling uses its signed pixel fixture and freshly coupled native sampler.
+const bitmap_tiles_framework_sha = '741641c30098cf2f682672889c7ac653c6b2f23b9c09001a7af8f56bb01d9500'
+const bitmap_tiles_native_sha = '6969a813fbfe69cd882f3cb47760cb09cb106ca9aad748ea67ab93967aacad20'
+const bitmap_tiles_apk_sha = 'd4aedf04a871758249fbea08e79a7ac49f9fdb2eb98f915f6a7c8ee389fede7c'
+const bitmap_tiles_pass_marker = 'BITMAP-TILES-PASS modes reset invalidation stable-paint pixels-repeat-mirror-clamp nullable-axis'
 
 struct FixtureProfile {
 	name          string
@@ -237,6 +242,17 @@ fn persistent_data_block_profile() FixtureProfile {
 	}
 }
 
+fn bitmap_tiles_profile() FixtureProfile {
+	return FixtureProfile{
+		name: 'bitmap-tiles'
+		apk_sha: bitmap_tiles_apk_sha
+		framework_sha: bitmap_tiles_framework_sha
+		native_sha: bitmap_tiles_native_sha
+		pass_marker: bitmap_tiles_pass_marker
+		scope: 'standalone BitmapDrawable tile state and offscreen pixel regression; GMS and Google authentication are not exercised'
+	}
+}
+
 struct Configuration {
 	runtime   string
 	apk       string
@@ -345,7 +361,7 @@ fn health(line string, expected_marker string) ! {
 		|| line.contains('MAPS-NETWORK-V3-PASS') || line.contains('SERVICE-LIFECYCLE-PASS')
 		|| line.contains('PLATFORM-FRAGMENTS-PASS') || line.contains('IMAGE-BOUNDS-PASS')
 		|| line.contains('WINDOW-SYSTEM-UI-PASS') || line.contains('SEED-ACCOUNT-OPTIONS-PASS')
-		|| line.contains('PERSISTENT-DATA-BLOCK-PASS')) && line != expected_marker {
+		|| line.contains('PERSISTENT-DATA-BLOCK-PASS') || line.contains('BITMAP-TILES-PASS')) && line != expected_marker {
 		return error('conflicting fixture marker')
 	}
 }
@@ -546,7 +562,7 @@ fn export_evidence(output string) ! {
 
 fn selftest() ! {
 	mut cases := 0
-	profiles := [child_attach_profile(), settings_global_profile(), application_restrictions_profile(), authenticator_exception_profile(), maps_network_profile(), authenticator_worker_profile(), maps_network_v2_profile(), authenticator_binder_identity_profile(), maps_network_v3_profile(), service_lifecycle_profile(), platform_fragments_profile(), image_bounds_profile(), window_system_ui_profile(), seed_account_options_profile(), persistent_data_block_profile()]
+	profiles := [child_attach_profile(), settings_global_profile(), application_restrictions_profile(), authenticator_exception_profile(), maps_network_profile(), authenticator_worker_profile(), maps_network_v2_profile(), authenticator_binder_identity_profile(), maps_network_v3_profile(), service_lifecycle_profile(), platform_fragments_profile(), image_bounds_profile(), window_system_ui_profile(), seed_account_options_profile(), persistent_data_block_profile(), bitmap_tiles_profile()]
 	require(child_attach_profile().framework_sha == framework_sha
 		&& settings_global_profile().framework_sha == framework_sha
 		&& application_restrictions_profile().framework_sha != framework_sha, 'exact per-profile framework identities')!
@@ -591,6 +607,10 @@ fn selftest() ! {
 		&& persistent_data_block_profile().native_sha.len == 64
 		&& persistent_data_block_profile().apk_sha != seed_account_options_profile().apk_sha,
 		'persistent data block requires its distinct framework and fixture with an exact coupled native pin')!
+	require(bitmap_tiles_profile().framework_sha != persistent_data_block_profile().framework_sha
+		&& bitmap_tiles_profile().native_sha != persistent_data_block_profile().native_sha
+		&& bitmap_tiles_profile().apk_sha != persistent_data_block_profile().apk_sha,
+		'bitmap tiling requires its distinct framework, native sampler and signed pixel fixture')!
 	for profile in profiles {
 		mut pins := [profile.apk_sha, profile.framework_sha]
 		if profile.native_sha != '' { pins << profile.native_sha }
@@ -636,7 +656,7 @@ fn selftest() ! {
 		cases++
 	}
 	require(canonical('/var/lib/onboarding-api-r1'), 'canonical path rejected')!
-	for selector in ['--authenticator-binder-identity', '--maps-network-v3', '--service-lifecycle', '--platform-fragments', '--image-bounds', '--window-system-ui', '--seed-account-options', '--persistent-data-block'] {
+	for selector in ['--authenticator-binder-identity', '--maps-network-v3', '--service-lifecycle', '--platform-fragments', '--image-bounds', '--window-system-ui', '--seed-account-options', '--persistent-data-block', '--bitmap-tiles'] {
 		full := [selector, '/runtime', '/fixture.apk', '10117', '10117', '/results']
 		for count in 1 .. full.len {
 			mut argv := [os.executable()]
@@ -665,9 +685,10 @@ fn run() ! {
 		return
 	}
 	mut arguments := os.args[1..]
-	require(arguments.len == 6 && arguments[0] in ['--child-attach', '--settings-global', '--application-restrictions', '--authenticator-private-exception', '--maps-network', '--authenticator-worker', '--maps-network-v2', '--authenticator-binder-identity', '--maps-network-v3', '--service-lifecycle', '--platform-fragments', '--image-bounds', '--window-system-ui', '--seed-account-options', '--persistent-data-block'],
-		'usage: onboarding-api-run (--child-attach|--settings-global|--application-restrictions|--authenticator-private-exception|--maps-network|--authenticator-worker|--maps-network-v2|--authenticator-binder-identity|--maps-network-v3|--service-lifecycle|--platform-fragments|--image-bounds|--window-system-ui|--seed-account-options|--persistent-data-block) RUNTIME APK UID GID FRESH_OUTPUT | selftest')!
+	require(arguments.len == 6 && arguments[0] in ['--child-attach', '--settings-global', '--application-restrictions', '--authenticator-private-exception', '--maps-network', '--authenticator-worker', '--maps-network-v2', '--authenticator-binder-identity', '--maps-network-v3', '--service-lifecycle', '--platform-fragments', '--image-bounds', '--window-system-ui', '--seed-account-options', '--persistent-data-block', '--bitmap-tiles'],
+		'usage: onboarding-api-run (--child-attach|--settings-global|--application-restrictions|--authenticator-private-exception|--maps-network|--authenticator-worker|--maps-network-v2|--authenticator-binder-identity|--maps-network-v3|--service-lifecycle|--platform-fragments|--image-bounds|--window-system-ui|--seed-account-options|--persistent-data-block|--bitmap-tiles) RUNTIME APK UID GID FRESH_OUTPUT | selftest')!
 	profile := if arguments[0] == '--authenticator-private-exception' { authenticator_exception_profile() }
+		else if arguments[0] == '--bitmap-tiles' { bitmap_tiles_profile() }
 		else if arguments[0] == '--persistent-data-block' { persistent_data_block_profile() }
 		else if arguments[0] == '--seed-account-options' { seed_account_options_profile() }
 		else if arguments[0] == '--window-system-ui' { window_system_ui_profile() }
