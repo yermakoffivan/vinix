@@ -277,6 +277,28 @@ const imageview_bounds_provider_helper = '225b41a530a4f3bf1d7d627ecc7adfae67bb62
 const imageview_bounds_before = '08d95bbb3030dd12e17dbfd0f3ac17f3f97b28ced3c79cab104c41d44c4a86d8'
 const imageview_bounds_raw = '6ff7772b2474b6efe5cb267aa017afd1d85dfc4c6105c6a2d1106535e00f68ec'
 const imageview_bounds_canonical = '20b3e0ec72ce502400c741b517a9953dbd045ffa0524a277d63e343252ce2029'
+const window_system_ui_base = '/Users/alex/.local/state/vinix/android/maps-imageview-bounds-r3'
+const window_system_ui_base_seal = '6fa4cb4086126a2c1c3a66252474abd8bad79d8b15c4394a305d0f1db7998eb5'
+const window_system_ui_boot = '8dcd6746c30e95fd851597b9703bedc2cd9c1192d008c14ccc92cfb179759e9b'
+const window_system_ui_base_overlay = '581d1048f91f08b1b7d009dd5ae3d49304643ab7939b16c29fc814912c8b1eb5'
+const window_system_ui_old_deployment = '6f9fca924f671beb3c2b29a36368cc5d8f80c34f70427afcef41aea68ea732c5'
+const window_system_ui_old_headless = '77ce49139df7189017f52a6c509a1a55b8f1f3c061cf474223a147330d4ee468'
+const window_system_ui_framework = '/Users/alex/.local/state/vinix/android/combined-account-webview-window-system-ui-framework-2026-10-30-r1'
+const window_system_ui_seal = '1e24a8dcc2f5b315ebbb63cb06d3de46e0799b4b1a0d19339d3b98ecab0c3b09'
+const window_system_ui_build = 'd648c6541230aca6f9a369f8e99d19cb3e971670c930f82339de38fb1d48eb7b'
+const window_system_ui_jar = '3f0d220a24e7d91a47f7b2d42cd5620aa498981e915a90cdbd806164b8ef0fc1'
+const window_system_ui_dex = 'e9509dedcf935f143ffc0a68bd8af3b26901b69e231388be7ea1c2c72c5bd150'
+const window_system_ui_native = '/Users/alex/.local/state/vinix/android/current-native-build-2026-10-30-window-system-ui-r1'
+const window_system_ui_native_seal = 'b564d361fd1fc0271cba1967c84ac6b3ca32607b832bd6114c6943be777e2872'
+const window_system_ui_native_pin = 'c97862ecb4eba730290a832b2766d58c1552ddf58ae40f77d7e140e69538ce75'
+const window_system_ui_native_build = '2b9fee52a40c382b949761e6759389bfc1fa4c07fbc6ab27900705bbaf14c7e2'
+const window_system_ui_framework_helper = 'd178f0c882be349f8511b722ba86c12f7876dc8c202629af041a86589eae4767'
+const window_system_ui_provider_helper = '53ace9c9ce0ffe519162cf8cb7dd0e80b23809061da22773cfbde6e2d88779c6'
+const window_system_ui_pty_helper = 'ff8489ef257dba1654853752c1438d35729855db589dd8177ac0211823410c86'
+const window_system_ui_reader_helper = '3f2e4de3f22d39a7890d9a476a4a04d930fc0d26ac9c48aecaf54e33cb444cc8'
+const window_system_ui_before = 'd86d366f6f4676cad8bad04f571525452c40ae961c4e116a4645a87e2c18c07f'
+const window_system_ui_raw = '9f7e4b4b0fe2a765ab9a4f5dc898f169a6cb05bf413d9278644bba40dac4cb4f'
+const window_system_ui_canonical = 'b0da2d572684526cf24f86a0655e17b65228c8cf2dfe41ada5349e40f827933e'
 const source = $embed_file(@FILE).to_string()
 
 struct Profile {
@@ -2539,6 +2561,136 @@ fn imageview_bounds_baseline(receipt map[string]json2.Any, stage Stage) !string 
 	return imageview_bounds_base + '/boot.img'
 }
 
+fn window_system_ui_profile() Profile {
+	mut modules := imageview_bounds_profile().modules.clone()
+	modules << 'maps-imageview-bounds.tar'
+	return Profile{'maps-window-system-ui', window_system_ui_boot, 'maps-window-system-ui.tar', modules}
+}
+fn window_system_ui_modules() map[string]string {
+	mut modules := imageview_bounds_modules()
+	modules['maps-imageview-bounds.tar'] = window_system_ui_base_overlay
+	return modules
+}
+fn window_system_ui_fields() map[string]string {
+	mut fields := imageview_bounds_fields()
+	fields['kind'] = 'vinix-maps-window-system-ui-v1'
+	fields['base_root'] = window_system_ui_base
+	fields['base_manifest_sha256'] = window_system_ui_base_seal
+	fields['framework_build_root'] = window_system_ui_framework
+	fields['framework_manifest_sha256'] = window_system_ui_seal
+	fields['framework_jar_sha256'] = window_system_ui_jar
+	fields['framework_dex_sha256'] = window_system_ui_dex
+	fields['retained_framework_manifest_sha256'] = imageview_bounds_seal
+	fields['native_compatibility_framework_manifest_sha256'] = imageview_bounds_seal
+	fields['native_build_root'] = window_system_ui_native
+	fields['native_manifest_sha256'] = window_system_ui_native_seal
+	fields['native_sha256'] = window_system_ui_native_pin
+	fields['native_build_sha256'] = window_system_ui_native_build
+	fields['retained_native_manifest_sha256'] = imageview_bounds_native_seal
+	fields['native_framework_manifest_sha256'] = window_system_ui_seal
+	return fields
+}
+fn window_system_ui_inputs() map[string]string {
+	mut inputs := imageview_bounds_inputs()
+	inputs[window_system_ui_base + '/sha256.json'] = window_system_ui_base_seal
+	inputs[window_system_ui_framework + '/sha256.json'] = window_system_ui_seal
+	inputs[window_system_ui_native + '/sha256.json'] = window_system_ui_native_seal
+	return inputs
+}
+fn window_system_ui_known_delta() map[string]string {
+	mut delta := {'/' + service_query_jar_path: window_system_ui_jar, '/' + service_query_dex_path: window_system_ui_dex,
+		'/' + native_onboarding_trace_path: window_system_ui_native_pin,
+		'/' + service_query_headless + '/framework-build.json': window_system_ui_build,
+		'/' + service_query_headless + '/framework-sha256.json': window_system_ui_seal}
+	if window_system_ui_native_pin == imageview_bounds_native_pin { delta.delete('/' + native_onboarding_trace_path) }
+	return delta
+}
+fn window_system_ui_raw_delta() map[string][]string {
+	return {'smali/android/widget/ImageView.smali': [imageview_bounds_raw, imageview_bounds_canonical]}
+}
+fn window_system_ui_proofs() map[string]string {
+	return {
+		'headless_input_delta': json2.encode({'/' + service_query_jar_path: window_system_ui_jar})
+		'headless_top_level_delta': json2.encode(['inputs_sha256'])
+		'deployment_top_level_delta': json2.encode(['inputs_sha256', 'framework_manifest_sha256', 'native_manifest_sha256'])
+		'native_source_delta': json2.encode(map[string]string{})
+		'native_builder_helper_delta': json2.encode({'tests/native-android-tools/androidtools/framework.v': window_system_ui_framework_helper,
+			'tests/native-android-tools/androidtools/framework_window_system_ui.v': window_system_ui_provider_helper,
+			'tools/sourcecommand/pty.v': window_system_ui_pty_helper,
+			'tools/sourcecommand/reader.v': window_system_ui_reader_helper})
+		'framework_source_delta': json2.encode({'smali/android/view/WindowManager$LayoutParams.smali': window_system_ui_raw})
+		'framework_canonical_delta': json2.encode({'new-dex/android/view/WindowManager$LayoutParams.smali': window_system_ui_canonical})
+		'framework_class_count': json2.encode(2105)
+		'native_consumed_raw_delta': json2.encode(window_system_ui_raw_delta())
+		'native_consumed_canonical_delta': json2.encode(map[string][]string{})
+		'native_consumed_class_count': json2.encode(68)
+	}
+}
+fn verify_window_system_ui_overlay(receipt map[string]json2.Any) ! {
+	delta := json2.decode[map[string]string](json2.encode(receipt['deployment_input_delta'] or { return error('window system UI deployment delta absent') }))!
+	mut expected := window_system_ui_known_delta()
+	guest := '/' + service_query_headless + '/guest-inputs.json'
+	guest_pin := delta[guest] or { return error('window system UI headless pin absent') }
+	if !digest_valid(guest_pin) || guest_pin == window_system_ui_old_headless { return error('new window system UI headless receipt required') }
+	expected[guest] = guest_pin
+	if delta != expected { return error('window system UI exact deployment input changes differ') }
+	for name, value in window_system_ui_proofs() {
+		if receipt[name] or { json2.Any('absent') } != json2.decode[json2.Any](value)! { return error('window system UI declared proof/delta differs: ' + name) }
+	}
+	entries := json2.decode[[]ServiceQueryEntry](json2.encode(receipt['overlay_inventory'] or { return error('window system UI overlay inventory absent') }))!
+	mut regulars := map[string]string{}
+	mut seen := map[string]bool{}
+	mut paths := expected.keys().map(it.trim_left('/'))
+	if native_onboarding_trace_path !in paths { paths << native_onboarding_trace_path }
+	paths << service_query_deployment
+	for entry in entries {
+		if entry.name in seen || !relative(entry.name) || entry.mode & 0o7022 != 0 { return error('unsafe window system UI overlay inode') }
+		seen[entry.name] = true
+		if entry.kind == 'regular' {
+			mode := if entry.name == native_onboarding_trace_path { u32(0o755) } else { u32(0o644) }
+			if entry.name !in paths || !digest_valid(entry.sha256) || entry.mode != mode { return error('window system UI file allowlist or mode differs') }
+			regulars[entry.name] = entry.sha256
+		} else if entry.kind != 'directory' || entry.mode != 0o755 || !paths.any(it.starts_with(entry.name + '/')) { return error('unexpected window system UI inode') }
+	}
+	if regulars.len != 7 || regulars[service_query_deployment] or { '' } == window_system_ui_old_deployment { return error('exact seven new window system UI files required') }
+	if regulars[native_onboarding_trace_path] or { '' } != window_system_ui_native_pin { return error('window system UI coupled native overlay differs') }
+	for path, pin in expected {
+		if regulars[path.trim_left('/')] or { '' } != pin { return error('window system UI declared input differs from inventory') }
+	}
+}
+fn verify_window_system_ui_receipt(receipt map[string]json2.Any, stage Stage) ! {
+	for pin in [window_system_ui_base_seal, window_system_ui_boot, window_system_ui_base_overlay,
+		window_system_ui_old_deployment, window_system_ui_old_headless, window_system_ui_seal,
+		window_system_ui_build, window_system_ui_jar, window_system_ui_dex,
+		window_system_ui_native_seal, window_system_ui_native_pin, window_system_ui_native_build,
+		window_system_ui_framework_helper, window_system_ui_provider_helper, window_system_ui_pty_helper, window_system_ui_reader_helper,
+		window_system_ui_before, window_system_ui_raw, window_system_ui_canonical] {
+		if !digest_valid(pin) { return error('completed window system UI framework/native producer required') }
+	}
+	if window_system_ui_seal == imageview_bounds_seal || window_system_ui_jar == imageview_bounds_jar
+		|| window_system_ui_dex == imageview_bounds_dex || window_system_ui_native_seal == imageview_bounds_native_seal
+		|| window_system_ui_raw == window_system_ui_before || window_system_ui_canonical == window_system_ui_before {
+		return error('new window system UI framework and coupled native receipts required')
+	}
+	for name, expected in window_system_ui_fields() {
+		if receipt[name] or { json2.Any('absent') } != json2.Any(expected) { return error('window system UI receipt differs: ' + name) }
+	}
+	mut seals := map[string]string{}
+	for path, pin in stage.inputs_sha256 { if path.ends_with('/sha256.json') { seals[path] = pin } }
+	if seals.len != 62 || seals != window_system_ui_inputs() { return error('window system UI exact sixty-two dependency seals differ') }
+	if stage.format != 1 || stage.original_modules_sha256 != window_system_ui_modules() || stage.preserved_modules_sha256 != window_system_ui_modules() { return error('window system UI original twenty-eight modules differ') }
+	verify_window_system_ui_overlay(receipt)!
+}
+fn window_system_ui_baseline(receipt map[string]json2.Any, stage Stage) !string {
+	verify_window_system_ui_receipt(receipt, stage)!
+	path := window_system_ui_base + '/sha256.json'
+	regular(path)!
+	if os.lstat(path)!.size > 8 * 1024 * 1024 || hash(path)! != window_system_ui_base_seal { return error('window system UI original ImageView image manifest differs') }
+	pins := json2.decode[map[string]string](os.read_file(path)!)!
+	if pins['boot.img'] or { '' } != window_system_ui_boot || pins['maps-imageview-bounds.tar'] or { '' } != window_system_ui_base_overlay { return error('window system UI original boot or ImageView overlay differs') }
+	return window_system_ui_base + '/boot.img'
+}
+
 fn service_query_modules() map[string]string {
 	mut modules := controller_modules()
 	modules['maps-controller-diagnostic.tar'] = 'bef5f25859e77a9671a6a144ccb56891da5ed2f7b4324a93a96da7fdcab1987a'
@@ -3147,6 +3299,8 @@ fn patch(root string, build_root string, receipt_sha string, profile Profile) ! 
 		baseline = platform_fragments_baseline(stage_map, stage)!
 	} else if profile.name == 'maps-imageview-bounds' {
 		baseline = imageview_bounds_baseline(stage_map, stage)!
+	} else if profile.name == 'maps-window-system-ui' {
+		baseline = window_system_ui_baseline(stage_map, stage)!
 	} else {
 		for path, expected in stage.inputs_sha256 {
 			if os.file_name(path) == 'boot.img' && expected == baseline_pin {
@@ -5908,6 +6062,123 @@ fn imageview_bounds_profile_self_test() ! {
 	println('MAPS-IMAGEVIEW-BOUNDS KERNEL-PROFILE-SELF-TEST PASS seven files exact actual input changes fifty-nine seals twenty-seven inherited modules ImageView consumed delta unchanged native sources and historical rejection')
 }
 
+fn window_system_ui_entries_fixture() []ServiceQueryEntry {
+	mut entries := imageview_bounds_entries_fixture().filter(it.kind == 'directory')
+	for path, pin in window_system_ui_known_delta() {
+		name := path.trim_left('/')
+		entries << ServiceQueryEntry{name: name, kind: 'regular', sha256: pin, mode: if name == native_onboarding_trace_path { u32(0o755) } else { u32(0o644) }}
+	}
+	if window_system_ui_native_pin == imageview_bounds_native_pin {
+		entries << ServiceQueryEntry{name: native_onboarding_trace_path, kind: 'regular', sha256: window_system_ui_native_pin, mode: 0o755}
+	}
+	entries << ServiceQueryEntry{name: service_query_headless + '/guest-inputs.json', kind: 'regular', sha256: 'c'.repeat(64), mode: 0o644}
+	entries << ServiceQueryEntry{name: service_query_deployment, kind: 'regular', sha256: 'd'.repeat(64), mode: 0o644}
+	return entries
+}
+fn window_system_ui_receipt_fixture() !map[string]json2.Any {
+	mut receipt := map[string]json2.Any{}
+	for name, value in window_system_ui_fields() { receipt[name] = json2.Any(value) }
+	mut delta := window_system_ui_known_delta()
+	delta['/' + service_query_headless + '/guest-inputs.json'] = 'c'.repeat(64)
+	receipt['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(delta))!
+	for name, value in window_system_ui_proofs() { receipt[name] = json2.decode[json2.Any](value)! }
+	receipt['overlay_inventory'] = json2.decode[json2.Any](json2.encode(window_system_ui_entries_fixture()))!
+	return receipt
+}
+fn window_system_ui_profile_self_test() ! {
+	profile := window_system_ui_profile()
+	if profile.baseline_sha != window_system_ui_boot || profile.modules.len != 28
+		|| profile.modules.last() != 'maps-imageview-bounds.tar' || window_system_ui_inputs().len != 62 { return error('window system UI strict profile differs') }
+	if window_system_ui_known_delta().len != (if window_system_ui_native_pin == imageview_bounds_native_pin { 4 } else { 5 }) { return error('window system UI actual changed input count differs') }
+	mut final_modules := profile.modules.clone()
+	final_modules << profile.overlay
+	verify_modules(profile, Config{'vinix', profile.modules}, Config{'vinix', final_modules})!
+	stage := Stage{format: 1, inputs_sha256: window_system_ui_inputs(), original_modules_sha256: window_system_ui_modules(), preserved_modules_sha256: window_system_ui_modules()}
+	receipt := window_system_ui_receipt_fixture()!
+	verify_window_system_ui_receipt(receipt, stage)!
+	mut fields := window_system_ui_fields().keys()
+	fields << window_system_ui_proofs().keys()
+	fields << 'deployment_input_delta'
+	for field in fields {
+		mut bad := window_system_ui_receipt_fixture()!
+		bad[field] = json2.Any('changed')
+		if _ := verify_window_system_ui_receipt(bad, stage) { return error('changed window system UI field/proof accepted') }
+		bad.delete(field)
+		if _ := verify_window_system_ui_receipt(bad, stage) { return error('missing window system UI field/proof accepted') }
+	}
+	helper_delta := json2.decode[map[string]string](window_system_ui_proofs()['native_builder_helper_delta']!)!
+	if helper_delta.len != 4 { return error('exact four window system UI builder helper changes required') }
+	for path in helper_delta.keys() {
+		mut changed := helper_delta.clone()
+		changed[path] = '0'.repeat(64)
+		mut bad := window_system_ui_receipt_fixture()!
+		bad['native_builder_helper_delta'] = json2.decode[json2.Any](json2.encode(changed))!
+		if _ := verify_window_system_ui_receipt(bad, stage) { return error('changed reviewed window system UI builder helper accepted') }
+		changed.delete(path)
+		bad['native_builder_helper_delta'] = json2.decode[json2.Any](json2.encode(changed))!
+		if _ := verify_window_system_ui_receipt(bad, stage) { return error('missing reviewed window system UI builder helper accepted') }
+	}
+	mut extra_helper := helper_delta.clone()
+	extra_helper['tools/sourcecommand/unreviewed.v'] = 'a'.repeat(64)
+	mut extra_helper_receipt := window_system_ui_receipt_fixture()!
+	extra_helper_receipt['native_builder_helper_delta'] = json2.decode[json2.Any](json2.encode(extra_helper))!
+	if _ := verify_window_system_ui_receipt(extra_helper_receipt, stage) { return error('unreviewed window system UI builder helper accepted') }
+	for path in stage.inputs_sha256.keys() {
+		mut pins := window_system_ui_inputs()
+		pins[path] = '0'.repeat(64)
+		if _ := verify_window_system_ui_receipt(receipt, Stage{...stage, inputs_sha256: pins}) { return error('changed window system UI dependency accepted') }
+		pins.delete(path)
+		if _ := verify_window_system_ui_receipt(receipt, Stage{...stage, inputs_sha256: pins}) { return error('missing window system UI dependency accepted') }
+	}
+	mut extra := window_system_ui_inputs()
+	extra['/unreviewed/sha256.json'] = 'a'.repeat(64)
+	if _ := verify_window_system_ui_receipt(receipt, Stage{...stage, inputs_sha256: extra}) { return error('extra window system UI dependency accepted') }
+	for bad in [Stage{...stage, format: 0}, Stage{...stage, original_modules_sha256: imageview_bounds_modules()}, Stage{...stage, preserved_modules_sha256: imageview_bounds_modules()}] {
+		if _ := verify_window_system_ui_receipt(receipt, bad) { return error('wrong window system UI module inventory accepted') }
+	}
+	stale_receipt := imageview_bounds_receipt_fixture()!
+	for field in ['native_builder_helper_delta', 'framework_source_delta', 'framework_canonical_delta', 'native_consumed_raw_delta', 'native_consumed_canonical_delta'] {
+		mut bad := window_system_ui_receipt_fixture()!
+		bad[field] = stale_receipt[field]!
+		if _ := verify_window_system_ui_receipt(bad, stage) { return error('stale ImageView transition proof accepted') }
+	}
+	entries := window_system_ui_entries_fixture()
+	for index, entry in entries {
+		for changed in [ServiceQueryEntry{...entry, name: '../escape'}, ServiceQueryEntry{...entry, kind: 'symlink'},
+			ServiceQueryEntry{...entry, mode: 0o777}, ServiceQueryEntry{...entry, mode: 0o4755}] {
+			mut bad_entries := entries.clone()
+			bad_entries[index] = changed
+			mut bad := window_system_ui_receipt_fixture()!
+			bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(bad_entries))!
+			if _ := verify_window_system_ui_receipt(bad, stage) { return error('unsafe window system UI inode accepted') }
+		}
+		if entry.kind == 'regular' {
+			mut corrupt_entries := entries.clone()
+			corrupt_entries[index] = ServiceQueryEntry{...entry, sha256: '0'.repeat(64)}
+			mut corrupt := window_system_ui_receipt_fixture()!
+			corrupt['overlay_inventory'] = json2.decode[json2.Any](json2.encode(corrupt_entries))!
+			if entry.name != service_query_deployment {
+				if _ := verify_window_system_ui_receipt(corrupt, stage) { return error('changed window system UI file hash accepted') }
+			}
+			mut bad_entries := entries.clone()
+			bad_entries.delete(index)
+			mut bad := window_system_ui_receipt_fixture()!
+			bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(bad_entries))!
+			if _ := verify_window_system_ui_receipt(bad, stage) { return error('missing window system UI file accepted') }
+		}
+	}
+	for extra_entry in [entries.last(), ServiceQueryEntry{name: native_onboarding_trace_path, kind: 'regular', sha256: imageview_bounds_native_pin, mode: 0o755}] {
+		mut bad_entries := entries.clone()
+		bad_entries << extra_entry
+		mut bad := window_system_ui_receipt_fixture()!
+		bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(bad_entries))!
+		if _ := verify_window_system_ui_receipt(bad, stage) { return error('extra or stale window system UI file accepted') }
+	}
+	if _ := verify_window_system_ui_receipt(stale_receipt, stage) { return error('ImageView receipt accepted by window system UI profile') }
+	if _ := verify_imageview_bounds_receipt(receipt, stage) { return error('window system UI receipt accepted by ImageView profile') }
+	println('MAPS-WINDOW-SYSTEM-UI KERNEL-PROFILE-SELF-TEST PASS seven files exact actual input changes sixty-two seals twenty-eight inherited modules unchanged canonical native inputs and historical rejection')
+}
+
 fn self_test() ! {
 	protected_profile_self_test()!
 	controller_profile_self_test()!
@@ -5930,6 +6201,7 @@ fn self_test() ! {
 	service_lifecycle_profile_self_test()!
 	platform_fragments_profile_self_test()!
 	imageview_bounds_profile_self_test()!
+	window_system_ui_profile_self_test()!
 	maps := maps_profile()
 	before := Config{'vinix', maps.modules}
 	mut modules := maps.modules.clone()
@@ -6032,9 +6304,10 @@ fn main() {
 	is_service_lifecycle := os.args.len == 5 && os.args[1] == '--maps-service-lifecycle'
 	is_platform_fragments := os.args.len == 5 && os.args[1] == '--maps-platform-fragments'
 	is_imageview_bounds := os.args.len == 5 && os.args[1] == '--maps-imageview-bounds'
-	is_selected := is_maps || is_protected || is_controller || is_service_query || is_controller_memory || is_direct_boot || is_context_storage || is_broadcast_result || is_onboarding_trace || is_native_onboarding_trace || is_onboarding_framework || is_native_heartbeat || is_browser_poll || is_account_pump || is_application_restrictions || is_account_handoff || is_auth_exception || is_auth_worker || is_binder_identity || is_service_lifecycle || is_platform_fragments || is_imageview_bounds
+	is_window_system_ui := os.args.len == 5 && os.args[1] == '--maps-window-system-ui'
+	is_selected := is_maps || is_protected || is_controller || is_service_query || is_controller_memory || is_direct_boot || is_context_storage || is_broadcast_result || is_onboarding_trace || is_native_onboarding_trace || is_onboarding_framework || is_native_heartbeat || is_browser_poll || is_account_pump || is_application_restrictions || is_account_handoff || is_auth_exception || is_auth_worker || is_binder_identity || is_service_lifecycle || is_platform_fragments || is_imageview_bounds || is_window_system_ui
 	if os.args.len != 4 && !is_selected {
-		eprintln('usage: patch-kernel [--maps-account|--protected-storage-maps|--maps-controller|--maps-service-query|--maps-controller-memory|--maps-direct-boot|--maps-context-storage|--maps-broadcast-result|--maps-onboarding-trace|--maps-native-onboarding-trace|--maps-onboarding-framework|--maps-native-heartbeat|--maps-browser-poll|--maps-account-pump|--maps-application-restrictions|--maps-account-handoff|--maps-auth-exception|--maps-auth-worker|--maps-binder-identity|--maps-service-lifecycle|--maps-platform-fragments|--maps-imageview-bounds] FRESH_STAGE FROZEN_KERNEL_BUILD BUILD_JSON_SHA256')
+		eprintln('usage: patch-kernel [--maps-account|--protected-storage-maps|--maps-controller|--maps-service-query|--maps-controller-memory|--maps-direct-boot|--maps-context-storage|--maps-broadcast-result|--maps-onboarding-trace|--maps-native-onboarding-trace|--maps-onboarding-framework|--maps-native-heartbeat|--maps-browser-poll|--maps-account-pump|--maps-application-restrictions|--maps-account-handoff|--maps-auth-exception|--maps-auth-worker|--maps-binder-identity|--maps-service-lifecycle|--maps-platform-fragments|--maps-imageview-bounds|--maps-window-system-ui] FRESH_STAGE FROZEN_KERNEL_BUILD BUILD_JSON_SHA256')
 		exit(2)
 	}
 	offset := if is_selected { 1 } else { 0 }
@@ -6046,7 +6319,7 @@ fn main() {
 		eprintln(err)
 		exit(1)
 	}
-	profile := if is_imageview_bounds { imageview_bounds_profile() } else if is_platform_fragments { platform_fragments_profile() } else if is_service_lifecycle { service_lifecycle_profile() } else if is_binder_identity { binder_identity_profile() } else if is_auth_worker { auth_worker_profile() } else if is_auth_exception { auth_exception_profile() } else if is_account_handoff { account_handoff_profile() } else if is_application_restrictions { application_restrictions_profile() } else if is_account_pump { account_pump_profile() } else if is_browser_poll { browser_poll_profile() } else if is_native_heartbeat { native_heartbeat_profile() } else if is_onboarding_framework { onboarding_framework_profile() } else if is_native_onboarding_trace { native_onboarding_trace_profile() } else if is_onboarding_trace { onboarding_trace_profile() } else if is_broadcast_result { broadcast_result_profile() } else if is_context_storage { context_storage_profile() } else if is_direct_boot { direct_boot_profile() } else if is_controller_memory { controller_memory_profile() } else if is_service_query { service_query_profile() } else if is_controller { controller_profile() } else if is_protected { protected_maps_profile() } else if is_maps { maps_profile() } else { browser_profile() }
+	profile := if is_window_system_ui { window_system_ui_profile() } else if is_imageview_bounds { imageview_bounds_profile() } else if is_platform_fragments { platform_fragments_profile() } else if is_service_lifecycle { service_lifecycle_profile() } else if is_binder_identity { binder_identity_profile() } else if is_auth_worker { auth_worker_profile() } else if is_auth_exception { auth_exception_profile() } else if is_account_handoff { account_handoff_profile() } else if is_application_restrictions { application_restrictions_profile() } else if is_account_pump { account_pump_profile() } else if is_browser_poll { browser_poll_profile() } else if is_native_heartbeat { native_heartbeat_profile() } else if is_onboarding_framework { onboarding_framework_profile() } else if is_native_onboarding_trace { native_onboarding_trace_profile() } else if is_onboarding_trace { onboarding_trace_profile() } else if is_broadcast_result { broadcast_result_profile() } else if is_context_storage { context_storage_profile() } else if is_direct_boot { direct_boot_profile() } else if is_controller_memory { controller_memory_profile() } else if is_service_query { service_query_profile() } else if is_controller { controller_profile() } else if is_protected { protected_maps_profile() } else if is_maps { maps_profile() } else { browser_profile() }
 	patch(root, build_root, os.args[3 + offset], profile) or {
 		eprintln(err)
 		exit(1)
