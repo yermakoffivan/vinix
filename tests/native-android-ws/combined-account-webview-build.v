@@ -939,6 +939,72 @@ fn layout_alignment_self_test() ! {
  }
 }
 
+fn user_restrictions_profile() NarrowProfile {
+ manager := 'android/os/UserManager.smali'
+ return NarrowProfile{
+  name: 'user-restrictions'
+  baseline_name: 'combined-account-webview-layout-alignment-framework-2026-10-30-r1'
+  manifest_pin: '1266de2e0a64d876e3559240fe5596ad67d9f2cfce81bd0e1e727675c0d39e00'
+  jar_pin: '162c77f853e6cb85f373493c40c302ff4df5b90ed52f2e6dce961e5e17281d01'
+  baseline_classes: 2106
+  providers: ['framework_user_restrictions.v']
+  calls: {manager: 'framework_user_restrictions_source'}
+  methods: {manager: ['getUserRestrictions()Landroid/os/Bundle;', 'hasUserRestriction(Ljava/lang/String;)Z']}
+  changed: {manager: 0}
+  added: {manager: 2}
+ }
+}
+
+fn user_restrictions_abi(source string) ! {
+ parts := store_parts(source)!
+ for signature in ['getUserRestrictions()Landroid/os/Bundle;', 'hasUserRestriction(Ljava/lang/String;)Z'] {
+  method := parts.methods[signature] or { return error('missing UserManager restriction ABI: ' + signature) }
+  if method.all_before('\n').trim_space() != '.method public ' + signature {
+   return error('UserManager restriction queries must remain public virtual methods')
+  }
+ }
+}
+
+fn user_restrictions_self_test() ! {
+ profile := user_restrictions_profile()
+ manager := 'android/os/UserManager.smali'
+ signatures := ['getUserRestrictions()Landroid/os/Bundle;', 'hasUserRestriction(Ljava/lang/String;)Z']
+ if profile.baseline_classes != 2106 || profile.methods != {manager: signatures}
+  || profile.calls != {manager: 'framework_user_restrictions_source'}
+  || profile.changed != {manager: 0} || profile.added != {manager: 2}
+  || profile.providers != ['framework_user_restrictions.v'] || profile.fields.len != 0
+  || profile.extra_classes.len != 0 || profile.class_provider != '' || profile.directory_provider != '' {
+  return error('UserManager restrictions require two additive queries and no other members or classes')
+ }
+ narrow_method_self_test(signatures, 0, 2)!
+ mut methods := ''
+ for signature in signatures { methods += '.method public ' + signature + '\n.locals 1\nconst/4 v0, 0x0\nreturn-void\n.end method\n' }
+ user_restrictions_abi(methods)!
+ for signature in signatures {
+  for flags in ['public final', 'private', 'public static', 'public native', 'public synthetic'] {
+   user_restrictions_abi(methods.replace('.method public ' + signature, '.method ' + flags + ' ' + signature)) or { continue }
+   return error('invalid UserManager restriction query flags accepted')
+  }
+ }
+ mut old := {manager: 'old'}
+ for i in 0 .. 2105 { old['other/' + i.str() + '.smali'] = 'same' }
+ mut good := old.clone()
+ good[manager] = 'new'
+ narrow_profile_class_delta(old, good, [manager], []string{}, 2106)!
+ for case in 0 .. 5 {
+  mut bad := good.clone()
+  match case {
+   0 { bad[manager] = 'old' }
+   1 { bad['other/0.smali'] = 'changed' }
+   2 { bad.delete(manager) }
+   3 { bad['unrelated.smali'] = 'new' }
+   else { bad.delete(manager); bad['substituted.smali'] = 'new' }
+  }
+  narrow_profile_class_delta(old, bad, [manager], []string{}, 2106) or { continue }
+  return error('invalid UserManager-only class scope accepted')
+ }
+}
+
 fn window_system_ui_self_test() ! {
  profile := window_system_ui_profile()
  layout := 'android/view/WindowManager$LayoutParams.smali'
@@ -1713,6 +1779,7 @@ fn self_test() ! {
  bitmap_tiles_self_test()!
  window_animations_self_test()!
  layout_alignment_self_test()!
+ user_restrictions_self_test()!
  query_profile := service_query_profile()
  narrow_method_self_test(query_profile.methods['android/content/pm/PackageManager.smali']!, 1, 0)!
  boot_profile := direct_boot_profile()
@@ -1987,6 +2054,7 @@ fn build_narrow(profile NarrowProfile, baseline string, manifest_pin string, jar
   if profile.name == 'bitmap-tiles' { bitmap_tiles_abi(os.read_file(root + '/smali/' + target)!)! }
   if profile.name == 'window-animations' { window_animations_abi(target, os.read_file(root + '/smali/' + target)!)! }
   if profile.name == 'layout-alignment' { layout_alignment_abi(os.read_file(root + '/smali/' + target)!)! }
+  if profile.name == 'user-restrictions' { user_restrictions_abi(os.read_file(root + '/smali/' + target)!)! }
  }
  if profile.name == 'platform-fragments' {
   for target in profile.extra_classes { platform_fragments_abi(os.read_file(root + '/smali/' + target)!, target)! }
@@ -2016,6 +2084,7 @@ fn build_narrow(profile NarrowProfile, baseline string, manifest_pin string, jar
   if profile.name == 'bitmap-tiles' { bitmap_tiles_abi(os.read_file(root + '/new-dex/' + target)!)! }
   if profile.name == 'window-animations' { window_animations_abi(target, os.read_file(root + '/new-dex/' + target)!)! }
   if profile.name == 'layout-alignment' { layout_alignment_abi(os.read_file(root + '/new-dex/' + target)!)! }
+  if profile.name == 'user-restrictions' { user_restrictions_abi(os.read_file(root + '/new-dex/' + target)!)! }
  }
  if profile.name == 'platform-fragments' {
   for target in profile.extra_classes { platform_fragments_abi(os.read_file(root + '/new-dex/' + target)!, target)! }
@@ -2313,11 +2382,15 @@ fn main() {
   build_narrow(layout_alignment_profile(), os.abs_path(os.args[2]), os.args[3], os.args[4], os.abs_path(os.args[5])) or { eprintln(err); exit(1) }
   return
  }
+ if os.args.len == 6 && os.args[1] == '--user-restrictions' {
+  build_narrow(user_restrictions_profile(), os.abs_path(os.args[2]), os.args[3], os.args[4], os.abs_path(os.args[5])) or { eprintln(err); exit(1) }
+  return
+ }
  if os.args.len == 6 && os.args[1] in ['--store', '--auth', '--cache', '--descriptions', '--protected-storage', '--service-query', '--direct-boot', '--credential-storage', '--broadcast-result', '--onboarding', '--application-restrictions', '--auth-exception', '--binder-identity', '--service-lifecycle', '--platform-fragments', '--imageview-bounds', '--window-system-ui'] {
   profile := match os.args[1] { '--store' { storage_profile() } '--auth' { auth_profile() } '--cache' { cache_profile() } '--descriptions' { descriptions_profile() } '--protected-storage' { protected_storage_profile() } '--service-query' { service_query_profile() } '--direct-boot' { direct_boot_profile() } '--credential-storage' { credential_storage_profile() } '--broadcast-result' { broadcast_result_profile() } '--application-restrictions' { application_restrictions_profile() } '--auth-exception' { auth_exception_profile() } '--binder-identity' { binder_identity_profile() } '--service-lifecycle' { service_lifecycle_profile() } '--platform-fragments' { platform_fragments_profile() } '--imageview-bounds' { imageview_bounds_profile() } '--window-system-ui' { window_system_ui_profile() } else { onboarding_profile() } }
   build_narrow(profile, os.abs_path(os.args[2]), os.args[3], os.args[4], os.abs_path(os.args[5])) or { eprintln(err); exit(1) }
   return
  }
- if os.args.len != 5 { eprintln('usage: combined-account-webview-build [--store|--auth|--cache|--descriptions|--protected-storage|--service-query|--direct-boot|--credential-storage|--broadcast-result|--onboarding|--application-restrictions|--auth-exception|--binder-identity|--service-lifecycle|--platform-fragments|--imageview-bounds|--window-system-ui|--bitmap-tiles|--window-animations|--layout-alignment] BASELINE BASELINE_MANIFEST_SHA256 BASELINE_JAR_SHA256 FRESH_OUTPUT | --self-test'); exit(2) }
+ if os.args.len != 5 { eprintln('usage: combined-account-webview-build [--store|--auth|--cache|--descriptions|--protected-storage|--service-query|--direct-boot|--credential-storage|--broadcast-result|--onboarding|--application-restrictions|--auth-exception|--binder-identity|--service-lifecycle|--platform-fragments|--imageview-bounds|--window-system-ui|--bitmap-tiles|--window-animations|--layout-alignment|--user-restrictions] BASELINE BASELINE_MANIFEST_SHA256 BASELINE_JAR_SHA256 FRESH_OUTPUT | --self-test'); exit(2) }
  build(os.abs_path(os.args[1]), os.args[2], os.args[3], os.abs_path(os.args[4])) or { eprintln(err); exit(1) }
 }
