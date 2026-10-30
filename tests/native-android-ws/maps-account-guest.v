@@ -6,6 +6,7 @@ module main
 import arena
 import accounthandoff
 import brokerlog
+import companionstage
 import crypto.sha256
 import encoding.base64
 import json2
@@ -48,6 +49,11 @@ const sqlite_pin = '5a228127ca3ffa0c88bcae0aa5f7ab10e15b383dfb46822c573013105628
 const registry_path = bundle_root + '/identity.registry'
 const maps_apk = bundle_root + '/apks/maps.apk'
 const gms_apk = bundle_root + '/apks/gms.apk'
+const vending_apk = bundle_root + '/apks/vending.apk'
+const gms_companion_apk_pin = 'a34d6a3ccea3ceba491369517e8f12e11df3791e86fec38b1cdf693785e35707'
+const gms_companion_signer_pin = 'f0fd6c5b410f25cb25c3b53346c8972fae30f8ee7411df910480ad6b2d60db83'
+const vending_companion_apk_pin = '444e41ee8ef6ec8c55815087c51c28e516ea32f93d856f8bdd0025bb6fc36bc2'
+const vending_companion_signer_pin = 'f0fd6c5b410f25cb25c3b53346c8972fae30f8ee7411df910480ad6b2d60db83'
 const service_class = 'com.google.android.gms.auth.account.authenticator.GoogleAccountAuthenticatorService'
 const account_activity = 'com.google.android.gms.auth.uiflows.addaccount.AccountIntroActivity'
 const prefix = 'VINIX-MAPS-ACCOUNT-RESULTS-1 '
@@ -567,6 +573,8 @@ struct Build {
 	runtime_root      string
 	maps_uid          int
 	gms_uid           int
+	gms_signer_sdk29_sha256 string
+	vending_signer_sdk29_sha256 string
 	inputs_sha256     map[string]string
 	browser_manifests map[string]BrowserPin
 }
@@ -830,11 +838,27 @@ mut:
 	service_ready     bool
 	broker_exit       int = -1
 	broker_drain      brokerlog.DrainResult
+	companions        []CompanionProvisioning
 	cleanup_survivors int
 	auth_init         AuthInitDiagnostics
 	browser_init      AuthInitDiagnostics
 	auth_pump         AuthPumpDiagnostics
 	account_handoff   AccountHandoffDiagnostics
+}
+
+struct CompanionMetadata {
+	package_name string
+	version_code i64
+	version_name string
+	apk_sha256 string
+	signer_sdk29_sha256 string
+	split_required bool
+}
+
+struct CompanionProvisioning {
+	provisioned bool
+	metadata CompanionMetadata
+	installation companionstage.Record
 }
 
 struct DatabaseUpdate {
@@ -1082,7 +1106,7 @@ fn registry_matches(text string, pins map[string]string) ! {
 }
 
 fn required_deployment_inputs(pins map[string]string) ! {
-	for path in [controller_path, '/usr/bin/run-android-calculator', maps_apk, gms_apk, registry_path,
+	for path in [controller_path, '/usr/bin/run-android-calculator', maps_apk, gms_apk, vending_apk, registry_path,
 		launcher_path, broker_path, helper_path,
 		runtime_root + '/usr/lib/art/libvinix-android-native.so',
 		runtime_root + '/usr/lib/libvinix-android-account.so',
@@ -1094,6 +1118,75 @@ fn required_deployment_inputs(pins map[string]string) ! {
 			return error('required deployment input absent: ' + path)
 		}
 	}
+}
+
+fn companion_metadata(build Build, registry string) ![]CompanionMetadata {
+	// These version/split facts are bound to the same admitted real APK whose
+	// SDK29 signature and package identity were verified by the media producer.
+	gms_pin := build.inputs_sha256[gms_apk] or { '' }
+	vending_pin := build.inputs_sha256[vending_apk] or { '' }
+	if gms_pin != gms_companion_apk_pin
+		|| build.gms_signer_sdk29_sha256 != gms_companion_signer_pin
+		|| vending_pin != vending_companion_apk_pin
+		|| build.vending_signer_sdk29_sha256 != vending_companion_signer_pin {
+		return error('companion APK or verified signer differs')
+	}
+	registry_matches(registry, build.inputs_sha256)!
+	for line in registry.split_into_lines() {
+		if line.starts_with('com.google.android.gms\t') {
+			if line.split('\t')[5] != build.gms_signer_sdk29_sha256 {
+				return error('GMS companion signer differs from authority registry')
+			}
+			return [CompanionMetadata{
+				package_name: 'com.google.android.gms'
+				version_code: 264131013
+				version_name: '26.41.31 (100400-1002748488)'
+				apk_sha256: gms_companion_apk_pin
+				signer_sdk29_sha256: gms_companion_signer_pin
+				split_required: false
+			}, CompanionMetadata{
+				package_name: 'com.android.vending'
+				version_code: 85292100
+				version_name: '52.9.21-24 [0] [PR] 968642861'
+				apk_sha256: vending_companion_apk_pin
+				signer_sdk29_sha256: vending_companion_signer_pin
+				split_required: false
+			}]
+		}
+	}
+	return error('GMS companion authority absent')
+}
+
+fn provision_companions(build Build) ![]CompanionProvisioning {
+	metadata := companion_metadata(build, os.read_file(registry_path)!)!
+	if metadata.len != 2 { return error('companion metadata count differs') }
+	for source in [gms_apk, vending_apk] { protected_input(source)! }
+	gms := companionstage.Config{
+		source: gms_apk
+		sha256: metadata[0].apk_sha256
+		data: '/var/lib/vinix/apps/10012/data'
+		scratch: broker_root + '/.gms-companion-stage'
+		source_owner: 0
+		source_group: 0
+		target_uid: 10012
+		target_gid: 10012
+	}
+	vending := companionstage.Config{...gms, source: vending_apk,
+		sha256: metadata[1].apk_sha256, scratch: broker_root + '/.vending-companion-stage'}
+	installations := companionstage.stage_pair(gms, vending)!
+	if installations.len != 2 { return error('companion publication count differs') }
+	mut result := []CompanionProvisioning{cap: 2}
+	for index, installation in installations {
+		if installation.package_name != metadata[index].package_name
+			|| installation.source_sha256 != metadata[index].apk_sha256
+			|| installation.apk_sha256 != metadata[index].apk_sha256
+			|| installation.target_uid != 10012 || installation.target_gid != 10012 {
+			return error('companion publication metadata differs')
+		}
+		result << CompanionProvisioning{provisioned: true, metadata: metadata[index], installation: installation}
+	}
+	for source in [gms_apk, vending_apk] { protected_input(source)! }
+	return result
 }
 
 fn build_inputs(harden bool) !Build {
@@ -1652,6 +1745,7 @@ fn broker_session(mut receipt Receipt) ! {
 	receipt.desktop = desktop_identity()!
 	os.write_file(result_root + '/identity/desktop.json', json2.encode(receipt.desktop) + '\n')!
 	provision()!
+	receipt.companions = provision_companions(build)!
 	receipt.runtime_mount = approve_runtime()!
 	enable_subreaper()!
 	select_environment(build, '10013')!
@@ -2234,7 +2328,7 @@ fn account_handoff_self_test() ! {
 
 fn required_deployment_inputs_self_test() ! {
 	mut complete := map[string]string{}
-	for path in [controller_path, '/usr/bin/run-android-calculator', maps_apk, gms_apk,
+	for path in [controller_path, '/usr/bin/run-android-calculator', maps_apk, gms_apk, vending_apk,
 		registry_path, launcher_path, broker_path, helper_path,
 		runtime_root + '/usr/lib/art/libvinix-android-native.so',
 		runtime_root + '/usr/lib/libvinix-android-account.so', sqlite_path,
@@ -2466,6 +2560,49 @@ fn poll_memory_self_test(iterations int) ! {
 	println('MAPS-ACCOUNT-POLL-MEMORY-PASS iterations=${iterations} processes=${owned.len} scratch_peak_used=${peak_used} scratch_peak_capacity=${peak_capacity} scratch_total=${total_scratch} copied_errors=${failures} output_capacity=${output.cap}')
 }
 
+fn companion_metadata_self_test() ! {
+	pins := {maps_apk: 'a'.repeat(64), gms_apk: gms_companion_apk_pin, vending_apk: vending_companion_apk_pin}
+	registry := 'vinix-android-account-authority-v1\ncom.google.android.apps.maps\t10012\t10012\t' + maps_apk + '\t' + pins[maps_apk]! + '\t' + 'b'.repeat(64) + '\t-\ncom.google.android.gms\t10013\t10013\t' + gms_apk + '\t' + gms_companion_apk_pin + '\t' + gms_companion_signer_pin + '\t' + service_class + '@android.accounts.AccountAuthenticator@com.google\n'
+	build := Build{inputs_sha256: pins, gms_signer_sdk29_sha256: gms_companion_signer_pin,
+		vending_signer_sdk29_sha256: vending_companion_signer_pin}
+	metadata := companion_metadata(build, registry)!
+	if metadata.len != 2 || metadata[0].package_name != 'com.google.android.gms'
+		|| metadata[0].version_code != 264131013 || metadata[0].version_name != '26.41.31 (100400-1002748488)'
+		|| metadata[0].split_required || metadata[0].apk_sha256 != gms_companion_apk_pin
+		|| metadata[0].signer_sdk29_sha256 != gms_companion_signer_pin
+		|| metadata[1].package_name != 'com.android.vending' || metadata[1].version_code != 85292100
+		|| metadata[1].version_name != '52.9.21-24 [0] [PR] 968642861' || metadata[1].split_required
+		|| metadata[1].apk_sha256 != vending_companion_apk_pin
+		|| metadata[1].signer_sdk29_sha256 != vending_companion_signer_pin {
+		return error('pinned companion metadata differs')
+	}
+	for case in 0 .. 9 {
+		mut changed := pins.clone()
+		if case == 0 { changed.delete(gms_apk) }
+		if case == 1 { changed[gms_apk] = 'c'.repeat(64) }
+		if case == 2 { changed.delete(maps_apk) }
+		if case == 5 { changed.delete(vending_apk) }
+		if case == 6 { changed[vending_apk] = 'c'.repeat(64) }
+		if case == 8 { changed[gms_apk] = vending_companion_apk_pin; changed[vending_apk] = gms_companion_apk_pin }
+		candidate := Build{inputs_sha256: changed,
+			gms_signer_sdk29_sha256: if case == 3 { 'd'.repeat(64) } else { gms_companion_signer_pin },
+			vending_signer_sdk29_sha256: if case == 7 { 'd'.repeat(64) } else { vending_companion_signer_pin }}
+		text := if case == 4 { registry.replace(gms_companion_signer_pin, 'e'.repeat(64)) } else { registry }
+		if _ := companion_metadata(candidate, text) {
+			return error('unbound companion metadata accepted')
+		}
+	}
+	before := json2.decode[Receipt](json2.encode(Receipt{}))!
+	if before.companions.len != 0 { return error('empty receipt claimed companion publication') }
+	after := json2.decode[Receipt](json2.encode(Receipt{companions: [
+		CompanionProvisioning{provisioned: true, metadata: metadata[0]},
+		CompanionProvisioning{provisioned: true, metadata: metadata[1]}]}))!
+	if after.companions.len != 2 || !after.companions[0].provisioned || !after.companions[1].provisioned
+		|| after.companions[0].metadata != metadata[0] || after.companions[1].metadata != metadata[1] {
+		return error('companion metadata receipt roundtrip differs')
+	}
+}
+
 fn broker_drain_self_test() ! {
 	root := os.join_path(os.temp_dir(), 'vinix-maps-drain-' + os.getpid().str() + '-' + time.sys_mono_now().str())
 	os.mkdir(root, mode: 0o700)!
@@ -2529,6 +2666,7 @@ fn self_test() ! {
 	browser_init_self_test()!
 	auth_pump_self_test()!
 	broker_drain_self_test()!
+	companion_metadata_self_test()!
 	account_handoff_self_test()!
 	required_deployment_inputs_self_test()!
 	protected_directory_self_test()!
