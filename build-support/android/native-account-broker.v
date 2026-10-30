@@ -112,6 +112,16 @@ fn stop_child(pid i32) {
 	C.waitpid(pid, &status, 0)
 }
 
+// Only the root-selected child is observed. Keep the raw wait status numeric;
+// application output remains in the controller's private broker log.
+fn selected_child_exited(pid i32) bool {
+	mut child_status := i32(0)
+	if C.waitpid(pid, &child_status, C.WNOHANG) != pid { return false }
+	C.printf(c'ANDROID-ACCOUNT-BROKER-CHILD-STATUS raw=%d\n', child_status)
+	C.fflush(unsafe { nil })
+	return true
+}
+
 fn run() ! {
 	if os.args.len !in [12, 13, 18] || C.getuid() != 0 || C.geteuid() != 0 {
 		return error('usage (root): native-account-broker REGISTRY RUNTIME_ROOT APK UID GID SERVICE ACTION DIRECTORY DATA_DIRECTORY HOME_DIRECTORY PACKAGE [INTERACTION_ACTIVITY [--ui UID GID ABS_HELPER ABS_WINDOW_SOCKET]]')
@@ -246,8 +256,7 @@ fn run() ! {
 	mut attached := false
 	startup_deadline := time.sys_mono_now() + 30 * time.second
 	for {
-		mut child_status := i32(0)
-		if C.waitpid(pid, &child_status, C.WNOHANG) == pid {
+		if selected_child_exited(pid) {
 			return error('selected authenticator process exited')
 		}
 		if !attached && time.sys_mono_now() > startup_deadline {
