@@ -640,6 +640,117 @@ fn persistent_data_block_self_test() ! {
  }
 }
 
+fn bitmap_tiles_profile() NarrowProfile {
+ drawable := 'android/graphics/drawable/BitmapDrawable.smali'
+ return NarrowProfile{
+  name: 'bitmap-tiles'
+  baseline_name: 'combined-account-webview-persistent-data-block-framework-2026-10-30-r1'
+  manifest_pin: 'a6d34af62a2b8fd6f85c84dd36493d47b3eefa9690cf875c7ac0e67abe882858'
+  jar_pin: '7c1b2fa03924003c7717e07ef463bff81c6429c7667b2bc42d35954fb6d41752'
+  baseline_classes: 2106
+  providers: ['framework_bitmap_tiles.v']
+  calls: {drawable: 'framework_bitmap_tiles_source'}
+  methods: {drawable: bitmap_tiles_method_headers().keys()}
+  changed: {drawable: 2}
+  added: {drawable: bitmap_tiles_method_headers().len - 2}
+  fields: {drawable: ['.field private vinixTileX:Landroid/graphics/Shader$TileMode;',
+   '.field private vinixTileY:Landroid/graphics/Shader$TileMode;',
+   '.field private vinixPaint:Landroid/graphics/Paint;']}
+ }
+}
+
+fn bitmap_tiles_method_headers() map[string]string {
+ return {
+  'getPaint()Landroid/graphics/Paint;': 'public'
+  'setTileModeX(Landroid/graphics/Shader$TileMode;)V': 'public'
+  'setTileModeY(Landroid/graphics/Shader$TileMode;)V': 'public'
+  'setTileModeXY(Landroid/graphics/Shader$TileMode;Landroid/graphics/Shader$TileMode;)V': 'public'
+  'getTileModeX()Landroid/graphics/Shader$TileMode;': 'public'
+  'getTileModeY()Landroid/graphics/Shader$TileMode;': 'public'
+  'draw(Landroid/graphics/Canvas;)V': 'public'
+  'vinixTileAxis(IIILandroid/graphics/Shader$TileMode;[I)V': 'private static'
+  'vinixDrawTile(Landroid/graphics/Canvas;II[I[I)V': 'private'
+  'vinixDrawTiles(Landroid/graphics/Canvas;)V': 'private'
+ }
+}
+
+fn bitmap_tiles_abi(source string) ! {
+ parts := store_parts(source)!
+ if parts.metadata.split_into_lines().filter(it.starts_with('.class ')) != ['.class public Landroid/graphics/drawable/BitmapDrawable;']
+  || parts.metadata.split_into_lines().filter(it.starts_with('.super ')) != ['.super Landroid/graphics/drawable/Drawable;'] {
+  return error('bitmap tiles require the retained public BitmapDrawable type')
+ }
+ for signature, flags in bitmap_tiles_method_headers() {
+  method := parts.methods[signature] or { return error('missing bitmap tile ABI member: ' + signature) }
+  if method.all_before('\n').trim_space() != '.method ' + flags + ' ' + signature {
+   return error('unexpected bitmap tile method ABI: ' + signature)
+  }
+ }
+}
+
+fn bitmap_tiles_self_test() ! {
+ profile := bitmap_tiles_profile()
+ drawable := 'android/graphics/drawable/BitmapDrawable.smali'
+ allowed := profile.methods[drawable]!
+ fields := profile.fields[drawable]!
+ if profile.baseline_classes != 2106 || profile.methods.len != 1
+  || profile.calls != {drawable: 'framework_bitmap_tiles_source'}
+  || profile.providers != ['framework_bitmap_tiles.v'] || profile.extra_classes.len != 0
+  || profile.class_provider != '' || profile.directory_provider != ''
+  || allowed.len != 10 || profile.changed != {drawable: 2} || profile.added != {drawable: 8}
+  || fields != ['.field private vinixTileX:Landroid/graphics/Shader$TileMode;',
+   '.field private vinixTileY:Landroid/graphics/Shader$TileMode;',
+   '.field private vinixPaint:Landroid/graphics/Paint;'] {
+  return error('bitmap tiles require exactly one drawable target and three private fields')
+ }
+ narrow_method_self_test(allowed, 2, allowed.len - 2)!
+ metadata := '.class public Landroid/graphics/drawable/BitmapDrawable;\n.super Landroid/graphics/drawable/Drawable;\n.field private bitmap:Landroid/graphics/Bitmap;\n'
+ retained := '.method public retained()V\n.locals 0\nreturn-void\n.end method\n'
+ mut before := metadata + retained
+ mut after := metadata + retained + fields.join('\n') + '\n'
+ for signature, flags in bitmap_tiles_method_headers() {
+  header := '.method ' + flags + ' ' + signature
+  if signature in ['getPaint()Landroid/graphics/Paint;', 'setTileModeX(Landroid/graphics/Shader$TileMode;)V'] {
+   before += header + '\n.locals 1\nreturn-void\n.end method\n'
+  }
+  after += header + '\n.locals 2\nreturn-void\n.end method\n'
+ }
+ narrow_member_delta(before, after, allowed, 2, allowed.len - 2, fields)!
+ bitmap_tiles_abi(after)!
+ for bad in [after.replace(fields[0], ''), after.replace(fields[0], fields[0] + '\n' + fields[0]),
+  after.replace(fields[1], '.field public vinixTileY:Landroid/graphics/Shader$TileMode;'),
+  after.replace('.field private bitmap:Landroid/graphics/Bitmap;', '.field private bitmap:Ljava/lang/Object;'),
+  after.replace('public retained()V', 'private retained()V'), after + '.field private unrelated:I\n'] {
+  narrow_member_delta(before, bad, allowed, 2, allowed.len - 2, fields) or { continue }
+  return error('invalid bitmap tile field or retained-member delta accepted')
+ }
+ for signature, flags in bitmap_tiles_method_headers() {
+  header := '.method ' + flags + ' ' + signature
+  for replacement in ['.method protected static ' + signature, '.method public native ' + signature,
+   '.method protected ' + signature, '.method public synthetic ' + signature] {
+   bitmap_tiles_abi(after.replace(header, replacement)) or { continue }
+   return error('invalid bitmap tile method flags accepted: ' + signature)
+  }
+ }
+ mut old_classes := {drawable: 'old'}
+ for i in 0 .. 2105 { old_classes['other/' + i.str() + '.smali'] = 'same' }
+ mut good := old_classes.clone()
+ good[drawable] = 'new'
+ narrow_profile_class_delta(old_classes, good, [drawable], []string{}, 2106)!
+ for case in 0 .. 5 {
+  mut bad := good.clone()
+  match case {
+   0 { bad[drawable] = 'old' }
+   1 { bad['other/0.smali'] = 'changed' }
+   2 { bad.delete(drawable) }
+   3 { bad['unrelated.smali'] = 'added' }
+   else { bad.delete(drawable); bad['substituted.smali'] = 'new' }
+  }
+  narrow_profile_class_delta(old_classes, bad, [drawable], []string{}, 2106) or { continue }
+  return error('invalid bitmap drawable-only class delta accepted')
+ }
+}
+
 fn window_system_ui_self_test() ! {
  profile := window_system_ui_profile()
  layout := 'android/view/WindowManager$LayoutParams.smali'
@@ -1411,6 +1522,7 @@ fn self_test() ! {
  window_system_ui_self_test()!
  seed_account_options_self_test()!
  persistent_data_block_self_test()!
+ bitmap_tiles_self_test()!
  query_profile := service_query_profile()
  narrow_method_self_test(query_profile.methods['android/content/pm/PackageManager.smali']!, 1, 0)!
  boot_profile := direct_boot_profile()
@@ -1682,6 +1794,7 @@ fn build_narrow(profile NarrowProfile, baseline string, manifest_pin string, jar
   if profile.name == 'imageview-bounds' { imageview_bounds_abi(os.read_file(root + '/smali/' + target)!)! }
   if profile.name == 'seed-account-options' { seed_account_options_abi(target, os.read_file(root + '/smali/' + target)!)! }
   if profile.name == 'persistent-data-block' { persistent_data_block_abi(target, os.read_file(root + '/smali/' + target)!)! }
+  if profile.name == 'bitmap-tiles' { bitmap_tiles_abi(os.read_file(root + '/smali/' + target)!)! }
  }
  if profile.name == 'platform-fragments' {
   for target in profile.extra_classes { platform_fragments_abi(os.read_file(root + '/smali/' + target)!, target)! }
@@ -1708,6 +1821,7 @@ fn build_narrow(profile NarrowProfile, baseline string, manifest_pin string, jar
   if profile.name == 'imageview-bounds' { imageview_bounds_abi(os.read_file(root + '/new-dex/' + target)!)! }
   if profile.name == 'seed-account-options' { seed_account_options_abi(target, os.read_file(root + '/new-dex/' + target)!)! }
   if profile.name == 'persistent-data-block' { persistent_data_block_abi(target, os.read_file(root + '/new-dex/' + target)!)! }
+  if profile.name == 'bitmap-tiles' { bitmap_tiles_abi(os.read_file(root + '/new-dex/' + target)!)! }
  }
  if profile.name == 'platform-fragments' {
   for target in profile.extra_classes { platform_fragments_abi(os.read_file(root + '/new-dex/' + target)!, target)! }
@@ -1993,11 +2107,15 @@ fn main() {
   build_narrow(persistent_data_block_profile(), os.abs_path(os.args[2]), os.args[3], os.args[4], os.abs_path(os.args[5])) or { eprintln(err); exit(1) }
   return
  }
+ if os.args.len == 6 && os.args[1] == '--bitmap-tiles' {
+  build_narrow(bitmap_tiles_profile(), os.abs_path(os.args[2]), os.args[3], os.args[4], os.abs_path(os.args[5])) or { eprintln(err); exit(1) }
+  return
+ }
  if os.args.len == 6 && os.args[1] in ['--store', '--auth', '--cache', '--descriptions', '--protected-storage', '--service-query', '--direct-boot', '--credential-storage', '--broadcast-result', '--onboarding', '--application-restrictions', '--auth-exception', '--binder-identity', '--service-lifecycle', '--platform-fragments', '--imageview-bounds', '--window-system-ui'] {
   profile := match os.args[1] { '--store' { storage_profile() } '--auth' { auth_profile() } '--cache' { cache_profile() } '--descriptions' { descriptions_profile() } '--protected-storage' { protected_storage_profile() } '--service-query' { service_query_profile() } '--direct-boot' { direct_boot_profile() } '--credential-storage' { credential_storage_profile() } '--broadcast-result' { broadcast_result_profile() } '--application-restrictions' { application_restrictions_profile() } '--auth-exception' { auth_exception_profile() } '--binder-identity' { binder_identity_profile() } '--service-lifecycle' { service_lifecycle_profile() } '--platform-fragments' { platform_fragments_profile() } '--imageview-bounds' { imageview_bounds_profile() } '--window-system-ui' { window_system_ui_profile() } else { onboarding_profile() } }
   build_narrow(profile, os.abs_path(os.args[2]), os.args[3], os.args[4], os.abs_path(os.args[5])) or { eprintln(err); exit(1) }
   return
  }
- if os.args.len != 5 { eprintln('usage: combined-account-webview-build [--store|--auth|--cache|--descriptions|--protected-storage|--service-query|--direct-boot|--credential-storage|--broadcast-result|--onboarding|--application-restrictions|--auth-exception|--binder-identity|--service-lifecycle|--platform-fragments|--imageview-bounds|--window-system-ui] BASELINE BASELINE_MANIFEST_SHA256 BASELINE_JAR_SHA256 FRESH_OUTPUT | --self-test'); exit(2) }
+ if os.args.len != 5 { eprintln('usage: combined-account-webview-build [--store|--auth|--cache|--descriptions|--protected-storage|--service-query|--direct-boot|--credential-storage|--broadcast-result|--onboarding|--application-restrictions|--auth-exception|--binder-identity|--service-lifecycle|--platform-fragments|--imageview-bounds|--window-system-ui|--bitmap-tiles] BASELINE BASELINE_MANIFEST_SHA256 BASELINE_JAR_SHA256 FRESH_OUTPUT | --self-test'); exit(2) }
  build(os.abs_path(os.args[1]), os.args[2], os.args[3], os.abs_path(os.args[4])) or { eprintln(err); exit(1) }
 }
