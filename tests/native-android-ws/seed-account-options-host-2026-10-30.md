@@ -30,6 +30,10 @@ Validation used working sources over revision
 `/Users/alex/.local/state/vinix/android/combined-account-webview-window-system-ui-framework-2026-10-30-r1/new-dex`.
 Complete tools, controls and focused results remain at
 `/Users/alex/.local/state/vinix/android/seed-account-options-source-checks-2026-10-30-r1`.
+Both complete host roots passed sealing and independent full readback: two roots,
+128 entries, manifest
+`/Users/alex/.local/state/vinix/android/seed-account-options-host-sealed-2026-10-30-r1/sealed/manifest.json`,
+SHA-256 `ea9d5d9e656998e9aec7b253b3dd874d0e926e4f0e5d127979a9115eb105be3b`.
 The production-provider checker rejects 53 malformed or repeated inputs and
 checks that refusal leaves all three classes unchanged. Exact raw source deltas
 are UserManager one added method, PersistableBundle one field and one static
