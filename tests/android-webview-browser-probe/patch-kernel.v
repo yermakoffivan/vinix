@@ -419,6 +419,30 @@ const window_animations_dialog_canonical = 'c8d540de367c81da168db8f4f9a6a7a5fdb4
 const window_animations_callback_before = 'a33394adae723152081f7c61c285bac11bd8303d4928673a4c4d1b6358a26743'
 const window_animations_callback_raw = '5da411461e025fd7509bd35f415888e5aea87df9a1556ad3eb473b09a0b7a3d9'
 const window_animations_callback_canonical = '5da411461e025fd7509bd35f415888e5aea87df9a1556ad3eb473b09a0b7a3d9'
+const layout_alignment_base = '/Users/alex/.local/state/vinix/android/maps-window-animations-r1'
+const layout_alignment_base_seal = '054ecabdaf7bf238b254e51cefd9c9f68c027b5255d425a3b595b07f99d0017a'
+const layout_alignment_boot = '3072fcfe9360c99e800bab13ef19a5c0c87930092bd1ed45c8dc327bd1245693'
+const layout_alignment_base_overlay = '251807c55f18de7dcb30acfb03a47f1e3e3e0997e75dd548e39e5a7b09a0645b'
+const layout_alignment_old_deployment = 'd8af7f652d197cb6b94cde08a3f7895860cba25202bb87163cc85b14192bc8e8'
+const layout_alignment_old_headless = '617d7f437f4f22c7b1615a7be84f5aeb3ccd9bc80d2ae7b800b8a614269b34c9'
+const layout_alignment_framework = '/Users/alex/.local/state/vinix/android/combined-account-webview-layout-alignment-framework-2026-10-30-r1'
+const layout_alignment_seal = '1266de2e0a64d876e3559240fe5596ad67d9f2cfce81bd0e1e727675c0d39e00'
+const layout_alignment_build = 'acc60b4b6080503a1707139f710a38afb446f3d9f056a65f14e151ac80ae7b7a'
+const layout_alignment_jar = '162c77f853e6cb85f373493c40c302ff4df5b90ed52f2e6dce961e5e17281d01'
+const layout_alignment_dex = '0a8db55273af20489ef65f7e0edc5b007fe2e4c109065ea7450df4f072fcd1e8'
+const layout_alignment_native = '/Users/alex/.local/state/vinix/android/current-native-build-2026-10-30-layout-alignment-r1'
+const layout_alignment_native_seal = 'ad1c44a5ac2f06925c19c02648d837263a9f1aa9661735b9e49e958193b80413'
+const layout_alignment_native_build = 'e6d7ca1b38a82b2f7a15b018a1fef294356693207993c0966b6f291073967a0d'
+const layout_alignment_native_pin = 'b6aeb06b7473220da8844015a253ed87394fef6209173c14317fcbaf19141e95'
+const layout_alignment_framework_helper = '58c6a7e7d53ef87e6d7316ee47bc88ac466d14fe91a2e1a14d87ea7783c3157a'
+const layout_alignment_provider_helper = '642b5db3f1cf08c00297cb99efceb775cae4dc778375dcce71d83bda8f5e19a9'
+const layout_alignment_before = 'bc48103b0e6815a8fa9964867a4ae2968445ed5d02453d69bf7542eb677967ff'
+const layout_alignment_raw = 'd91a460dd0e239e24c88c95ca679aed4f4b262872c50c4f4a4bfefd74da1469a'
+const layout_alignment_canonical = '8877258e1b668c4c51a02228dacd46db79f15352660ff7ed73194cc919fb94be'
+const layout_alignment_relink_guard = 'b995efee87c7d6fc67670ae4e68bd82392e165c706de74a3b03198dbc81add49'
+const layout_alignment_relink_log = '0d83533012340bdfeeb24e97a4f539e93b9993f37a9620855230f84f7c4d09cb'
+const layout_alignment_relink_command = '09ba09428ffabf7e2c005dfb7fb4188e08be71f388b90659354a031f08ce8289'
+const layout_alignment_relink_pins = '216b7943a97eaf8075b775e42c2aa7791ac764d8b7c6e2d601f838e55af14e39'
 const source = $embed_file(@FILE).to_string()
 
 struct Profile {
@@ -3530,6 +3554,164 @@ fn window_animations_baseline(receipt map[string]json2.Any, stage Stage) !string
 	return window_animations_base + '/boot.img'
 }
 
+fn layout_alignment_profile() Profile {
+	mut modules := window_animations_profile().modules.clone()
+	modules << 'maps-window-animations.tar'
+	return Profile{'maps-layout-alignment', layout_alignment_boot, 'maps-layout-alignment.tar', modules}
+}
+fn layout_alignment_modules() map[string]string {
+	mut modules := window_animations_modules()
+	modules['maps-window-animations.tar'] = layout_alignment_base_overlay
+	return modules
+}
+fn layout_alignment_fields() map[string]string {
+	mut fields := window_animations_fields()
+	fields['kind'] = 'vinix-maps-layout-alignment-v1'
+	fields['base_root'] = layout_alignment_base
+	fields['base_manifest_sha256'] = layout_alignment_base_seal
+	fields['framework_build_root'] = layout_alignment_framework
+	fields['framework_manifest_sha256'] = layout_alignment_seal
+	fields['framework_jar_sha256'] = layout_alignment_jar
+	fields['framework_dex_sha256'] = layout_alignment_dex
+	fields['retained_framework_manifest_sha256'] = window_animations_seal
+	fields['native_compatibility_framework_manifest_sha256'] = window_animations_seal
+	fields['native_build_root'] = layout_alignment_native
+	fields['native_manifest_sha256'] = layout_alignment_native_seal
+	fields['native_build_sha256'] = layout_alignment_native_build
+	fields['native_sha256'] = layout_alignment_native_pin
+	fields['retained_native_manifest_sha256'] = window_animations_native_seal
+	fields['native_framework_manifest_sha256'] = layout_alignment_seal
+	return fields
+}
+fn layout_alignment_relink_root() string {
+	return '/Users/alex/.local/state/vinix/android/layout-alignment-prefix-map-proof-2026-10-30-r1'
+}
+fn layout_alignment_relink_files() map[string]string {
+	if layout_alignment_native_pin == window_animations_native_pin { return map[string]string{} }
+	return {'compile.guard.json': layout_alignment_relink_guard, 'compile.log': layout_alignment_relink_log,
+		'original-build-native.json': layout_alignment_relink_command, 'input-pins.sha256': layout_alignment_relink_pins,
+		'out/canonical.so': window_animations_native_pin}
+}
+fn layout_alignment_relink_inputs() map[string]string {
+	mut inputs := map[string]string{}
+	for name, pin in layout_alignment_relink_files() { inputs[layout_alignment_relink_root() + '/' + name] = pin }
+	return inputs
+}
+fn layout_alignment_relink_description() map[string]json2.Any {
+	mut files := map[string]json2.Any{}
+	for name, pin in layout_alignment_relink_files() { files[name] = json2.Any(pin) }
+	return {'root': json2.Any(layout_alignment_relink_root()), 'files_sha256': json2.Any(files),
+		'input_entry_count': json2.Any(5), 'canonical_dso_sha256': json2.Any(window_animations_native_pin),
+		'deployed_dso_sha256': json2.Any(layout_alignment_native_pin)}
+}
+fn layout_alignment_inputs() map[string]string {
+	mut inputs := map[string]string{}
+	for path, pin in window_animations_inputs() { if path.ends_with('/sha256.json') { inputs[path] = pin } }
+	inputs[layout_alignment_base + '/sha256.json'] = layout_alignment_base_seal
+	inputs[layout_alignment_framework + '/sha256.json'] = layout_alignment_seal
+	inputs[layout_alignment_native + '/sha256.json'] = layout_alignment_native_seal
+	for path, pin in layout_alignment_relink_inputs() { inputs[path] = pin }
+	return inputs
+}
+fn layout_alignment_known_delta() map[string]string {
+	mut delta := {'/' + service_query_jar_path: layout_alignment_jar,
+		'/' + service_query_dex_path: layout_alignment_dex,
+		'/' + native_onboarding_trace_path: layout_alignment_native_pin,
+		'/' + service_query_headless + '/framework-build.json': layout_alignment_build,
+		'/' + service_query_headless + '/framework-sha256.json': layout_alignment_seal}
+	if layout_alignment_native_pin == window_animations_native_pin { delta.delete('/' + native_onboarding_trace_path) }
+	return delta
+}
+fn layout_alignment_proofs() map[string]string {
+	mut proofs := {
+		'headless_input_delta': json2.encode({'/' + service_query_jar_path: layout_alignment_jar})
+		'headless_top_level_delta': json2.encode(['inputs_sha256'])
+		'deployment_top_level_delta': json2.encode(['inputs_sha256', 'framework_manifest_sha256', 'native_manifest_sha256'])
+		'framework_class_count': json2.encode(2106)
+		'framework_source_delta': json2.encode({'smali/android/text/Layout.smali': layout_alignment_raw})
+		'framework_canonical_delta': json2.encode({'new-dex/android/text/Layout.smali': layout_alignment_canonical})
+		'native_source_delta': json2.encode(map[string]string{})
+		'native_builder_helper_delta': json2.encode({'tests/native-android-tools/androidtools/framework.v': layout_alignment_framework_helper,
+			'tests/native-android-tools/androidtools/framework_layout_alignment.v': layout_alignment_provider_helper})
+		'native_bindings_delta': json2.encode(map[string][]string{})
+		'native_generated_jni_delta': json2.encode(map[string][]string{})
+		'native_consumed_class_count': json2.encode(69)
+		'native_consumed_raw_delta': json2.encode({
+			'smali/android/text/Layout.smali': [layout_alignment_before, layout_alignment_raw],
+			'smali/android/view/Window.smali': [window_animations_raw, window_animations_canonical],
+			'smali/android/app/Activity.smali': [window_animations_activity_raw, window_animations_activity_canonical],
+			'smali/android/app/Dialog.smali': [window_animations_dialog_raw, window_animations_dialog_canonical]})
+		'native_consumed_canonical_delta': json2.encode({'android/text/Layout.smali': [layout_alignment_before, layout_alignment_canonical]})
+		'native_consumed_raw_additions': json2.encode(map[string]string{})
+		'native_consumed_canonical_additions': json2.encode(map[string]string{})
+	}
+	if layout_alignment_native_pin != window_animations_native_pin {
+		proofs['native_relink_proof'] = json2.encode(layout_alignment_relink_description())
+	}
+	return proofs
+}
+fn verify_layout_alignment_overlay(receipt map[string]json2.Any) ! {
+	if 'deployment_input_additions' in receipt || 'deployment_top_level_additions' in receipt { return error('layout alignment changes existing inputs only') }
+	delta := json2.decode[map[string]string](json2.encode(receipt['deployment_input_delta'] or { return error('layout alignment deployment delta absent') }))!
+	mut expected := layout_alignment_known_delta()
+	guest := '/' + service_query_headless + '/guest-inputs.json'
+	guest_pin := delta[guest] or { return error('layout alignment headless pin absent') }
+	if !digest_valid(guest_pin) || guest_pin == layout_alignment_old_headless { return error('new layout alignment headless receipt required') }
+	expected[guest] = guest_pin
+	if delta != expected { return error('layout alignment exact deployment input changes differ') }
+	entries := json2.decode[[]ServiceQueryEntry](json2.encode(receipt['overlay_inventory'] or { return error('layout alignment overlay inventory absent') }))!
+	paths := bitmap_tiles_overlay_paths()
+	mut regulars := map[string]string{}
+	mut seen := map[string]bool{}
+	for entry in entries {
+		if entry.name in seen || !relative(entry.name) || entry.mode & 0o7022 != 0 { return error('unsafe layout alignment overlay inode') }
+		seen[entry.name] = true
+		if entry.kind == 'regular' {
+			mode := if entry.name == native_onboarding_trace_path { u32(0o755) } else { u32(0o644) }
+			if entry.name !in paths || !digest_valid(entry.sha256) || entry.mode != mode { return error('layout alignment regular allowlist or mode differs') }
+			regulars[entry.name] = entry.sha256
+		} else if entry.kind != 'directory' || entry.mode != 0o755 || !paths.any(it.starts_with(entry.name + '/')) { return error('unexpected layout alignment overlay inode') }
+	}
+	if regulars.len != 7 || regulars[service_query_deployment] or { '' } == layout_alignment_old_deployment { return error('exact seven layout alignment files required') }
+	if regulars[native_onboarding_trace_path] or { '' } != layout_alignment_native_pin { return error('layout alignment coupled DSO differs') }
+	for path, pin in expected { if regulars[path.trim_left('/')] or { '' } != pin { return error('layout alignment input differs from inventory') } }
+}
+fn verify_layout_alignment_receipt(receipt map[string]json2.Any, stage Stage) ! {
+	for pin in [layout_alignment_base_seal, layout_alignment_boot, layout_alignment_base_overlay,
+		layout_alignment_old_deployment, layout_alignment_old_headless, layout_alignment_seal,
+		layout_alignment_build, layout_alignment_jar, layout_alignment_dex, layout_alignment_native_seal,
+		layout_alignment_native_build, layout_alignment_native_pin, layout_alignment_framework_helper,
+		layout_alignment_provider_helper, layout_alignment_before, layout_alignment_raw, layout_alignment_canonical] {
+		if !digest_valid(pin) { return error('completed layout alignment producers required') }
+	}
+	for pin in layout_alignment_relink_files().values() { if !digest_valid(pin) { return error('completed exact layout alignment relink proof required') } }
+	if layout_alignment_seal == window_animations_seal || layout_alignment_jar == window_animations_jar
+		|| layout_alignment_dex == window_animations_dex || layout_alignment_native_seal == window_animations_native_seal
+		|| layout_alignment_canonical == layout_alignment_before { return error('new layout alignment framework and coupled native receipt required') }
+	for name, expected in layout_alignment_fields() { if receipt[name] or { json2.Any('absent') } != json2.Any(expected) { return error('layout alignment receipt differs: ' + name) } }
+	for name, expected in layout_alignment_proofs() { if receipt[name] or { json2.Any('absent') } != json2.decode[json2.Any](expected)! { return error('layout alignment proof differs: ' + name) } }
+	if layout_alignment_native_pin == window_animations_native_pin && 'native_relink_proof' in receipt { return error('unneeded layout alignment relink proof accepted') }
+	mut seals := map[string]string{}
+	for path, pin in stage.inputs_sha256 { if path.ends_with('/sha256.json') { seals[path] = pin } }
+	mut expected_seals := map[string]string{}
+	for path, pin in layout_alignment_inputs() { if path.ends_with('/sha256.json') { expected_seals[path] = pin } }
+	if seals.len != 82 || seals != expected_seals { return error('layout alignment exact eighty-two dependency seals differ') }
+	mut relink := map[string]string{}
+	for path, pin in stage.inputs_sha256 { if path == layout_alignment_relink_root() || path.starts_with(layout_alignment_relink_root() + '/') { relink[path] = pin } }
+	if relink != layout_alignment_relink_inputs() { return error('layout alignment exact relink proof inputs differ') }
+	if stage.format != 1 || stage.original_modules_sha256 != layout_alignment_modules() || stage.preserved_modules_sha256 != layout_alignment_modules() { return error('layout alignment original thirty-four modules differ') }
+	verify_layout_alignment_overlay(receipt)!
+}
+fn layout_alignment_baseline(receipt map[string]json2.Any, stage Stage) !string {
+	verify_layout_alignment_receipt(receipt, stage)!
+	path := layout_alignment_base + '/sha256.json'
+	regular(path)!
+	if os.lstat(path)!.size > 8 * 1024 * 1024 || hash(path)! != layout_alignment_base_seal { return error('layout alignment original Window manifest differs') }
+	pins := json2.decode[map[string]string](os.read_file(path)!)!
+	if pins['boot.img'] or { '' } != layout_alignment_boot || pins['maps-window-animations.tar'] or { '' } != layout_alignment_base_overlay { return error('layout alignment original boot or Window overlay differs') }
+	return layout_alignment_base + '/boot.img'
+}
+
 fn service_query_modules() map[string]string {
 	mut modules := controller_modules()
 	modules['maps-controller-diagnostic.tar'] = 'bef5f25859e77a9671a6a144ccb56891da5ed2f7b4324a93a96da7fdcab1987a'
@@ -4150,6 +4332,8 @@ fn patch(root string, build_root string, receipt_sha string, profile Profile) ! 
 		baseline = bitmap_tiles_baseline(stage_map, stage)!
 	} else if profile.name == 'maps-window-animations' {
 		baseline = window_animations_baseline(stage_map, stage)!
+	} else if profile.name == 'maps-layout-alignment' {
+		baseline = layout_alignment_baseline(stage_map, stage)!
 	} else {
 		for path, expected in stage.inputs_sha256 {
 			if os.file_name(path) == 'boot.img' && expected == baseline_pin {
@@ -7844,6 +8028,173 @@ fn window_animations_profile_self_test() ! {
 	println('MAPS-WINDOW-ANIMATIONS KERNEL-PROFILE-SELF-TEST PASS seven files exact framework/native receipt replacements seventy-nine seals thirty-three inherited modules preserved native code and historical rejection')
 }
 
+fn layout_alignment_entries_fixture() []ServiceQueryEntry {
+	mut entries := bitmap_tiles_entries_fixture()
+	mut pins := layout_alignment_known_delta()
+	pins['/' + native_onboarding_trace_path] = layout_alignment_native_pin
+	pins['/' + service_query_headless + '/guest-inputs.json'] = 'c'.repeat(64)
+	pins['/' + service_query_deployment] = 'd'.repeat(64)
+	for index, entry in entries { if entry.kind == 'regular' { entries[index] = ServiceQueryEntry{...entry, sha256: pins['/' + entry.name]!} } }
+	return entries
+}
+fn layout_alignment_receipt_fixture() !map[string]json2.Any {
+	mut receipt := map[string]json2.Any{}
+	for name, value in layout_alignment_fields() { receipt[name] = json2.Any(value) }
+	for name, value in layout_alignment_proofs() { receipt[name] = json2.decode[json2.Any](value)! }
+	mut delta := layout_alignment_known_delta()
+	delta['/' + service_query_headless + '/guest-inputs.json'] = 'c'.repeat(64)
+	receipt['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(delta))!
+	receipt['overlay_inventory'] = json2.decode[json2.Any](json2.encode(layout_alignment_entries_fixture()))!
+	return receipt
+}
+fn layout_alignment_profile_self_test() ! {
+	profile := layout_alignment_profile()
+	if profile.baseline_sha != layout_alignment_boot || profile.modules.len != 34 || profile.modules.last() != 'maps-window-animations.tar'
+		|| layout_alignment_inputs().len != 82 + layout_alignment_relink_inputs().len { return error('layout alignment strict profile differs') }
+	mut modules := profile.modules.clone()
+	modules << profile.overlay
+	if modules.len != 35 || bitmap_tiles_overlay_paths().len != 7
+		|| layout_alignment_known_delta().len != (if layout_alignment_native_pin == window_animations_native_pin { 4 } else { 5 }) { return error('layout alignment exact modules, files or actual changes differ') }
+	verify_modules(profile, Config{'vinix', profile.modules}, Config{'vinix', modules})!
+	for bad in [Config{'vinix', profile.modules}, Config{'vinix', modules.reverse()}, Config{'other', modules}] {
+		if _ := verify_modules(profile, Config{'vinix', profile.modules}, bad) { return error('wrong layout alignment module order accepted') }
+	}
+	stage := Stage{format: 1, inputs_sha256: layout_alignment_inputs(), original_modules_sha256: layout_alignment_modules(), preserved_modules_sha256: layout_alignment_modules()}
+	receipt := layout_alignment_receipt_fixture()!
+	verify_layout_alignment_receipt(receipt, stage)!
+	mut fields := layout_alignment_fields().keys()
+	fields << layout_alignment_proofs().keys()
+	fields << ['deployment_input_delta', 'overlay_inventory']
+	for field in fields {
+		mut bad := layout_alignment_receipt_fixture()!
+		bad[field] = json2.Any('changed')
+		if _ := verify_layout_alignment_receipt(bad, stage) { return error('changed layout alignment field/proof accepted') }
+		bad.delete(field)
+		if _ := verify_layout_alignment_receipt(bad, stage) { return error('missing layout alignment field/proof accepted') }
+	}
+	mut maps := ['native_builder_helper_delta', 'framework_source_delta', 'framework_canonical_delta', 'native_source_delta',
+		'native_bindings_delta', 'native_generated_jni_delta', 'native_consumed_raw_delta', 'native_consumed_canonical_delta',
+		'native_consumed_raw_additions', 'native_consumed_canonical_additions', 'headless_input_delta']
+	if layout_alignment_native_pin != window_animations_native_pin { maps << 'native_relink_proof' }
+	for proof in maps {
+		original := json2.decode[map[string]json2.Any](json2.encode(receipt[proof]!))!
+		for path in original.keys() {
+			mut changed := json2.decode[map[string]json2.Any](json2.encode(original))!
+			changed[path] = json2.Any('0'.repeat(64))
+			mut bad := layout_alignment_receipt_fixture()!
+			bad[proof] = json2.Any(changed)
+			if _ := verify_layout_alignment_receipt(bad, stage) { return error('changed layout alignment proof member accepted') }
+			changed.delete(path)
+			bad[proof] = json2.Any(changed)
+			if _ := verify_layout_alignment_receipt(bad, stage) { return error('missing layout alignment proof member accepted') }
+		}
+		mut extra := json2.decode[map[string]json2.Any](json2.encode(original))!
+		extra['unreviewed'] = json2.Any('a'.repeat(64))
+		mut bad := layout_alignment_receipt_fixture()!
+		bad[proof] = json2.Any(extra)
+		if _ := verify_layout_alignment_receipt(bad, stage) { return error('extra layout alignment proof member accepted') }
+	}
+	for proof in ['native_consumed_raw_delta', 'native_consumed_canonical_delta'] {
+		original := json2.decode[map[string][]string](json2.encode(receipt[proof]!))!
+		for path, pair in original {
+			for index in 0 .. 2 {
+				mut changed := pair.clone()
+				changed[index] = '0'.repeat(64)
+				mut members := json2.decode[map[string][]string](json2.encode(original))!
+				members[path] = changed
+				mut bad := layout_alignment_receipt_fixture()!
+				bad[proof] = json2.decode[json2.Any](json2.encode(members))!
+				if _ := verify_layout_alignment_receipt(bad, stage) { return error('changed layout alignment consumed before/after proof accepted') }
+			}
+		}
+	}
+	for path in stage.inputs_sha256.keys() {
+		mut pins := layout_alignment_inputs()
+		pins[path] = '0'.repeat(64)
+		if _ := verify_layout_alignment_receipt(receipt, Stage{...stage, inputs_sha256: pins}) { return error('changed layout alignment input accepted') }
+		pins.delete(path)
+		if _ := verify_layout_alignment_receipt(receipt, Stage{...stage, inputs_sha256: pins}) { return error('missing layout alignment input accepted') }
+	}
+	for path in ['/unreviewed/sha256.json', layout_alignment_relink_root() + '/unreviewed'] {
+		mut extra := layout_alignment_inputs()
+		extra[path] = 'a'.repeat(64)
+		if _ := verify_layout_alignment_receipt(receipt, Stage{...stage, inputs_sha256: extra}) { return error('extra layout alignment seal/proof input accepted') }
+	}
+	for bad in [Stage{...stage, format: 0}, Stage{...stage, original_modules_sha256: window_animations_modules()}, Stage{...stage, preserved_modules_sha256: window_animations_modules()}] {
+		if _ := verify_layout_alignment_receipt(receipt, bad) { return error('wrong layout alignment module inventory accepted') }
+	}
+	for addition in ['deployment_input_additions', 'deployment_top_level_additions'] {
+		mut bad := layout_alignment_receipt_fixture()!
+		bad[addition] = json2.Any(map[string]json2.Any{})
+		if _ := verify_layout_alignment_receipt(bad, stage) { return error('layout alignment input addition accepted') }
+	}
+	delta := json2.decode[map[string]string](json2.encode(receipt['deployment_input_delta']!))!
+	for path in delta.keys() {
+		mut changed := delta.clone()
+		changed.delete(path)
+		mut bad := layout_alignment_receipt_fixture()!
+		bad['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(changed))!
+		if _ := verify_layout_alignment_receipt(bad, stage) { return error('missing layout alignment actual input change accepted') }
+	}
+	mut extra_delta := delta.clone()
+	extra_delta['/opt/vinix-maps-account/bin/maps-account-guest'] = seed_companion_controller_pin
+	mut bad_delta := layout_alignment_receipt_fixture()!
+	bad_delta['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(extra_delta))!
+	if _ := verify_layout_alignment_receipt(bad_delta, stage) { return error('unrelated layout alignment input change accepted') }
+	entries := layout_alignment_entries_fixture()
+	for index, entry in entries {
+		for changed in [ServiceQueryEntry{...entry, name: '../escape'}, ServiceQueryEntry{...entry, kind: 'symlink'}, ServiceQueryEntry{...entry, mode: 0o777}, ServiceQueryEntry{...entry, mode: 0o4755}] {
+			mut bad_entries := entries.clone()
+			bad_entries[index] = changed
+			mut bad := layout_alignment_receipt_fixture()!
+			bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(bad_entries))!
+			if _ := verify_layout_alignment_receipt(bad, stage) { return error('unsafe layout alignment overlay inode accepted') }
+		}
+		if entry.kind == 'regular' {
+			mut bad_entries := entries.clone()
+			bad_entries.delete(index)
+			mut bad := layout_alignment_receipt_fixture()!
+			bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(bad_entries))!
+			if _ := verify_layout_alignment_receipt(bad, stage) { return error('missing layout alignment overlay file accepted') }
+			if entry.name != service_query_deployment {
+				mut changed := entries.clone()
+				changed[index] = ServiceQueryEntry{...entry, sha256: '0'.repeat(64)}
+				bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(changed))!
+				if _ := verify_layout_alignment_receipt(bad, stage) { return error('changed layout alignment overlay pin accepted') }
+			}
+		}
+	}
+	mut duplicated := entries.clone()
+	duplicated << entries.last()
+	mut bad_duplicate := layout_alignment_receipt_fixture()!
+	bad_duplicate['overlay_inventory'] = json2.decode[json2.Any](json2.encode(duplicated))!
+	if _ := verify_layout_alignment_receipt(bad_duplicate, stage) { return error('duplicate layout alignment overlay inode accepted') }
+	mut stale_delta := delta.clone()
+	stale_delta['/' + service_query_headless + '/guest-inputs.json'] = layout_alignment_old_headless
+	mut stale_entries := entries.clone()
+	for index, entry in stale_entries { if entry.name == service_query_headless + '/guest-inputs.json' { stale_entries[index] = ServiceQueryEntry{...entry, sha256: layout_alignment_old_headless} } }
+	mut stale := layout_alignment_receipt_fixture()!
+	stale['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(stale_delta))!
+	stale['overlay_inventory'] = json2.decode[json2.Any](json2.encode(stale_entries))!
+	if _ := verify_layout_alignment_receipt(stale, stage) { return error('stale layout alignment headless pin accepted') }
+	if layout_alignment_native_pin == window_animations_native_pin {
+		mut unchanged := delta.clone()
+		unchanged['/' + native_onboarding_trace_path] = layout_alignment_native_pin
+		mut bad := layout_alignment_receipt_fixture()!
+		bad['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(unchanged))!
+		if _ := verify_layout_alignment_receipt(bad, stage) { return error('unchanged layout alignment DSO declared changed') }
+		bad = layout_alignment_receipt_fixture()!
+		bad['native_relink_proof'] = json2.Any(layout_alignment_relink_description())
+		if _ := verify_layout_alignment_receipt(bad, stage) { return error('unneeded layout alignment relink proof accepted') }
+	}
+	for old in [window_animations_receipt_fixture()!, bitmap_tiles_receipt_fixture()!, persistent_data_block_receipt_fixture()!] {
+		if _ := verify_layout_alignment_receipt(old, stage) { return error('historical receipt accepted by layout alignment profile') }
+	}
+	if _ := verify_window_animations_receipt(receipt, stage) { return error('layout alignment receipt accepted by Window profile') }
+	if _ := verify_bitmap_tiles_receipt(receipt, stage) { return error('layout alignment receipt accepted by bitmap profile') }
+	println('MAPS-LAYOUT-ALIGNMENT KERNEL-PROFILE-SELF-TEST PASS seven files eighty-two seals thirty-four inherited modules getter-only framework change four consumed raw deltas one canonical delta and historical rejection')
+}
+
 fn self_test() ! {
 	protected_profile_self_test()!
 	controller_profile_self_test()!
@@ -7872,6 +8223,7 @@ fn self_test() ! {
 	persistent_data_block_profile_self_test()!
 	bitmap_tiles_profile_self_test()!
 	window_animations_profile_self_test()!
+	layout_alignment_profile_self_test()!
 	maps := maps_profile()
 	before := Config{'vinix', maps.modules}
 	mut modules := maps.modules.clone()
@@ -7944,6 +8296,7 @@ fn self_test() ! {
 	fat_self_test(root + '/persistent-data-block', 'maps-persistent-data-block.tar', persistent_data_block_profile().modules)!
 	fat_self_test(root + '/bitmap-tiles', 'maps-bitmap-tiles.tar', bitmap_tiles_profile().modules)!
 	fat_self_test(root + '/window-animations', 'maps-window-animations.tar', window_animations_profile().modules)!
+	fat_self_test(root + '/layout-alignment', 'maps-layout-alignment.tar', layout_alignment_profile().modules)!
 	println('BROWSER-KERNEL-PATCH SELF-TEST PASS configuration inventory digest symlink launched-stage guards')
 }
 
@@ -7983,9 +8336,10 @@ fn main() {
 	is_persistent_data_block := os.args.len == 5 && os.args[1] == '--maps-persistent-data-block'
 	is_bitmap_tiles := os.args.len == 5 && os.args[1] == '--maps-bitmap-tiles'
 	is_window_animations := os.args.len == 5 && os.args[1] == '--maps-window-animations'
-	is_selected := is_maps || is_protected || is_controller || is_service_query || is_controller_memory || is_direct_boot || is_context_storage || is_broadcast_result || is_onboarding_trace || is_native_onboarding_trace || is_onboarding_framework || is_native_heartbeat || is_browser_poll || is_account_pump || is_application_restrictions || is_account_handoff || is_auth_exception || is_auth_worker || is_binder_identity || is_service_lifecycle || is_platform_fragments || is_imageview_bounds || is_window_system_ui || is_broker_tail || is_seed_companion || is_persistent_data_block || is_bitmap_tiles || is_window_animations
+	is_layout_alignment := os.args.len == 5 && os.args[1] == '--maps-layout-alignment'
+	is_selected := is_maps || is_protected || is_controller || is_service_query || is_controller_memory || is_direct_boot || is_context_storage || is_broadcast_result || is_onboarding_trace || is_native_onboarding_trace || is_onboarding_framework || is_native_heartbeat || is_browser_poll || is_account_pump || is_application_restrictions || is_account_handoff || is_auth_exception || is_auth_worker || is_binder_identity || is_service_lifecycle || is_platform_fragments || is_imageview_bounds || is_window_system_ui || is_broker_tail || is_seed_companion || is_persistent_data_block || is_bitmap_tiles || is_window_animations || is_layout_alignment
 	if os.args.len != 4 && !is_selected {
-		eprintln('usage: patch-kernel [--maps-account|--protected-storage-maps|--maps-controller|--maps-service-query|--maps-controller-memory|--maps-direct-boot|--maps-context-storage|--maps-broadcast-result|--maps-onboarding-trace|--maps-native-onboarding-trace|--maps-onboarding-framework|--maps-native-heartbeat|--maps-browser-poll|--maps-account-pump|--maps-application-restrictions|--maps-account-handoff|--maps-auth-exception|--maps-auth-worker|--maps-binder-identity|--maps-service-lifecycle|--maps-platform-fragments|--maps-imageview-bounds|--maps-window-system-ui|--maps-broker-tail|--maps-seed-account-companion|--maps-persistent-data-block|--maps-bitmap-tiles|--maps-window-animations] FRESH_STAGE FROZEN_KERNEL_BUILD BUILD_JSON_SHA256')
+		eprintln('usage: patch-kernel [--maps-account|--protected-storage-maps|--maps-controller|--maps-service-query|--maps-controller-memory|--maps-direct-boot|--maps-context-storage|--maps-broadcast-result|--maps-onboarding-trace|--maps-native-onboarding-trace|--maps-onboarding-framework|--maps-native-heartbeat|--maps-browser-poll|--maps-account-pump|--maps-application-restrictions|--maps-account-handoff|--maps-auth-exception|--maps-auth-worker|--maps-binder-identity|--maps-service-lifecycle|--maps-platform-fragments|--maps-imageview-bounds|--maps-window-system-ui|--maps-broker-tail|--maps-seed-account-companion|--maps-persistent-data-block|--maps-bitmap-tiles|--maps-window-animations|--maps-layout-alignment] FRESH_STAGE FROZEN_KERNEL_BUILD BUILD_JSON_SHA256')
 		exit(2)
 	}
 	offset := if is_selected { 1 } else { 0 }
@@ -7998,7 +8352,7 @@ fn main() {
 		exit(1)
 	}
 	profile := if is_seed_companion { seed_companion_profile() } else if is_broker_tail { broker_tail_profile() } else if is_window_system_ui { window_system_ui_profile() } else if is_imageview_bounds { imageview_bounds_profile() } else if is_platform_fragments { platform_fragments_profile() } else if is_service_lifecycle { service_lifecycle_profile() } else if is_binder_identity { binder_identity_profile() } else if is_auth_worker { auth_worker_profile() } else if is_auth_exception { auth_exception_profile() } else if is_account_handoff { account_handoff_profile() } else if is_application_restrictions { application_restrictions_profile() } else if is_account_pump { account_pump_profile() } else if is_browser_poll { browser_poll_profile() } else if is_native_heartbeat { native_heartbeat_profile() } else if is_onboarding_framework { onboarding_framework_profile() } else if is_native_onboarding_trace { native_onboarding_trace_profile() } else if is_onboarding_trace { onboarding_trace_profile() } else if is_broadcast_result { broadcast_result_profile() } else if is_context_storage { context_storage_profile() } else if is_direct_boot { direct_boot_profile() } else if is_controller_memory { controller_memory_profile() } else if is_service_query { service_query_profile() } else if is_controller { controller_profile() } else if is_protected { protected_maps_profile() } else if is_maps { maps_profile() } else { browser_profile() }
-	selected_profile := if is_window_animations { window_animations_profile() } else if is_bitmap_tiles { bitmap_tiles_profile() } else if is_persistent_data_block { persistent_data_block_profile() } else { profile }
+	selected_profile := if is_layout_alignment { layout_alignment_profile() } else if is_window_animations { window_animations_profile() } else if is_bitmap_tiles { bitmap_tiles_profile() } else if is_persistent_data_block { persistent_data_block_profile() } else { profile }
 	patch(root, build_root, os.args[3 + offset], selected_profile) or {
 		eprintln(err)
 		exit(1)

@@ -44,7 +44,7 @@ fn batch_outcome(pins map[string]string, count int, audit InventoryBatchAudit, p
 }
 
 fn test_inventory_batch_plan_exact_boundaries_and_selectors() ! {
-	for count in [65, 70, 73, 76] {
+	for count in [65, 70, 73, 76, 79] {
 		pins := batch_selectors(count)
 		before := pins.clone()
 		batches := inventory_batch_plan(pins, count)!
@@ -76,6 +76,11 @@ fn test_inventory_batch_plan_exact_boundaries_and_selectors() ! {
 	for count in [0, 64, 65, 70, 73, 75, 77] {
 		mut refused := false
 		audit_seventy_six_inventories(batch_selectors(count)) or { refused = true }
+		assert refused
+	}
+	for count in [0, 64, 65, 70, 73, 76, 78, 80] {
+		mut refused := false
+		audit_seventy_nine_inventories(batch_selectors(count)) or { refused = true }
 		assert refused
 	}
 	for count in [64, 66, 69, 71] {
@@ -231,15 +236,16 @@ fn batch_fixture_selector(root string, payload string) !string {
 	return digest(root + '/sha256.json')!
 }
 
-fn test_inventory_batches_real_65_70_73_and_76_inputs_repeat_all_bytes() ! {
-	for count in [65, 70, 73, 76] {
+fn test_inventory_batches_real_65_70_73_76_and_79_inputs_repeat_all_bytes() ! {
+	for count in [65, 70, 73, 76, 79] {
 		root := batch_fixture_root('real-' + count.str())!
 		mut pins := map[string]string{}
 		for index := count - 1; index >= 0; index-- {
 			selected := root + '/node-' + batch_index(index)
 			pins[selected] = batch_fixture_selector(selected, batch_fixture_payload(index))!
 		}
-		if count == 76 { audit_seventy_six_inventories(pins)! }
+		if count == 79 { audit_seventy_nine_inventories(pins)! }
+		else if count == 76 { audit_seventy_six_inventories(pins)! }
 		else if count == 73 { audit_seventy_three_inventories(pins)! }
 		else if count == 70 { audit_seventy_inventories(pins)! }
 		else { audit_inventory_batches_with(pins, 65, audit_inventories_parallel)! }
