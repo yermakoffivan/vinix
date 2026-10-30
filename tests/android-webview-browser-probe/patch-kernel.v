@@ -299,6 +299,17 @@ const window_system_ui_reader_helper = '3f2e4de3f22d39a7890d9a476a4a04d930fc0d26
 const window_system_ui_before = 'd86d366f6f4676cad8bad04f571525452c40ae961c4e116a4645a87e2c18c07f'
 const window_system_ui_raw = '9f7e4b4b0fe2a765ab9a4f5dc898f169a6cb05bf413d9278644bba40dac4cb4f'
 const window_system_ui_canonical = 'b0da2d572684526cf24f86a0655e17b65228c8cf2dfe41ada5349e40f827933e'
+const broker_tail_base = '/Users/alex/.local/state/vinix/android/maps-window-system-ui-r1'
+const broker_tail_base_seal = '14f92ed74d29a14a27d0c829c2f84d7695a697c730811d594b010b906c7be1f1'
+const broker_tail_boot = 'af3ae9e21140676dbaeab0f1fc56ce24e5be7c46ecbc61d4bef35a7a779f52a7'
+const broker_tail_base_overlay = 'b66d8aea0929dc92017e66f04bfaab2644c92b3939eebd9063190a007d41006a'
+const broker_tail_old_deployment = '0a1ddb9d89115debacfedc51ae755fa08ce2595d88bf153cafa3572418c0e190'
+const broker_tail_controller = '/Users/alex/.local/state/vinix/android/maps-account-guest-build-2026-10-30-tail-drain-r4'
+const broker_tail_controller_seal = 'cd14f050b8f3dfd96728605826d324d1ec7b291f96effbe58711759ff254324f'
+const broker_tail_controller_pin = 'bf30d23fb34a382b517688df073fb54b0c140bdedd51afb5444c3f96e870bdbe'
+const broker_tail_broker = '/Users/alex/.local/state/vinix/android/current-account-broker-build-2026-10-30-child-status-r1'
+const broker_tail_broker_seal = '7bba04e39681e31c6e13dbd65df99094dadec17a1ab99e114e50f74aa2d18ae9'
+const broker_tail_broker_pin = '0bf4d36c6c4035eb7e736ee04f3f7a612b9582ef44bad6950bf0aa8b1b1c35ee'
 const source = $embed_file(@FILE).to_string()
 
 struct Profile {
@@ -2691,6 +2702,103 @@ fn window_system_ui_baseline(receipt map[string]json2.Any, stage Stage) !string 
 	return window_system_ui_base + '/boot.img'
 }
 
+fn broker_tail_profile() Profile {
+	mut modules := window_system_ui_profile().modules.clone()
+	modules << 'maps-window-system-ui.tar'
+	return Profile{'maps-broker-tail', broker_tail_boot, 'maps-broker-tail.tar', modules}
+}
+fn broker_tail_modules() map[string]string {
+	mut modules := window_system_ui_modules()
+	modules['maps-window-system-ui.tar'] = broker_tail_base_overlay
+	return modules
+}
+fn broker_tail_fields() map[string]string {
+	mut fields := window_system_ui_fields()
+	fields['kind'] = 'vinix-maps-broker-tail-v1'
+	fields['base_root'] = broker_tail_base
+	fields['base_manifest_sha256'] = broker_tail_base_seal
+	fields['controller_build_root'] = broker_tail_controller
+	fields['controller_manifest_sha256'] = broker_tail_controller_seal
+	fields['controller_sha256'] = broker_tail_controller_pin
+	fields['retained_controller_manifest_sha256'] = account_handoff_controller_seal
+	fields['broker_build_root'] = broker_tail_broker
+	fields['broker_manifest_sha256'] = broker_tail_broker_seal
+	fields['broker_sha256'] = broker_tail_broker_pin
+	fields['retained_broker_manifest_sha256'] = account_handoff_broker_seal
+	return fields
+}
+fn broker_tail_inputs() map[string]string {
+	mut inputs := window_system_ui_inputs()
+	inputs[broker_tail_base + '/sha256.json'] = broker_tail_base_seal
+	inputs[broker_tail_controller + '/sha256.json'] = broker_tail_controller_seal
+	inputs[broker_tail_broker + '/sha256.json'] = broker_tail_broker_seal
+	return inputs
+}
+fn broker_tail_delta() map[string]string {
+	return {
+		'/' + account_handoff_broker_path: broker_tail_broker_pin
+		'/opt/vinix-maps-account/bin/maps-account-guest': broker_tail_controller_pin
+		'/usr/bin/run-android-calculator': broker_tail_controller_pin
+	}
+}
+fn broker_tail_forbidden_deltas() []string {
+	return ['headless_input_delta', 'headless_top_level_delta', 'framework_source_delta', 'framework_canonical_delta',
+		'native_source_delta', 'native_builder_helper_delta', 'native_consumed_raw_delta', 'native_consumed_canonical_delta']
+}
+fn verify_broker_tail_overlay(receipt map[string]json2.Any) ! {
+	for name, value in {'deployment_input_delta': json2.encode(broker_tail_delta()),
+		'deployment_top_level_delta': json2.encode(['inputs_sha256'])} {
+		if receipt[name] or { json2.Any('absent') } != json2.decode[json2.Any](value)! { return error('broker tail exact deployment delta differs: ' + name) }
+	}
+	for name in broker_tail_forbidden_deltas() {
+		if name in receipt { return error('broker tail declares an unexpected framework/native/headless delta: ' + name) }
+	}
+	entries := json2.decode[[]ServiceQueryEntry](json2.encode(receipt['overlay_inventory'] or { return error('broker tail overlay inventory absent') }))!
+	mut paths := broker_tail_delta().keys().map(it.trim_left('/'))
+	paths << service_query_deployment
+	mut regulars := map[string]string{}
+	mut seen := map[string]bool{}
+	for entry in entries {
+		if entry.name in seen || !relative(entry.name) || entry.mode & 0o7022 != 0 { return error('unsafe broker tail overlay inode') }
+		seen[entry.name] = true
+		if entry.kind == 'regular' {
+			mode := if entry.name == service_query_deployment { u32(0o644) } else { u32(0o755) }
+			if entry.name !in paths || !digest_valid(entry.sha256) || entry.mode != mode { return error('broker tail regular allowlist or mode differs') }
+			regulars[entry.name] = entry.sha256
+		} else if entry.kind != 'directory' || entry.mode != 0o755 || !paths.any(it.starts_with(entry.name + '/')) { return error('unexpected broker tail overlay inode') }
+	}
+	if regulars.len != 4 { return error('exact four broker tail files required') }
+	for path, pin in broker_tail_delta() {
+		if regulars[path.trim_left('/')] or { '' } != pin { return error('broker tail executable differs from exact producer') }
+	}
+	if regulars[service_query_deployment] or { '' } == broker_tail_old_deployment { return error('broker tail retained deployment receipt supplied') }
+}
+fn verify_broker_tail_receipt(receipt map[string]json2.Any, stage Stage) ! {
+	for pin in [broker_tail_base_seal, broker_tail_boot, broker_tail_base_overlay, broker_tail_old_deployment,
+		broker_tail_controller_seal, broker_tail_controller_pin, broker_tail_broker_seal, broker_tail_broker_pin] {
+		if !digest_valid(pin) { return error('completed broker tail base and producers required') }
+	}
+	if broker_tail_controller_seal == account_handoff_controller_seal || broker_tail_controller_pin == account_handoff_controller_pin
+		|| broker_tail_broker_seal == account_handoff_broker_seal || broker_tail_broker_pin == account_handoff_broker_pin { return error('new broker tail controller and broker producers required') }
+	for name, expected in broker_tail_fields() {
+		if receipt[name] or { json2.Any('absent') } != json2.Any(expected) { return error('broker tail receipt differs: ' + name) }
+	}
+	mut seals := map[string]string{}
+	for path, pin in stage.inputs_sha256 { if path.ends_with('/sha256.json') { seals[path] = pin } }
+	if seals.len != 65 || seals != broker_tail_inputs() { return error('broker tail exact sixty-five dependency seals differ') }
+	if stage.format != 1 || stage.original_modules_sha256 != broker_tail_modules() || stage.preserved_modules_sha256 != broker_tail_modules() { return error('broker tail original twenty-nine modules differ') }
+	verify_broker_tail_overlay(receipt)!
+}
+fn broker_tail_baseline(receipt map[string]json2.Any, stage Stage) !string {
+	verify_broker_tail_receipt(receipt, stage)!
+	path := broker_tail_base + '/sha256.json'
+	regular(path)!
+	if os.lstat(path)!.size > 8 * 1024 * 1024 || hash(path)! != broker_tail_base_seal { return error('broker tail original Window system UI image manifest differs') }
+	pins := json2.decode[map[string]string](os.read_file(path)!)!
+	if pins['boot.img'] or { '' } != broker_tail_boot || pins['maps-window-system-ui.tar'] or { '' } != broker_tail_base_overlay { return error('broker tail original boot or Window system UI overlay differs') }
+	return broker_tail_base + '/boot.img'
+}
+
 fn service_query_modules() map[string]string {
 	mut modules := controller_modules()
 	modules['maps-controller-diagnostic.tar'] = 'bef5f25859e77a9671a6a144ccb56891da5ed2f7b4324a93a96da7fdcab1987a'
@@ -3301,6 +3409,8 @@ fn patch(root string, build_root string, receipt_sha string, profile Profile) ! 
 		baseline = imageview_bounds_baseline(stage_map, stage)!
 	} else if profile.name == 'maps-window-system-ui' {
 		baseline = window_system_ui_baseline(stage_map, stage)!
+	} else if profile.name == 'maps-broker-tail' {
+		baseline = broker_tail_baseline(stage_map, stage)!
 	} else {
 		for path, expected in stage.inputs_sha256 {
 			if os.file_name(path) == 'boot.img' && expected == baseline_pin {
@@ -6179,6 +6289,108 @@ fn window_system_ui_profile_self_test() ! {
 	println('MAPS-WINDOW-SYSTEM-UI KERNEL-PROFILE-SELF-TEST PASS seven files exact actual input changes sixty-two seals twenty-eight inherited modules unchanged canonical native inputs and historical rejection')
 }
 
+fn broker_tail_entries_fixture() []ServiceQueryEntry {
+	mut entries := account_handoff_entries_fixture().filter(it.kind == 'directory')
+	for path, pin in broker_tail_delta() {
+		entries << ServiceQueryEntry{name: path.trim_left('/'), kind: 'regular', sha256: pin, mode: 0o755}
+	}
+	entries << ServiceQueryEntry{name: service_query_deployment, kind: 'regular', sha256: 'd'.repeat(64), mode: 0o644}
+	return entries
+}
+fn broker_tail_receipt_fixture() !map[string]json2.Any {
+	mut receipt := map[string]json2.Any{}
+	for name, value in broker_tail_fields() { receipt[name] = json2.Any(value) }
+	receipt['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(broker_tail_delta()))!
+	receipt['deployment_top_level_delta'] = json2.decode[json2.Any](json2.encode(['inputs_sha256']))!
+	receipt['overlay_inventory'] = json2.decode[json2.Any](json2.encode(broker_tail_entries_fixture()))!
+	return receipt
+}
+fn broker_tail_profile_self_test() ! {
+	profile := broker_tail_profile()
+	if profile.baseline_sha != broker_tail_boot || profile.modules.len != 29
+		|| profile.modules.last() != 'maps-window-system-ui.tar' || broker_tail_inputs().len != 65 { return error('broker tail strict profile differs') }
+	mut final_modules := profile.modules.clone()
+	final_modules << profile.overlay
+	if final_modules.len != 30 || broker_tail_delta().len != 3 { return error('broker tail module or deployment input count differs') }
+	verify_modules(profile, Config{'vinix', profile.modules}, Config{'vinix', final_modules})!
+	stage := Stage{format: 1, inputs_sha256: broker_tail_inputs(), original_modules_sha256: broker_tail_modules(), preserved_modules_sha256: broker_tail_modules()}
+	receipt := broker_tail_receipt_fixture()!
+	verify_broker_tail_receipt(receipt, stage)!
+	mut fields := broker_tail_fields().keys()
+	fields << ['deployment_input_delta', 'deployment_top_level_delta', 'overlay_inventory']
+	for field in fields {
+		mut bad := broker_tail_receipt_fixture()!
+		bad[field] = json2.Any('changed')
+		if _ := verify_broker_tail_receipt(bad, stage) { return error('changed broker tail field/proof accepted') }
+		bad.delete(field)
+		if _ := verify_broker_tail_receipt(bad, stage) { return error('missing broker tail field/proof accepted') }
+	}
+	for path in stage.inputs_sha256.keys() {
+		mut pins := broker_tail_inputs()
+		pins[path] = '0'.repeat(64)
+		if _ := verify_broker_tail_receipt(receipt, Stage{...stage, inputs_sha256: pins}) { return error('changed broker tail dependency accepted') }
+		pins.delete(path)
+		if _ := verify_broker_tail_receipt(receipt, Stage{...stage, inputs_sha256: pins}) { return error('missing broker tail dependency accepted') }
+	}
+	mut extra := broker_tail_inputs()
+	extra['/unreviewed/sha256.json'] = 'a'.repeat(64)
+	if _ := verify_broker_tail_receipt(receipt, Stage{...stage, inputs_sha256: extra}) { return error('extra broker tail dependency accepted') }
+	for bad in [Stage{...stage, format: 0}, Stage{...stage, original_modules_sha256: window_system_ui_modules()}, Stage{...stage, preserved_modules_sha256: window_system_ui_modules()}] {
+		if _ := verify_broker_tail_receipt(receipt, bad) { return error('wrong broker tail module inventory accepted') }
+	}
+	for field in broker_tail_forbidden_deltas() {
+		mut bad := broker_tail_receipt_fixture()!
+		bad[field] = json2.Any(map[string]json2.Any{})
+		if _ := verify_broker_tail_receipt(bad, stage) { return error('unexpected broker tail framework/native/headless delta accepted') }
+	}
+	for path in broker_tail_delta().keys() {
+		mut delta := broker_tail_delta()
+		delta.delete(path)
+		mut bad := broker_tail_receipt_fixture()!
+		bad['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(delta))!
+		if _ := verify_broker_tail_receipt(bad, stage) { return error('incomplete broker tail deployment input changes accepted') }
+	}
+	mut extra_delta := broker_tail_delta()
+	extra_delta['/' + service_query_jar_path] = window_system_ui_jar
+	mut extra_delta_receipt := broker_tail_receipt_fixture()!
+	extra_delta_receipt['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(extra_delta))!
+	if _ := verify_broker_tail_receipt(extra_delta_receipt, stage) { return error('extra broker tail framework input change accepted') }
+	entries := broker_tail_entries_fixture()
+	for index, entry in entries {
+		for changed in [ServiceQueryEntry{...entry, name: '../escape'}, ServiceQueryEntry{...entry, kind: 'symlink'},
+			ServiceQueryEntry{...entry, mode: 0o777}, ServiceQueryEntry{...entry, mode: 0o4755}] {
+			mut bad_entries := entries.clone()
+			bad_entries[index] = changed
+			mut bad := broker_tail_receipt_fixture()!
+			bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(bad_entries))!
+			if _ := verify_broker_tail_receipt(bad, stage) { return error('unsafe broker tail inode accepted') }
+		}
+		if entry.kind == 'regular' {
+			mut bad_entries := entries.clone()
+			bad_entries.delete(index)
+			mut bad := broker_tail_receipt_fixture()!
+			bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(bad_entries))!
+			if _ := verify_broker_tail_receipt(bad, stage) { return error('missing broker tail file accepted') }
+			if entry.name != service_query_deployment {
+				mut corrupt_entries := entries.clone()
+				corrupt_entries[index] = ServiceQueryEntry{...entry, sha256: '0'.repeat(64)}
+				bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(corrupt_entries))!
+				if _ := verify_broker_tail_receipt(bad, stage) { return error('changed broker tail executable hash accepted') }
+			}
+		}
+	}
+	for extra_entry in [entries.last(), ServiceQueryEntry{name: service_query_jar_path, kind: 'regular', sha256: window_system_ui_jar, mode: 0o644}] {
+		mut bad_entries := entries.clone()
+		bad_entries << extra_entry
+		mut bad := broker_tail_receipt_fixture()!
+		bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(bad_entries))!
+		if _ := verify_broker_tail_receipt(bad, stage) { return error('extra or duplicated broker tail overlay file accepted') }
+	}
+	if _ := verify_broker_tail_receipt(window_system_ui_receipt_fixture()!, stage) { return error('Window system UI receipt accepted by broker tail profile') }
+	if _ := verify_window_system_ui_receipt(receipt, stage) { return error('broker tail receipt accepted by Window system UI profile') }
+	println('MAPS-BROKER-TAIL KERNEL-PROFILE-SELF-TEST PASS four files three input changes sixty-five seals twenty-nine inherited modules retained framework/native/headless and historical rejection')
+}
+
 fn self_test() ! {
 	protected_profile_self_test()!
 	controller_profile_self_test()!
@@ -6202,6 +6414,7 @@ fn self_test() ! {
 	platform_fragments_profile_self_test()!
 	imageview_bounds_profile_self_test()!
 	window_system_ui_profile_self_test()!
+	broker_tail_profile_self_test()!
 	maps := maps_profile()
 	before := Config{'vinix', maps.modules}
 	mut modules := maps.modules.clone()
@@ -6305,9 +6518,10 @@ fn main() {
 	is_platform_fragments := os.args.len == 5 && os.args[1] == '--maps-platform-fragments'
 	is_imageview_bounds := os.args.len == 5 && os.args[1] == '--maps-imageview-bounds'
 	is_window_system_ui := os.args.len == 5 && os.args[1] == '--maps-window-system-ui'
-	is_selected := is_maps || is_protected || is_controller || is_service_query || is_controller_memory || is_direct_boot || is_context_storage || is_broadcast_result || is_onboarding_trace || is_native_onboarding_trace || is_onboarding_framework || is_native_heartbeat || is_browser_poll || is_account_pump || is_application_restrictions || is_account_handoff || is_auth_exception || is_auth_worker || is_binder_identity || is_service_lifecycle || is_platform_fragments || is_imageview_bounds || is_window_system_ui
+	is_broker_tail := os.args.len == 5 && os.args[1] == '--maps-broker-tail'
+	is_selected := is_maps || is_protected || is_controller || is_service_query || is_controller_memory || is_direct_boot || is_context_storage || is_broadcast_result || is_onboarding_trace || is_native_onboarding_trace || is_onboarding_framework || is_native_heartbeat || is_browser_poll || is_account_pump || is_application_restrictions || is_account_handoff || is_auth_exception || is_auth_worker || is_binder_identity || is_service_lifecycle || is_platform_fragments || is_imageview_bounds || is_window_system_ui || is_broker_tail
 	if os.args.len != 4 && !is_selected {
-		eprintln('usage: patch-kernel [--maps-account|--protected-storage-maps|--maps-controller|--maps-service-query|--maps-controller-memory|--maps-direct-boot|--maps-context-storage|--maps-broadcast-result|--maps-onboarding-trace|--maps-native-onboarding-trace|--maps-onboarding-framework|--maps-native-heartbeat|--maps-browser-poll|--maps-account-pump|--maps-application-restrictions|--maps-account-handoff|--maps-auth-exception|--maps-auth-worker|--maps-binder-identity|--maps-service-lifecycle|--maps-platform-fragments|--maps-imageview-bounds|--maps-window-system-ui] FRESH_STAGE FROZEN_KERNEL_BUILD BUILD_JSON_SHA256')
+		eprintln('usage: patch-kernel [--maps-account|--protected-storage-maps|--maps-controller|--maps-service-query|--maps-controller-memory|--maps-direct-boot|--maps-context-storage|--maps-broadcast-result|--maps-onboarding-trace|--maps-native-onboarding-trace|--maps-onboarding-framework|--maps-native-heartbeat|--maps-browser-poll|--maps-account-pump|--maps-application-restrictions|--maps-account-handoff|--maps-auth-exception|--maps-auth-worker|--maps-binder-identity|--maps-service-lifecycle|--maps-platform-fragments|--maps-imageview-bounds|--maps-window-system-ui|--maps-broker-tail] FRESH_STAGE FROZEN_KERNEL_BUILD BUILD_JSON_SHA256')
 		exit(2)
 	}
 	offset := if is_selected { 1 } else { 0 }
@@ -6319,7 +6533,7 @@ fn main() {
 		eprintln(err)
 		exit(1)
 	}
-	profile := if is_window_system_ui { window_system_ui_profile() } else if is_imageview_bounds { imageview_bounds_profile() } else if is_platform_fragments { platform_fragments_profile() } else if is_service_lifecycle { service_lifecycle_profile() } else if is_binder_identity { binder_identity_profile() } else if is_auth_worker { auth_worker_profile() } else if is_auth_exception { auth_exception_profile() } else if is_account_handoff { account_handoff_profile() } else if is_application_restrictions { application_restrictions_profile() } else if is_account_pump { account_pump_profile() } else if is_browser_poll { browser_poll_profile() } else if is_native_heartbeat { native_heartbeat_profile() } else if is_onboarding_framework { onboarding_framework_profile() } else if is_native_onboarding_trace { native_onboarding_trace_profile() } else if is_onboarding_trace { onboarding_trace_profile() } else if is_broadcast_result { broadcast_result_profile() } else if is_context_storage { context_storage_profile() } else if is_direct_boot { direct_boot_profile() } else if is_controller_memory { controller_memory_profile() } else if is_service_query { service_query_profile() } else if is_controller { controller_profile() } else if is_protected { protected_maps_profile() } else if is_maps { maps_profile() } else { browser_profile() }
+	profile := if is_broker_tail { broker_tail_profile() } else if is_window_system_ui { window_system_ui_profile() } else if is_imageview_bounds { imageview_bounds_profile() } else if is_platform_fragments { platform_fragments_profile() } else if is_service_lifecycle { service_lifecycle_profile() } else if is_binder_identity { binder_identity_profile() } else if is_auth_worker { auth_worker_profile() } else if is_auth_exception { auth_exception_profile() } else if is_account_handoff { account_handoff_profile() } else if is_application_restrictions { application_restrictions_profile() } else if is_account_pump { account_pump_profile() } else if is_browser_poll { browser_poll_profile() } else if is_native_heartbeat { native_heartbeat_profile() } else if is_onboarding_framework { onboarding_framework_profile() } else if is_native_onboarding_trace { native_onboarding_trace_profile() } else if is_onboarding_trace { onboarding_trace_profile() } else if is_broadcast_result { broadcast_result_profile() } else if is_context_storage { context_storage_profile() } else if is_direct_boot { direct_boot_profile() } else if is_controller_memory { controller_memory_profile() } else if is_service_query { service_query_profile() } else if is_controller { controller_profile() } else if is_protected { protected_maps_profile() } else if is_maps { maps_profile() } else { browser_profile() }
 	patch(root, build_root, os.args[3 + offset], profile) or {
 		eprintln(err)
 		exit(1)
