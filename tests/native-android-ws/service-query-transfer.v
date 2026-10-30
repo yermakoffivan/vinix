@@ -83,6 +83,10 @@ const seed_account_options_api_runner = '/Users/alex/.local/state/vinix/android/
 const seed_account_options_api_runner_pin = 'f4750504c0e8c7718773095c04661d18003098fe60db89434e0d9a2182da3862'
 const seed_account_options_apk = '/Users/alex/.local/state/vinix/android/seed-account-options-fixture-2026-10-30-r1/probe.apk'
 const seed_account_options_apk_pin = '36c87d606306c799f50771ab0bed5cacdf07603e96f3e85b6c4aab4870f1f333'
+const persistent_data_block_api_runner = '/Users/alex/.local/state/vinix/android/persistent-data-block-api-run-2026-10-30-r1/run'
+const persistent_data_block_api_runner_pin = '7d5d99c7ece106a16fa1ffe277a909feb665744651c986e88d96780c025c4df0'
+const persistent_data_block_apk = '/Users/alex/.local/state/vinix/android/persistent-data-block-fixture-2026-10-30-r1/probe.apk'
+const persistent_data_block_apk_pin = '0acd05b909c7c2d3b798cb515a799df8c40263af9be1e7ab4334f7b4f113b7a8'
 const file_limit = 32 * 1024 * 1024
 const request_limit = 12
 const seconds_limit = 600
@@ -366,13 +370,18 @@ fn seed_account_options_api_assets() []Asset {
 		Asset{url: '/seed-account-options.apk', path: seed_account_options_apk, sha256: seed_account_options_apk_pin}]
 }
 
-fn serve(root string, port string, is_direct_boot bool, is_credential_storage bool, is_broadcast_result bool, is_onboarding_api bool, is_application_restrictions bool, is_auth_exception_api bool, is_auth_worker_api bool, is_binder_identity_api bool, is_service_lifecycle_api bool, is_platform_fragments_api bool, is_image_bounds_api bool, is_window_system_ui_api bool, is_seed_account_options_api bool) ! {
+fn persistent_data_block_api_assets() []Asset {
+	return [Asset{url: '/persistent-data-block-api-run', path: persistent_data_block_api_runner, sha256: persistent_data_block_api_runner_pin},
+		Asset{url: '/persistent-data-block.apk', path: persistent_data_block_apk, sha256: persistent_data_block_apk_pin}]
+}
+
+fn serve(root string, port string, is_direct_boot bool, is_credential_storage bool, is_broadcast_result bool, is_onboarding_api bool, is_application_restrictions bool, is_auth_exception_api bool, is_auth_worker_api bool, is_binder_identity_api bool, is_service_lifecycle_api bool, is_platform_fragments_api bool, is_image_bounds_api bool, is_window_system_ui_api bool, is_seed_account_options_api bool, is_persistent_data_block_api bool) ! {
 	$if !net_nonblocking_sockets ? { return error('build with -d net_nonblocking_sockets for socket deadlines') }
 	external(root)!
 	if port == '' || port.len > 5 || !port.bytes().all(it >= `0` && it <= `9`)
 		|| port.u64() > 65535 || port != port.u64().str() { return error('canonical port 0..65535 required') }
 	if unsafe { C.mkdir(root.str, 0o700) } != 0 { return error('fresh private output directory required') }
-	inputs := if is_seed_account_options_api { seed_account_options_api_assets() } else if is_window_system_ui_api { window_system_ui_api_assets() } else if is_image_bounds_api { image_bounds_api_assets() } else if is_platform_fragments_api { platform_fragments_api_assets() } else if is_service_lifecycle_api { service_lifecycle_api_assets() } else if is_binder_identity_api { binder_identity_api_assets() } else if is_auth_worker_api { auth_worker_api_assets() } else if is_auth_exception_api { auth_exception_api_assets() } else if is_application_restrictions { application_restrictions_assets() } else if is_onboarding_api { onboarding_api_assets() } else if is_broadcast_result { broadcast_result_assets() } else if is_credential_storage { credential_storage_assets() } else if is_direct_boot { direct_boot_assets() } else { pinned_assets() }
+	inputs := if is_persistent_data_block_api { persistent_data_block_api_assets() } else if is_seed_account_options_api { seed_account_options_api_assets() } else if is_window_system_ui_api { window_system_ui_api_assets() } else if is_image_bounds_api { image_bounds_api_assets() } else if is_platform_fragments_api { platform_fragments_api_assets() } else if is_service_lifecycle_api { service_lifecycle_api_assets() } else if is_binder_identity_api { binder_identity_api_assets() } else if is_auth_worker_api { auth_worker_api_assets() } else if is_auth_exception_api { auth_exception_api_assets() } else if is_application_restrictions { application_restrictions_assets() } else if is_onboarding_api { onboarding_api_assets() } else if is_broadcast_result { broadcast_result_assets() } else if is_credential_storage { credential_storage_assets() } else if is_direct_boot { direct_boot_assets() } else { pinned_assets() }
 	mut assets := []Asset{}
 	for asset in inputs { assets << snapshot(asset, root + asset.url)! }
 	mut listener := net.listen_tcp(.ip, '127.0.0.1:' + port)!
@@ -380,7 +389,7 @@ fn serve(root string, port string, is_direct_boot bool, is_credential_storage bo
 	address := listener.addr()!.str()
 	deadline := time.now().add(seconds_limit * time.second)
 	write_json(root + '/ready.json', json2.encode({
-		'kind': json2.Any(if is_seed_account_options_api { 'vinix-seed-account-options-api-http-v1' } else if is_window_system_ui_api { 'vinix-window-system-ui-api-http-v1' } else if is_image_bounds_api { 'vinix-image-bounds-api-http-v1' } else if is_platform_fragments_api { 'vinix-platform-fragments-api-http-v1' } else if is_service_lifecycle_api { 'vinix-service-lifecycle-api-http-v1' } else if is_binder_identity_api { 'vinix-binder-identity-api-http-v1' } else if is_auth_worker_api { 'vinix-auth-worker-api-http-v1' } else if is_auth_exception_api { 'vinix-auth-exception-api-http-v1' } else if is_application_restrictions { 'vinix-application-restrictions-http-v1' } else if is_onboarding_api { 'vinix-onboarding-api-http-v1' } else if is_broadcast_result { 'vinix-broadcast-result-http-v1' } else if is_credential_storage { 'vinix-credential-storage-http-v1' } else if is_direct_boot { 'vinix-direct-boot-http-v1' } else { 'vinix-service-query-http-v1' })
+		'kind': json2.Any(if is_persistent_data_block_api { 'vinix-persistent-data-block-api-http-v1' } else if is_seed_account_options_api { 'vinix-seed-account-options-api-http-v1' } else if is_window_system_ui_api { 'vinix-window-system-ui-api-http-v1' } else if is_image_bounds_api { 'vinix-image-bounds-api-http-v1' } else if is_platform_fragments_api { 'vinix-platform-fragments-api-http-v1' } else if is_service_lifecycle_api { 'vinix-service-lifecycle-api-http-v1' } else if is_binder_identity_api { 'vinix-binder-identity-api-http-v1' } else if is_auth_worker_api { 'vinix-auth-worker-api-http-v1' } else if is_auth_exception_api { 'vinix-auth-exception-api-http-v1' } else if is_application_restrictions { 'vinix-application-restrictions-http-v1' } else if is_onboarding_api { 'vinix-onboarding-api-http-v1' } else if is_broadcast_result { 'vinix-broadcast-result-http-v1' } else if is_credential_storage { 'vinix-credential-storage-http-v1' } else if is_direct_boot { 'vinix-direct-boot-http-v1' } else { 'vinix-service-query-http-v1' })
 		'scope': json2.Any(scope)
 		'address': json2.Any(address)
 		'deadline_utc': json2.Any(deadline.str())
@@ -393,7 +402,7 @@ fn serve(root string, port string, is_direct_boot bool, is_credential_storage bo
 	result := serve_loop(mut listener, assets, request_limit, deadline)
 	write_json(root + '/result.json', json2.encode(result, prettify: true))!
 	if !result.success { return error(result.reason) }
-	println(if is_application_restrictions || is_service_lifecycle_api || is_image_bounds_api || is_window_system_ui_api || is_seed_account_options_api { 'SERVICE-QUERY-HTTP PASS two pinned files transferred' } else { 'SERVICE-QUERY-HTTP PASS three pinned files transferred' })
+	println(if is_application_restrictions || is_service_lifecycle_api || is_image_bounds_api || is_window_system_ui_api || is_seed_account_options_api || is_persistent_data_block_api { 'SERVICE-QUERY-HTTP PASS two pinned files transferred' } else { 'SERVICE-QUERY-HTTP PASS three pinned files transferred' })
 }
 
 fn main() {
@@ -414,12 +423,13 @@ fn main() {
 	is_image_bounds_api := os.args.len == 5 && os.args[1] == 'serve' && os.args[2] == '--image-bounds-api'
 	is_window_system_ui_api := os.args.len == 5 && os.args[1] == 'serve' && os.args[2] == '--window-system-ui-api'
 	is_seed_account_options_api := os.args.len == 5 && os.args[1] == 'serve' && os.args[2] == '--seed-account-options-api'
-	if !is_direct_boot && !is_credential_storage && !is_broadcast_result && !is_onboarding_api && !is_application_restrictions && !is_auth_exception_api && !is_auth_worker_api && !is_binder_identity_api && !is_service_lifecycle_api && !is_platform_fragments_api && !is_image_bounds_api && !is_window_system_ui_api && !is_seed_account_options_api && (os.args.len != 4 || os.args[1] != 'serve') {
-		eprintln('usage: service-query-transfer serve [--direct-boot|--credential-storage|--broadcast-result|--onboarding-apis|--application-restrictions|--auth-exception-apis|--auth-worker-apis|--binder-identity-apis|--service-lifecycle-api|--platform-fragments-api|--image-bounds-api|--window-system-ui-api|--seed-account-options-api] FRESH_EXTERNAL_DIR PORT | --self-test FRESH_EXTERNAL_DIR')
+	is_persistent_data_block_api := os.args.len == 5 && os.args[1] == 'serve' && os.args[2] == '--persistent-data-block-api'
+	if !is_direct_boot && !is_credential_storage && !is_broadcast_result && !is_onboarding_api && !is_application_restrictions && !is_auth_exception_api && !is_auth_worker_api && !is_binder_identity_api && !is_service_lifecycle_api && !is_platform_fragments_api && !is_image_bounds_api && !is_window_system_ui_api && !is_seed_account_options_api && !is_persistent_data_block_api && (os.args.len != 4 || os.args[1] != 'serve') {
+		eprintln('usage: service-query-transfer serve [--direct-boot|--credential-storage|--broadcast-result|--onboarding-apis|--application-restrictions|--auth-exception-apis|--auth-worker-apis|--binder-identity-apis|--service-lifecycle-api|--platform-fragments-api|--image-bounds-api|--window-system-ui-api|--seed-account-options-api|--persistent-data-block-api] FRESH_EXTERNAL_DIR PORT | --self-test FRESH_EXTERNAL_DIR')
 		exit(2)
 	}
-	offset := if is_direct_boot || is_credential_storage || is_broadcast_result || is_onboarding_api || is_application_restrictions || is_auth_exception_api || is_auth_worker_api || is_binder_identity_api || is_service_lifecycle_api || is_platform_fragments_api || is_image_bounds_api || is_window_system_ui_api || is_seed_account_options_api { 1 } else { 0 }
-	serve(os.args[2 + offset], os.args[3 + offset], is_direct_boot, is_credential_storage, is_broadcast_result, is_onboarding_api, is_application_restrictions, is_auth_exception_api, is_auth_worker_api, is_binder_identity_api, is_service_lifecycle_api, is_platform_fragments_api, is_image_bounds_api, is_window_system_ui_api, is_seed_account_options_api) or { eprintln(err); exit(1) }
+	offset := if is_direct_boot || is_credential_storage || is_broadcast_result || is_onboarding_api || is_application_restrictions || is_auth_exception_api || is_auth_worker_api || is_binder_identity_api || is_service_lifecycle_api || is_platform_fragments_api || is_image_bounds_api || is_window_system_ui_api || is_seed_account_options_api || is_persistent_data_block_api { 1 } else { 0 }
+	serve(os.args[2 + offset], os.args[3 + offset], is_direct_boot, is_credential_storage, is_broadcast_result, is_onboarding_api, is_application_restrictions, is_auth_exception_api, is_auth_worker_api, is_binder_identity_api, is_service_lifecycle_api, is_platform_fragments_api, is_image_bounds_api, is_window_system_ui_api, is_seed_account_options_api, is_persistent_data_block_api) or { eprintln(err); exit(1) }
 }
 
 fn get(address string, request string) !string {
@@ -536,6 +546,22 @@ fn self_test(root string) ! {
 		assert result.exit_code == 1 && result.output.contains('canonical port 0..65535 required')
 		assert !os.exists(root + '/must-not-exist'), 'invalid port created transfer output'
 	}
+	for bad in [['serve', '--persistent-data-block-api'],
+		['serve', '--persistent-data-block-api', root + '/must-not-exist'],
+		['serve', '--persistent-data-block-api-other', root + '/must-not-exist', '0'],
+		['serve', '--persistent-data-block-api', root + '/must-not-exist', '0', 'extra'],
+		['serve', '--persistent-data-block-api', '--seed-account-options-api', root + '/must-not-exist', '0']] {
+		mut argv := [os.executable()]
+		argv << bad
+		result := os.exec(argv)
+		assert result.exit_code != 0, 'malformed persistent data block transfer CLI accepted'
+		assert !os.exists(root + '/must-not-exist'), 'malformed CLI created transfer output'
+	}
+	for port in ['', '00', '-1', '65536', '0x10'] {
+		result := os.exec([os.executable(), 'serve', '--persistent-data-block-api', root + '/must-not-exist', port])
+		assert result.exit_code == 1 && result.output.contains('canonical port 0..65535 required')
+		assert !os.exists(root + '/must-not-exist'), 'invalid port created transfer output'
+	}
 	assert pinned_assets().len == 3 && direct_boot_assets().len == 3 && credential_storage_assets().len == 3
 	assert broadcast_result_assets().len == 3
 	assert pinned_assets()[0].url == '/service-query-run' && direct_boot_assets()[0].url == '/direct-boot-run'
@@ -561,6 +587,14 @@ fn self_test(root string) ! {
 	assert window_system_ui_api_assets().map(it.url) == ['/window-system-ui-api-run', '/window-system-ui.apk']
 	assert seed_account_options_api_assets().len == 2
 	assert seed_account_options_api_assets().map(it.url) == ['/seed-account-options-api-run', '/seed-account-options.apk']
+	assert persistent_data_block_api_assets().len == 2
+	assert persistent_data_block_api_assets().map(it.url) == ['/persistent-data-block-api-run', '/persistent-data-block.apk']
+	for asset in persistent_data_block_api_assets() {
+		assert valid_digest(asset.sha256)
+		for older in [pinned_assets(), direct_boot_assets(), credential_storage_assets(), broadcast_result_assets(), onboarding_api_assets(), application_restrictions_assets(), auth_exception_api_assets(), auth_worker_api_assets(), binder_identity_api_assets(), service_lifecycle_api_assets(), platform_fragments_api_assets(), image_bounds_api_assets(), window_system_ui_api_assets(), seed_account_options_api_assets()] {
+			for old in older { assert asset.path != old.path && asset.sha256 != old.sha256 && asset.url != old.url }
+		}
+	}
 	for asset in seed_account_options_api_assets() {
 		assert valid_digest(asset.sha256)
 		for older in [pinned_assets(), direct_boot_assets(), credential_storage_assets(), broadcast_result_assets(), onboarding_api_assets(), application_restrictions_assets(), auth_exception_api_assets(), auth_worker_api_assets(), binder_identity_api_assets(), service_lifecycle_api_assets(), platform_fragments_api_assets(), image_bounds_api_assets(), window_system_ui_api_assets()] {
