@@ -30,4 +30,6 @@ executable SHA-256 `61fee5271db99405743b56de9f73d95e53491e98075db9d80d6974368df6
 The initial compilation rejected an ambiguous map literal; its unchanged source,
 failed log and original guard receipt remain in the adjacent `-r1` root.
 
-Full framework/native production and ARM runtime validation remain pending.
+The [full framework/native pair](window-animations-pair-2026-10-30.md) and its
+path-provenance proof now pass production and complete evidence readback.
+ARM runtime validation remains separate.
