@@ -61,6 +61,11 @@ const window_system_ui_framework_sha = '3f0d220a24e7d91a47f7b2d42cd5620aa498981e
 const window_system_ui_native_sha = 'c97862ecb4eba730290a832b2766d58c1552ddf58ae40f77d7e140e69538ce75'
 const window_system_ui_apk_sha = 'af7f9bfcb8f106c43f9d86badfa2c5e0deb49e3a1e6da19cbe68ab6a5254ca90'
 const window_system_ui_pass_marker = 'WINDOW-SYSTEM-UI-PASS defaults field-shape bitmasks instance-isolation window-attributes'
+// Unseeded account options use the explicit corrected runtime pair.
+const seed_account_options_framework_sha = 'cb2e3fabab652c65351da16770ae98c4113781df0830440b734395bb35b6f265'
+const seed_account_options_native_sha = '179f51ad25cc99fd939ca1f217e87f1d3ab9c452b98db861da11e0344363f6ce'
+const seed_account_options_apk_sha = '36c87d606306c799f50771ab0bed5cacdf07603e96f3e85b6c4aab4870f1f333'
+const seed_account_options_pass_marker = 'SEED-ACCOUNT-OPTIONS-PASS unseeded-null service-lookup method-shape empty-singleton immutable-empty null-branch'
 
 struct FixtureProfile {
 	name          string
@@ -205,6 +210,17 @@ fn window_system_ui_profile() FixtureProfile {
 	}
 }
 
+fn seed_account_options_profile() FixtureProfile {
+	return FixtureProfile{
+		name: 'seed-account-options'
+		apk_sha: seed_account_options_apk_sha
+		framework_sha: seed_account_options_framework_sha
+		native_sha: seed_account_options_native_sha
+		pass_marker: seed_account_options_pass_marker
+		scope: 'standalone UserManager unseeded options and immutable empty bundle regression; GMS and Google authentication are not exercised'
+	}
+}
+
 struct Configuration {
 	runtime   string
 	apk       string
@@ -312,7 +328,7 @@ fn health(line string, expected_marker string) ! {
 		|| line.contains('MAPS-NETWORK-PASS') || line.contains('MAPS-NETWORK-V2-PASS')
 		|| line.contains('MAPS-NETWORK-V3-PASS') || line.contains('SERVICE-LIFECYCLE-PASS')
 		|| line.contains('PLATFORM-FRAGMENTS-PASS') || line.contains('IMAGE-BOUNDS-PASS')
-		|| line.contains('WINDOW-SYSTEM-UI-PASS')) && line != expected_marker {
+		|| line.contains('WINDOW-SYSTEM-UI-PASS') || line.contains('SEED-ACCOUNT-OPTIONS-PASS')) && line != expected_marker {
 		return error('conflicting fixture marker')
 	}
 }
@@ -513,7 +529,7 @@ fn export_evidence(output string) ! {
 
 fn selftest() ! {
 	mut cases := 0
-	profiles := [child_attach_profile(), settings_global_profile(), application_restrictions_profile(), authenticator_exception_profile(), maps_network_profile(), authenticator_worker_profile(), maps_network_v2_profile(), authenticator_binder_identity_profile(), maps_network_v3_profile(), service_lifecycle_profile(), platform_fragments_profile(), image_bounds_profile(), window_system_ui_profile()]
+	profiles := [child_attach_profile(), settings_global_profile(), application_restrictions_profile(), authenticator_exception_profile(), maps_network_profile(), authenticator_worker_profile(), maps_network_v2_profile(), authenticator_binder_identity_profile(), maps_network_v3_profile(), service_lifecycle_profile(), platform_fragments_profile(), image_bounds_profile(), window_system_ui_profile(), seed_account_options_profile()]
 	require(child_attach_profile().framework_sha == framework_sha
 		&& settings_global_profile().framework_sha == framework_sha
 		&& application_restrictions_profile().framework_sha != framework_sha, 'exact per-profile framework identities')!
@@ -550,6 +566,10 @@ fn selftest() ! {
 		&& window_system_ui_profile().native_sha.len == 64
 		&& window_system_ui_profile().apk_sha != image_bounds_profile().apk_sha,
 		'window system UI requires its distinct framework and fixture with an exact coupled native pin')!
+	require(seed_account_options_profile().framework_sha != window_system_ui_profile().framework_sha
+		&& seed_account_options_profile().native_sha.len == 64
+		&& seed_account_options_profile().apk_sha != window_system_ui_profile().apk_sha,
+		'seed account options requires its distinct framework and fixture with an exact coupled native pin')!
 	for profile in profiles {
 		mut pins := [profile.apk_sha, profile.framework_sha]
 		if profile.native_sha != '' { pins << profile.native_sha }
@@ -595,7 +615,7 @@ fn selftest() ! {
 		cases++
 	}
 	require(canonical('/var/lib/onboarding-api-r1'), 'canonical path rejected')!
-	for selector in ['--authenticator-binder-identity', '--maps-network-v3', '--service-lifecycle', '--platform-fragments', '--image-bounds', '--window-system-ui'] {
+	for selector in ['--authenticator-binder-identity', '--maps-network-v3', '--service-lifecycle', '--platform-fragments', '--image-bounds', '--window-system-ui', '--seed-account-options'] {
 		full := [selector, '/runtime', '/fixture.apk', '10117', '10117', '/results']
 		for count in 1 .. full.len {
 			mut argv := [os.executable()]
@@ -624,9 +644,10 @@ fn run() ! {
 		return
 	}
 	mut arguments := os.args[1..]
-	require(arguments.len == 6 && arguments[0] in ['--child-attach', '--settings-global', '--application-restrictions', '--authenticator-private-exception', '--maps-network', '--authenticator-worker', '--maps-network-v2', '--authenticator-binder-identity', '--maps-network-v3', '--service-lifecycle', '--platform-fragments', '--image-bounds', '--window-system-ui'],
-		'usage: onboarding-api-run (--child-attach|--settings-global|--application-restrictions|--authenticator-private-exception|--maps-network|--authenticator-worker|--maps-network-v2|--authenticator-binder-identity|--maps-network-v3|--service-lifecycle|--platform-fragments|--image-bounds|--window-system-ui) RUNTIME APK UID GID FRESH_OUTPUT | selftest')!
+	require(arguments.len == 6 && arguments[0] in ['--child-attach', '--settings-global', '--application-restrictions', '--authenticator-private-exception', '--maps-network', '--authenticator-worker', '--maps-network-v2', '--authenticator-binder-identity', '--maps-network-v3', '--service-lifecycle', '--platform-fragments', '--image-bounds', '--window-system-ui', '--seed-account-options'],
+		'usage: onboarding-api-run (--child-attach|--settings-global|--application-restrictions|--authenticator-private-exception|--maps-network|--authenticator-worker|--maps-network-v2|--authenticator-binder-identity|--maps-network-v3|--service-lifecycle|--platform-fragments|--image-bounds|--window-system-ui|--seed-account-options) RUNTIME APK UID GID FRESH_OUTPUT | selftest')!
 	profile := if arguments[0] == '--authenticator-private-exception' { authenticator_exception_profile() }
+		else if arguments[0] == '--seed-account-options' { seed_account_options_profile() }
 		else if arguments[0] == '--window-system-ui' { window_system_ui_profile() }
 		else if arguments[0] == '--image-bounds' { image_bounds_profile() }
 		else if arguments[0] == '--platform-fragments' { platform_fragments_profile() }
