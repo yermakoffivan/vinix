@@ -669,7 +669,7 @@ fn bitmap_tiles_method_headers() map[string]string {
   'getTileModeY()Landroid/graphics/Shader$TileMode;': 'public'
   'draw(Landroid/graphics/Canvas;)V': 'public'
   'vinixTileMode(Landroid/graphics/Shader$TileMode;)I': 'private static'
-  'nativeDrawTiles(Landroid/atl/GskCanvas;JIIIIJII)V': 'private static native'
+  'nativeDrawTiles(Landroid/atl/GskCanvas;Landroid/graphics/Bitmap;IIIILandroid/graphics/Paint;II)V': 'private static native'
  }
 }
 
@@ -736,7 +736,7 @@ fn bitmap_tiles_self_test() ! {
    return error('invalid bitmap tile method flags accepted: ' + signature)
   }
  }
- bridge := '.method private static native nativeDrawTiles(Landroid/atl/GskCanvas;JIIIIJII)V\n.end method'
+ bridge := '.method private static native nativeDrawTiles(Landroid/atl/GskCanvas;Landroid/graphics/Bitmap;IIIILandroid/graphics/Paint;II)V\n.end method'
  bitmap_tiles_abi(after.replace(bridge, bridge.replace('\n.end method', '\n.locals 0\nreturn-void\n.end method'))) or {
   bitmap_tiles_class_self_test()!
   return

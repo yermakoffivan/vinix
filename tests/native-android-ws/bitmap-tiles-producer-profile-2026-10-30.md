@@ -11,6 +11,8 @@ The complete class count remains 2,106, with exactly one changed class,
 The explicit member scope replaces `getPaint` and `setTileModeX`, adds public
 Y/XY setters, X/Y getters and `draw`, a private tile-mode converter and a private
 static native drawing bridge. The Y setter retains its public/final Android ABI.
+The bridge takes strong Bitmap and Paint references, including a temporary Paint
+returned by an overridden getter, throughout native drawing.
 Three new private fields retain the two nullable tile modes and one Paint.
 No constructors, other existing methods, fields, class metadata or classes may
 change. Before assembly and after complete DEX disassembly, checks enforce
@@ -25,19 +27,19 @@ remain enabled. This profile does not itself establish correct pixels or a
 successful Google account screen; the provider and runtime require their own
 checks.
 
-Working source is based on repository revision `5594c206f`. The final builder
+Working source is based on repository revision `460360b7a`. The final builder
 compilation and complete self-test passed under the unchanged 600 MiB aggregate
 RSS, 300-second, 1 GiB reserve and 512 MiB observed-growth limits. Compilation
-took 3.250 seconds at 347,406,336 sampled RSS bytes; self-tests took 0.267 seconds
+took 2.418 seconds at 347,815,936 sampled RSS bytes; self-tests took 0.281 seconds
 at 1,245,184 sampled RSS bytes. Both guard/child exits were zero with complete
 cleanup and zero reported swaps. Complete controls are retained at
-`/Users/alex/.local/state/vinix/android/bitmap-tiles-framework-builder-2026-10-30-r2`.
+`/Users/alex/.local/state/vinix/android/bitmap-tiles-framework-builder-2026-10-30-r3`.
 Builder source SHA-256:
-`3cf6ceabff4dbebbcd60e989c26dbe4184d914d82d6e897caac6b1bbcf970e01`.
+`1c145ffdf5b4eb205da48544cecb2b62678f2983b9027d6a8a73e36bafdadae4`.
 Qualified executable SHA-256:
-`d01495362423c000b91833f534a0c55fe434023941b85d81b92f0bb9d7b757f6`.
+`b04662ecc1b0280ee48f866b53694834e9ab060937cb50942d935ec9ad417853`.
 
-The earlier builder qualification remains retained in the adjacent `r1` root;
+The earlier builder qualifications remain retained in the adjacent `r1`/`r2` roots;
 the final profile delegates clipped pixel sampling to the native renderer.
 
 Full framework production and the coupled native build remain pending.
