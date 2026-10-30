@@ -5,6 +5,7 @@ module main
 
 import arena
 import accounthandoff
+import brokerlog
 import crypto.sha256
 import encoding.base64
 import json2
@@ -828,6 +829,7 @@ mut:
 	broker            Identity
 	service_ready     bool
 	broker_exit       int = -1
+	broker_drain      brokerlog.DrainResult
 	cleanup_survivors int
 	auth_init         AuthInitDiagnostics
 	browser_init      AuthInitDiagnostics
@@ -1564,13 +1566,44 @@ fn broker_service_ready(output []u8) bool {
 	return false
 }
 
-fn append_broker_output(mut child os.Process, mut log os.File, mut output []u8) ! {
-	block := child.stdout_read()
-	defer { unsafe { block.free() } }
-	if block == '' { return }
-	if output.len + block.len > max_file { return error('broker diagnostic log limit') }
-	log.write_string(block)!
-	append_output_block(mut output, block)!
+fn append_broker_output(fd int, mut log os.File, mut output []u8, mut receipt Receipt) ! {
+	// Keep a live poll bounded while permitting more than one 4096-byte block.
+	// A process exit never establishes that its pipe reached EOF.
+	for _ in 0 .. 8 {
+		read := brokerlog.read_once(fd, mut log, mut output, max_file)
+		if read.status == brokerlog.data { continue }
+		if read.status == brokerlog.again || read.status == brokerlog.eof { return }
+		receipt.broker_drain = brokerlog.DrainResult{status: read.status, bytes: output.len,
+			error_number: read.error_number}
+		return error('broker diagnostic capture failed, code=' + read.status.str())
+	}
+}
+
+fn finish_broker_output(fd int, mut log os.File, mut output []u8, mut receipt Receipt) {
+	// Preserve any earlier capture failure: observing EOF later cannot recover
+	// bytes lost to a write error or a capture limit.
+	previous := receipt.broker_drain
+	drained := brokerlog.finish(fd, mut log, mut output, max_file, 2000)
+	receipt.broker_drain = brokerlog.DrainResult{
+		status: if previous.status != 0 { previous.status } else { drained.status }
+		bytes: output.len
+		error_number: if previous.status != 0 { previous.error_number } else { drained.error_number }
+		eof: drained.eof
+	}
+	text := output.bytestr()
+	defer { unsafe { text.free() } }
+	receipt.auth_init = auth_init_diagnostics(text)
+	receipt.browser_init = browser_init_diagnostics(text)
+	receipt.auth_pump = auth_pump_diagnostics(text)
+	receipt.account_handoff = account_handoff_diagnostics(text)
+	if receipt.broker_drain.status != brokerlog.eof || !receipt.broker_drain.eof {
+		// broker_session's caller retains its original error after this defer.
+		// A nominally successful stop must not claim a complete capture instead.
+		if receipt.status != 'failed' {
+			receipt.status = 'failed'
+			receipt.error = 'broker diagnostic capture incomplete'
+		}
+	}
 }
 
 fn append_output_block(mut output []u8, block string) ! {
@@ -1632,6 +1665,10 @@ fn broker_session(mut receipt Receipt) ! {
 	os.write_file(result_root + '/broker-argv.json', json2.encode(argv) + '\n')!
 	mut log := os.open_file(result_root + '/broker.log', 'wx', 0o600)!
 	defer { log.close() }
+	// Allocate before the Process defers so capture storage outlives shutdown,
+	// final EOF draining and numeric parsing under -gc none.
+	mut output := []u8{cap: max_file}
+	defer { unsafe { output.free() } }
 	mut child := os.new_process(broker_path)
 	child.use_pgroup = true
 	child.set_args(argv)
@@ -1643,6 +1680,9 @@ fn broker_session(mut receipt Receipt) ! {
 		return error('could not start selected broker')
 	}
 	defer { child.close() }
+	// Later ownership cleanup defers run first. This defer then consumes the
+	// remaining private bytes and parses them before Process.close/output.free.
+	defer { finish_broker_output(child.stdio_fd[1], mut log, mut output, mut receipt) }
 	receipt.broker = identity(child.pid) or {
 		child.signal_pgkill()
 		reap_broker(mut child)
@@ -1665,22 +1705,11 @@ fn broker_session(mut receipt Receipt) ! {
 		receipt.cleanup_survivors = cleanup(mut owned, mut scratch) or { -1 }
 		os.rm(broker_root + '/session.json') or {}
 	}
+	brokerlog.nonblocking(child.stdio_fd[1])!
 	deadline := time.sys_mono_now() + 15 * time.minute
 	startup := time.sys_mono_now() + 45 * time.second
-	// Reserve once: string concatenation otherwise retains all preceding log
-	// prefixes under -gc none. No append may grow or replace this buffer.
-	mut output := []u8{cap: max_file}
-	defer { unsafe { output.free() } }
-	defer {
-		text := output.bytestr()
-		receipt.auth_init = auth_init_diagnostics(text)
-		receipt.browser_init = browser_init_diagnostics(text)
-		receipt.auth_pump = auth_pump_diagnostics(text)
-		receipt.account_handoff = account_handoff_diagnostics(text)
-		unsafe { text.free() }
-	}
 	for {
-		append_broker_output(mut child, mut log, mut output)!
+		append_broker_output(child.stdio_fd[1], mut log, mut output, mut receipt)!
 		refresh_polled_processes(mut scratch, mut owned, receipt.desktop)!
 		if !receipt.service_ready && broker_service_ready(output) {
 			window_identity(receipt.desktop.uid)!
@@ -2437,12 +2466,69 @@ fn poll_memory_self_test(iterations int) ! {
 	println('MAPS-ACCOUNT-POLL-MEMORY-PASS iterations=${iterations} processes=${owned.len} scratch_peak_used=${peak_used} scratch_peak_capacity=${peak_capacity} scratch_total=${total_scratch} copied_errors=${failures} output_capacity=${output.cap}')
 }
 
+fn broker_drain_self_test() ! {
+	root := os.join_path(os.temp_dir(), 'vinix-maps-drain-' + os.getpid().str() + '-' + time.sys_mono_now().str())
+	os.mkdir(root, mode: 0o700)!
+	defer { os.rmdir_all(root) or {} }
+	// Exercise the exact finalizer and numeric parsers with a tail beyond the
+	// old one-block read. The brokerlog tests supply real pipes/child lifetimes.
+	private := 'email=private-drain@example.invalid token=private-drain-secret\n'
+	tail := 'ANDROID-AUTH-PUMP-FAIL stage=4 status=-17 pending=1\n'
+	content := 'private-prefix\n'.repeat(900) + private + tail
+	os.write_file(root + '/source', content)!
+	mut source := os.open(root + '/source')!
+	defer { source.close() }
+	mut log := os.open_file(root + '/broker.log', 'wx', 0o600)!
+	mut output := []u8{cap: max_file}
+	defer { unsafe { output.free() } }
+	buffer := output.data
+	mut receipt := Receipt{status: 'stopped'}
+	finish_broker_output(source.fd, mut log, mut output, mut receipt)
+	log.close()
+	if receipt.broker_drain.status != brokerlog.eof || !receipt.broker_drain.eof
+		|| receipt.broker_drain.bytes != content.len || output.len != content.len
+		|| output.data != buffer || output.cap != max_file || receipt.status != 'stopped'
+		|| receipt.auth_pump.failures != [AuthPumpFailure{stage: 4, status: -17, pending: 1}]
+		|| os.read_file(root + '/broker.log')! != content {
+		return error('final broker tail capture or numeric parsing differs')
+	}
+	public := json2.encode(receipt)
+	if public.contains('private-drain') || public.contains('ANDROID-AUTH-PUMP-FAIL') {
+		return error('private broker tail entered the public receipt')
+	}
+	os.rm(root + '/source')!
+	os.write_file(root + '/receipt.json', public)!
+	retained := json2.decode[Archive](archive(root)!)!
+	if retained.entries.len != 1 || retained.entries[0].path != 'receipt.json'
+		|| base64.decode_str(retained.entries[0].data) != public {
+		return error('private broker tail entered the export archive')
+	}
+	// A prior loss remains incomplete even after the final read observes EOF.
+	mut failed_log := os.open_file(root + '/failed.log', 'wx', 0o600)!
+	defer { failed_log.close() }
+	mut previous := Receipt{status: 'stopped', broker_drain: brokerlog.DrainResult{
+		status: brokerlog.write_failure, error_number: 5}}
+	finish_broker_output(source.fd, mut failed_log, mut output, mut previous)
+	if previous.broker_drain.status != brokerlog.write_failure || !previous.broker_drain.eof
+		|| previous.broker_drain.error_number != 5 || previous.status != 'failed'
+		|| previous.error != 'broker diagnostic capture incomplete' {
+		return error('EOF erased an earlier broker capture failure')
+	}
+	mut original := Receipt{status: 'failed', error: 'selected broker exited before stop request'}
+	finish_broker_output(-1, mut failed_log, mut output, mut original)
+	if original.error != 'selected broker exited before stop request'
+		|| original.broker_drain.status != brokerlog.invalid_setup || original.broker_drain.eof {
+		return error('broker finalizer replaced the original failure or claimed EOF')
+	}
+}
+
 fn self_test() ! {
 	onboarding_trace_self_test()!
 	poll_memory_self_test(256)!
 	auth_init_self_test()!
 	browser_init_self_test()!
 	auth_pump_self_test()!
+	broker_drain_self_test()!
 	account_handoff_self_test()!
 	required_deployment_inputs_self_test()!
 	protected_directory_self_test()!

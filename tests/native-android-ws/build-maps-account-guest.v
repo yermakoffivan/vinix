@@ -363,7 +363,7 @@ fn set_compiler(path string) {
 fn flags(v string, imports string) []string {
 	// This pinned compiler also lists the WASM entropy implementation for C
 	// targets. Keep Linux's getrandom implementation as the sole provider.
-	return [v, '-new-compiler', '-os', 'linux', '-arch', 'arm64', '-cc', cross, '-gc', 'none',
+	return [v, '-new-compiler', '-no-parallel', '-os', 'linux', '-arch', 'arm64', '-cc', cross, '-gc', 'none',
 		'-nocache', '-skip-running', '-exclude', '@vlib/crypto/rand/internal/rand.wasm.v', '-path',
 		imports]
 }
@@ -666,6 +666,9 @@ fn bootstrap(root string) ! {
 }
 
 fn self_test() ! {
+	if flags('/pinned/v', '/retained/imports').filter(it == '-no-parallel').len != 1 {
+		return error('ARM controller generation must remain serial')
+	}
 	if dependency_paths('x: /one /path\\ with\\ spaces \\\n /last')! != ['/one', '/path with spaces',
 		'/last'] {
 		return error('escaped dependency parser differs')
