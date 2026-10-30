@@ -873,6 +873,72 @@ fn window_animations_self_test() ! {
  }
 }
 
+fn layout_alignment_profile() NarrowProfile {
+ layout := 'android/text/Layout.smali'
+ return NarrowProfile{
+  name: 'layout-alignment'
+  baseline_name: 'combined-account-webview-window-animations-framework-2026-10-30-r1'
+  manifest_pin: '19d67639dce414866deab4c3de57ac8576b5542dff6d58c8b0b78caf066f3e53'
+  jar_pin: '255718e8a943f8d3e276f99694c52ed5ec39af86d5d06abef3c9b14d7b9aa197'
+  baseline_classes: 2106
+  providers: ['framework_layout_alignment.v']
+  calls: {layout: 'framework_layout_alignment_source'}
+  methods: {layout: ['getAlignment()Landroid/text/Layout$Alignment;', 'getSpacingAdd()F']}
+  changed: {layout: 0}
+  added: {layout: 2}
+ }
+}
+
+fn layout_alignment_abi(source string) ! {
+ parts := store_parts(source)!
+ for signature in ['getAlignment()Landroid/text/Layout$Alignment;', 'getSpacingAdd()F'] {
+  method := parts.methods[signature] or { return error('missing Layout getter ABI: ' + signature) }
+  if method.all_before('\n').trim_space() != '.method public final ' + signature {
+   return error('Layout getters must retain public final ABI')
+  }
+ }
+}
+
+fn layout_alignment_self_test() ! {
+ profile := layout_alignment_profile()
+ layout := 'android/text/Layout.smali'
+ signatures := ['getAlignment()Landroid/text/Layout$Alignment;', 'getSpacingAdd()F']
+ if profile.baseline_classes != 2106 || profile.methods != {layout: signatures}
+  || profile.calls != {layout: 'framework_layout_alignment_source'}
+  || profile.changed != {layout: 0} || profile.added != {layout: 2}
+  || profile.providers != ['framework_layout_alignment.v'] || profile.fields.len != 0
+  || profile.extra_classes.len != 0 || profile.class_provider != '' || profile.directory_provider != '' {
+  return error('Layout alignment and spacing require two additive getters and no other members or classes')
+ }
+ narrow_method_self_test(signatures, 0, 2)!
+ mut methods := ''
+ for signature in signatures { methods += '.method public final ' + signature + '\n.locals 1\nconst/4 v0, 0x0\nreturn-void\n.end method\n' }
+ layout_alignment_abi(methods)!
+ for signature in signatures {
+  for flags in ['public', 'private final', 'public static', 'public final native', 'public final synthetic'] {
+   layout_alignment_abi(methods.replace('.method public final ' + signature, '.method ' + flags + ' ' + signature)) or { continue }
+   return error('invalid Layout getter flags accepted')
+  }
+ }
+ mut old := {layout: 'old'}
+ for i in 0 .. 2105 { old['other/' + i.str() + '.smali'] = 'same' }
+ mut good := old.clone()
+ good[layout] = 'new'
+ narrow_profile_class_delta(old, good, [layout], []string{}, 2106)!
+ for case in 0 .. 5 {
+  mut bad := good.clone()
+  match case {
+   0 { bad[layout] = 'old' }
+   1 { bad['other/0.smali'] = 'changed' }
+   2 { bad.delete(layout) }
+   3 { bad['unrelated.smali'] = 'new' }
+   else { bad.delete(layout); bad['substituted.smali'] = 'new' }
+  }
+  narrow_profile_class_delta(old, bad, [layout], []string{}, 2106) or { continue }
+  return error('invalid Layout-only class scope accepted')
+ }
+}
+
 fn window_system_ui_self_test() ! {
  profile := window_system_ui_profile()
  layout := 'android/view/WindowManager$LayoutParams.smali'
@@ -1646,6 +1712,7 @@ fn self_test() ! {
  persistent_data_block_self_test()!
  bitmap_tiles_self_test()!
  window_animations_self_test()!
+ layout_alignment_self_test()!
  query_profile := service_query_profile()
  narrow_method_self_test(query_profile.methods['android/content/pm/PackageManager.smali']!, 1, 0)!
  boot_profile := direct_boot_profile()
@@ -1919,6 +1986,7 @@ fn build_narrow(profile NarrowProfile, baseline string, manifest_pin string, jar
   if profile.name == 'persistent-data-block' { persistent_data_block_abi(target, os.read_file(root + '/smali/' + target)!)! }
   if profile.name == 'bitmap-tiles' { bitmap_tiles_abi(os.read_file(root + '/smali/' + target)!)! }
   if profile.name == 'window-animations' { window_animations_abi(target, os.read_file(root + '/smali/' + target)!)! }
+  if profile.name == 'layout-alignment' { layout_alignment_abi(os.read_file(root + '/smali/' + target)!)! }
  }
  if profile.name == 'platform-fragments' {
   for target in profile.extra_classes { platform_fragments_abi(os.read_file(root + '/smali/' + target)!, target)! }
@@ -1947,6 +2015,7 @@ fn build_narrow(profile NarrowProfile, baseline string, manifest_pin string, jar
   if profile.name == 'persistent-data-block' { persistent_data_block_abi(target, os.read_file(root + '/new-dex/' + target)!)! }
   if profile.name == 'bitmap-tiles' { bitmap_tiles_abi(os.read_file(root + '/new-dex/' + target)!)! }
   if profile.name == 'window-animations' { window_animations_abi(target, os.read_file(root + '/new-dex/' + target)!)! }
+  if profile.name == 'layout-alignment' { layout_alignment_abi(os.read_file(root + '/new-dex/' + target)!)! }
  }
  if profile.name == 'platform-fragments' {
   for target in profile.extra_classes { platform_fragments_abi(os.read_file(root + '/new-dex/' + target)!, target)! }
@@ -2240,11 +2309,15 @@ fn main() {
   build_narrow(window_animations_profile(), os.abs_path(os.args[2]), os.args[3], os.args[4], os.abs_path(os.args[5])) or { eprintln(err); exit(1) }
   return
  }
+ if os.args.len == 6 && os.args[1] == '--layout-alignment' {
+  build_narrow(layout_alignment_profile(), os.abs_path(os.args[2]), os.args[3], os.args[4], os.abs_path(os.args[5])) or { eprintln(err); exit(1) }
+  return
+ }
  if os.args.len == 6 && os.args[1] in ['--store', '--auth', '--cache', '--descriptions', '--protected-storage', '--service-query', '--direct-boot', '--credential-storage', '--broadcast-result', '--onboarding', '--application-restrictions', '--auth-exception', '--binder-identity', '--service-lifecycle', '--platform-fragments', '--imageview-bounds', '--window-system-ui'] {
   profile := match os.args[1] { '--store' { storage_profile() } '--auth' { auth_profile() } '--cache' { cache_profile() } '--descriptions' { descriptions_profile() } '--protected-storage' { protected_storage_profile() } '--service-query' { service_query_profile() } '--direct-boot' { direct_boot_profile() } '--credential-storage' { credential_storage_profile() } '--broadcast-result' { broadcast_result_profile() } '--application-restrictions' { application_restrictions_profile() } '--auth-exception' { auth_exception_profile() } '--binder-identity' { binder_identity_profile() } '--service-lifecycle' { service_lifecycle_profile() } '--platform-fragments' { platform_fragments_profile() } '--imageview-bounds' { imageview_bounds_profile() } '--window-system-ui' { window_system_ui_profile() } else { onboarding_profile() } }
   build_narrow(profile, os.abs_path(os.args[2]), os.args[3], os.args[4], os.abs_path(os.args[5])) or { eprintln(err); exit(1) }
   return
  }
- if os.args.len != 5 { eprintln('usage: combined-account-webview-build [--store|--auth|--cache|--descriptions|--protected-storage|--service-query|--direct-boot|--credential-storage|--broadcast-result|--onboarding|--application-restrictions|--auth-exception|--binder-identity|--service-lifecycle|--platform-fragments|--imageview-bounds|--window-system-ui|--bitmap-tiles|--window-animations] BASELINE BASELINE_MANIFEST_SHA256 BASELINE_JAR_SHA256 FRESH_OUTPUT | --self-test'); exit(2) }
+ if os.args.len != 5 { eprintln('usage: combined-account-webview-build [--store|--auth|--cache|--descriptions|--protected-storage|--service-query|--direct-boot|--credential-storage|--broadcast-result|--onboarding|--application-restrictions|--auth-exception|--binder-identity|--service-lifecycle|--platform-fragments|--imageview-bounds|--window-system-ui|--bitmap-tiles|--window-animations|--layout-alignment] BASELINE BASELINE_MANIFEST_SHA256 BASELINE_JAR_SHA256 FRESH_OUTPUT | --self-test'); exit(2) }
  build(os.abs_path(os.args[1]), os.args[2], os.args[3], os.abs_path(os.args[4])) or { eprintln(err); exit(1) }
 }
