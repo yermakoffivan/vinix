@@ -29,4 +29,6 @@ Qualified builder SHA-256:
 `86aca4e2c28707e45a6c4b861b02dc9a96d5d491330bba1839f02d5b0f701ae2`.
 The checked SDK implementation is committed as `74968571b`.
 
-Full framework/native production and the next ARM runtime validation remain pending.
+The [full framework/native pair](layout-alignment-pair-2026-10-30.md) and minimal
+path-provenance proof now pass production and complete evidence readback. The
+next ARM runtime validation remains separate.
