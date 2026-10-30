@@ -9,7 +9,7 @@ import time
 #include <poll.h>
 #include <unistd.h>
 
-fn C.poll(voidptr, uint, i32) i32
+fn C.poll(&C.pollfd, uint, i32) i32
 
 pub const again = 0
 pub const eof = 1
@@ -38,7 +38,7 @@ pub:
 	eof bool
 }
 
-struct BrokerPoll {
+struct C.pollfd {
 mut:
 	fd i32
 	events i16
@@ -125,7 +125,7 @@ pub fn finish(fd int, mut log os.File, mut output []u8, limit int, timeout_ms in
 		remaining := end - time.sys_mono_now()
 		if remaining <= 0 { continue }
 		wait_ms := (remaining + time.millisecond - 1) / time.millisecond
-		mut descriptor := BrokerPoll{fd: i32(fd), events: i16(C.POLLIN)}
+		mut descriptor := C.pollfd{fd: i32(fd), events: i16(C.POLLIN)}
 		ready := C.poll(unsafe { &descriptor }, 1, i32(if wait_ms > 100 { 100 } else { wait_ms }))
 		poll_errno := int(C.errno)
 		if ready < 0 && poll_errno != C.EINTR {

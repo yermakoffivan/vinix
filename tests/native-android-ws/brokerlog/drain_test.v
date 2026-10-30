@@ -42,7 +42,7 @@ fn raw_write_all(fd int, payload []u8) bool {
 
 fn wait_child(pid i32) int {
 	end := time.sys_mono_now() + 2 * time.second
-	mut status := 0
+	mut status := i32(0)
 	for time.sys_mono_now() < end {
 		waited := C.waitpid(pid, &status, C.WNOHANG)
 		if waited == pid { return int(status) }
