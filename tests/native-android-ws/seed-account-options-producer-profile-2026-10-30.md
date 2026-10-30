@@ -8,7 +8,7 @@ The profile preserves all 2,105 classes and confines member changes to:
 
 | Class | Existing methods changed | Methods added | Fields added |
 | --- | --- | --- | --- |
-| UserManager | 0 | public `getSeedAccountOptions()LPersistableBundle;` | 0 |
+| UserManager | 0 | public `getSeedAccountOptions()Landroid/os/PersistableBundle;` | 0 |
 | PersistableBundle | 0 | static constructor | public static final `EMPTY` |
 | ArrayMap | static constructor | 0 | 0 |
 
