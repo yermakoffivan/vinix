@@ -310,6 +310,39 @@ const broker_tail_controller_pin = 'bf30d23fb34a382b517688df073fb54b0c140bdedd51
 const broker_tail_broker = '/Users/alex/.local/state/vinix/android/current-account-broker-build-2026-10-30-child-status-r1'
 const broker_tail_broker_seal = '7bba04e39681e31c6e13dbd65df99094dadec17a1ab99e114e50f74aa2d18ae9'
 const broker_tail_broker_pin = '0bf4d36c6c4035eb7e736ee04f3f7a612b9582ef44bad6950bf0aa8b1b1c35ee'
+const seed_companion_base = '/Users/alex/.local/state/vinix/android/maps-broker-tail-r1'
+const seed_companion_base_seal = 'c6ab0709b40b1718f0d3c6d13e6f1ba3f2a8ccf5de2b6a8e36cd62802ef2c6e9'
+const seed_companion_boot = 'e8e820377cae6fb1b0f32e0c7d0eedeb4164b9bab82c71226b8c35d3867b52f4'
+const seed_companion_base_overlay = 'acc09e19dfc1d900bc23a0108605048105952b2717d58fb1ba76fce2b5934e30'
+const seed_companion_old_deployment = '34222710eda5c2ebb42b79ad6d778aea0fd328d8ca1cbb68256c5ef8b8c4f142'
+const seed_companion_old_headless = '5d143cd0aa44ef618c5fccd3cc85f019eee66a8de69c6f9a33041dbd144346e7'
+const seed_companion_controller = '/Users/alex/.local/state/vinix/android/maps-account-guest-build-2026-10-30-gms-companion-r1'
+const seed_companion_controller_seal = 'd903515f7d493f6174128bede8511e8f470515b580a8e5374aa5623360e289d5'
+const seed_companion_controller_pin = '7d48a43d7f6fbe39ad5704e68a62b1cdbab65e867000c91f5fdfbc9066cfc216'
+const seed_companion_framework = '/Users/alex/.local/state/vinix/android/combined-account-webview-seed-account-options-framework-2026-10-30-r1'
+const seed_companion_seal = '470636b2812f339d58071ba59986282ac5107e5256aa2588dd9305d7ef5b45e9'
+const seed_companion_build = '4934f484c1d9dbeb41e0b9e53e31634cae19be72a21bbf88bb758969bec046ce'
+const seed_companion_jar = 'cb2e3fabab652c65351da16770ae98c4113781df0830440b734395bb35b6f265'
+const seed_companion_dex = '790d9c0436e070a0ff643127228f622f0a30ae12e4560e7acccadf4550a13dfa'
+const seed_companion_native = '/Users/alex/.local/state/vinix/android/current-native-build-2026-10-30-seed-account-options-r1'
+const seed_companion_native_seal = '8fbfbd2c74eca6c412909a2a64fb91949cbaa1ed0b262e9970ff375dddff61f8'
+const seed_companion_native_build = '1a968278009d05f2c3d68068b46f5128c46f23ee6ae7bb384ede50c67bc2c5ce'
+const seed_companion_native_pin = '179f51ad25cc99fd939ca1f217e87f1d3ab9c452b98db861da11e0344363f6ce'
+const seed_companion_framework_helper = '7f5a04072cbba86c1c4f752c9eb4f085055488a16b2591d123b75729f44feab4'
+const seed_companion_provider_helper = 'ac0b975213dc9c55c99ed9fed78a61e1653bcff55c932a2a312524e0e9ea0f03'
+const seed_companion_user_raw = '4776812c501390042ac576ddb4079ca06cc62d8ecec7f6a9fb96f76ea17124ee'
+const seed_companion_user_canonical = '87747ad9ac9a8da5693ca362251e2b4d18d3f87987a4350ec66daee6e818961a'
+const seed_companion_persistable_raw = '55255c1d6f16d32fb0ee6a845705a9c20545dc493f3c1f2b7b664f0d1886c0c3'
+const seed_companion_persistable_canonical = '073f3fc7e9c5b9b32bbec871c96af6e75f1554b395543469f0e5f7d630d79c3f'
+const seed_companion_array_raw = '2651cc826e9fef60d74bae5e80ac203b953e0835c215846a25a682f87870e713'
+const seed_companion_array_canonical = '7d674b45674cebc3b6d27a80dd5061fa5b888b2617b4ec48c5f18458638c26f1'
+const seed_companion_vending = '/Users/alex/.local/state/vinix/android/maps-vending-admission-2026-10-30-r2'
+const seed_companion_vending_seal = 'c6e9ec6ef3280b977fadee1aed5a7d91a94d10807bbc65da1feff98823228f1d'
+const seed_companion_vending_path = 'opt/vinix-maps-account/apks/vending.apk'
+const seed_companion_vending_pin = '444e41ee8ef6ec8c55815087c51c28e516ea32f93d856f8bdd0025bb6fc36bc2'
+const seed_companion_vending_signer = 'f0fd6c5b410f25cb25c3b53346c8972fae30f8ee7411df910480ad6b2d60db83'
+const seed_companion_vending_module = '1c6988d1f3d3844425f0e8cbb49a878b3a16f2a270b4eb3852c71dfaa8fe200e'
+const seed_companion_vending_member = 'tmp/maps256-data/_installed_apks_/com.android.vending.apk'
 const source = $embed_file(@FILE).to_string()
 
 struct Profile {
@@ -2799,6 +2832,162 @@ fn broker_tail_baseline(receipt map[string]json2.Any, stage Stage) !string {
 	return broker_tail_base + '/boot.img'
 }
 
+fn seed_companion_profile() Profile {
+	mut modules := broker_tail_profile().modules.clone()
+	modules << 'maps-broker-tail.tar'
+	return Profile{'maps-seed-account-companion', seed_companion_boot, 'maps-seed-account-companion.tar', modules}
+}
+fn seed_companion_modules() map[string]string {
+	mut modules := broker_tail_modules()
+	modules['maps-broker-tail.tar'] = seed_companion_base_overlay
+	return modules
+}
+fn seed_companion_fields() map[string]string {
+	mut fields := broker_tail_fields()
+	fields['kind'] = 'vinix-maps-seed-account-companion-v1'
+	fields['base_root'] = seed_companion_base
+	fields['base_manifest_sha256'] = seed_companion_base_seal
+	fields['controller_build_root'] = seed_companion_controller
+	fields['controller_manifest_sha256'] = seed_companion_controller_seal
+	fields['controller_sha256'] = seed_companion_controller_pin
+	fields['retained_controller_manifest_sha256'] = broker_tail_controller_seal
+	fields['framework_build_root'] = seed_companion_framework
+	fields['framework_manifest_sha256'] = seed_companion_seal
+	fields['framework_jar_sha256'] = seed_companion_jar
+	fields['framework_dex_sha256'] = seed_companion_dex
+	fields['retained_framework_manifest_sha256'] = window_system_ui_seal
+	fields['native_compatibility_framework_manifest_sha256'] = window_system_ui_seal
+	fields['native_build_root'] = seed_companion_native
+	fields['native_manifest_sha256'] = seed_companion_native_seal
+	fields['native_sha256'] = seed_companion_native_pin
+	fields['native_build_sha256'] = seed_companion_native_build
+	fields['retained_native_manifest_sha256'] = window_system_ui_native_seal
+	fields['native_framework_manifest_sha256'] = seed_companion_seal
+	fields['vending_build_root'] = seed_companion_vending
+	fields['vending_manifest_sha256'] = seed_companion_vending_seal
+	fields['vending_sha256'] = seed_companion_vending_pin
+	fields['vending_signer_sdk29_sha256'] = seed_companion_vending_signer
+	fields['vending_source_base_manifest_sha256'] = seed_companion_base_seal
+	fields['vending_source_module_sha256'] = seed_companion_vending_module
+	fields['vending_source_member'] = seed_companion_vending_member
+	return fields
+}
+fn seed_companion_inputs() map[string]string {
+	mut inputs := broker_tail_inputs()
+	inputs[seed_companion_base + '/sha256.json'] = seed_companion_base_seal
+	inputs[seed_companion_controller + '/sha256.json'] = seed_companion_controller_seal
+	inputs[seed_companion_framework + '/sha256.json'] = seed_companion_seal
+	inputs[seed_companion_native + '/sha256.json'] = seed_companion_native_seal
+	inputs[seed_companion_vending + '/sha256.json'] = seed_companion_vending_seal
+	return inputs
+}
+fn seed_companion_known_delta() map[string]string {
+	mut delta := {'/opt/vinix-maps-account/bin/maps-account-guest': seed_companion_controller_pin,
+		'/usr/bin/run-android-calculator': seed_companion_controller_pin,
+		'/' + service_query_jar_path: seed_companion_jar, '/' + service_query_dex_path: seed_companion_dex,
+		'/' + native_onboarding_trace_path: seed_companion_native_pin,
+		'/' + service_query_headless + '/framework-build.json': seed_companion_build,
+		'/' + service_query_headless + '/framework-sha256.json': seed_companion_seal}
+	if seed_companion_native_pin == window_system_ui_native_pin { delta.delete('/' + native_onboarding_trace_path) }
+	return delta
+}
+fn seed_companion_raw_delta() map[string]string {
+	return {'smali/android/os/UserManager.smali': seed_companion_user_raw,
+		'smali/android/os/PersistableBundle.smali': seed_companion_persistable_raw,
+		'smali/android/util/ArrayMap.smali': seed_companion_array_raw}
+}
+fn seed_companion_canonical_delta() map[string]string {
+	return {'new-dex/android/os/UserManager.smali': seed_companion_user_canonical,
+		'new-dex/android/os/PersistableBundle.smali': seed_companion_persistable_canonical,
+		'new-dex/android/util/ArrayMap.smali': seed_companion_array_canonical}
+}
+fn seed_companion_proofs() map[string]string {
+	return {
+		'deployment_input_additions': json2.encode({'/' + seed_companion_vending_path: seed_companion_vending_pin})
+		'deployment_top_level_additions': json2.encode({'vending_signer_sdk29_sha256': seed_companion_vending_signer})
+		'vending_size_bytes': json2.encode(u64(106020565))
+		'headless_input_delta': json2.encode({'/' + service_query_jar_path: seed_companion_jar})
+		'headless_top_level_delta': json2.encode(['inputs_sha256'])
+		'framework_class_count': json2.encode(2105)
+		'framework_source_delta': json2.encode(seed_companion_raw_delta())
+		'framework_canonical_delta': json2.encode(seed_companion_canonical_delta())
+		'native_source_delta': json2.encode(map[string]string{})
+		'native_builder_helper_delta': json2.encode({'tests/native-android-tools/androidtools/framework.v': seed_companion_framework_helper,
+			'tests/native-android-tools/androidtools/framework_seed_account_options.v': seed_companion_provider_helper})
+		'native_consumed_class_count': json2.encode(68)
+		'native_consumed_raw_delta': json2.encode(map[string][]string{})
+		'native_consumed_canonical_delta': json2.encode(map[string][]string{})
+	}
+}
+fn seed_companion_overlay_paths() []string {
+	return ['opt/vinix-maps-account/bin/maps-account-guest', 'usr/bin/run-android-calculator',
+		service_query_jar_path, service_query_dex_path, native_onboarding_trace_path,
+		service_query_headless + '/framework-build.json', service_query_headless + '/framework-sha256.json',
+		service_query_headless + '/guest-inputs.json', seed_companion_vending_path, service_query_deployment]
+}
+fn verify_seed_companion_overlay(receipt map[string]json2.Any) ! {
+	if receipt['deployment_top_level_delta'] or { json2.Any('absent') } != json2.decode[json2.Any](json2.encode(['inputs_sha256', 'framework_manifest_sha256', 'native_manifest_sha256']))! {
+		return error('seed companion deployment top-level delta differs')
+	}
+	delta := json2.decode[map[string]string](json2.encode(receipt['deployment_input_delta'] or { return error('seed companion deployment delta absent') }))!
+	known := seed_companion_known_delta()
+	guest_path := '/' + service_query_headless + '/guest-inputs.json'
+	if delta.len != known.len + 1 || !digest_valid(delta[guest_path] or { '' })
+		|| delta[guest_path] or { '' } == seed_companion_old_headless { return error('exact seed companion actual deployment changes required') }
+	for path, pin in known { if delta[path] or { '' } != pin { return error('seed companion exact deployment input differs: ' + path) } }
+	entries := json2.decode[[]ServiceQueryEntry](json2.encode(receipt['overlay_inventory'] or { return error('seed companion overlay inventory absent') }))!
+	paths := seed_companion_overlay_paths()
+	mut regulars := map[string]string{}
+	mut seen := map[string]bool{}
+	for entry in entries {
+		if entry.name in seen || !relative(entry.name) || entry.mode & 0o7022 != 0 { return error('unsafe seed companion overlay inode') }
+		seen[entry.name] = true
+		if entry.kind == 'regular' {
+			mode := if entry.name in ['opt/vinix-maps-account/bin/maps-account-guest', 'usr/bin/run-android-calculator', native_onboarding_trace_path] { u32(0o755) } else { u32(0o644) }
+			if entry.name !in paths || !digest_valid(entry.sha256) || entry.mode != mode { return error('seed companion regular allowlist or mode differs') }
+			regulars[entry.name] = entry.sha256
+		} else if entry.kind != 'directory' || entry.mode != 0o755 || !paths.any(it.starts_with(entry.name + '/')) { return error('unexpected seed companion overlay inode') }
+	}
+	if regulars.len != 10 { return error('exact ten seed companion files required') }
+	for path, pin in known { if regulars[path.trim_left('/')] or { '' } != pin { return error('seed companion exact payload differs: ' + path) } }
+	if regulars[native_onboarding_trace_path] or { '' } != seed_companion_native_pin { return error('seed companion same native DSO overlay contract differs') }
+	if regulars[seed_companion_vending_path] or { '' } != seed_companion_vending_pin { return error('seed companion protected Vending APK differs') }
+	if regulars[guest_path.trim_left('/')] or { '' } != delta[guest_path]! { return error('seed companion headless receipt differs') }
+	if regulars[service_query_deployment] or { '' } == seed_companion_old_deployment { return error('seed companion old deployment receipt supplied') }
+}
+fn verify_seed_companion_receipt(receipt map[string]json2.Any, stage Stage) ! {
+	mut pins := [seed_companion_base_seal, seed_companion_boot, seed_companion_base_overlay, seed_companion_old_deployment, seed_companion_old_headless,
+		seed_companion_controller_seal, seed_companion_controller_pin, seed_companion_seal, seed_companion_build,
+		seed_companion_jar, seed_companion_dex, seed_companion_native_seal, seed_companion_native_build,
+		seed_companion_native_pin, seed_companion_framework_helper, seed_companion_provider_helper]
+	pins << [seed_companion_vending_seal, seed_companion_vending_pin, seed_companion_vending_signer, seed_companion_vending_module]
+	pins << seed_companion_raw_delta().values()
+	pins << seed_companion_canonical_delta().values()
+	for pin in pins { if !digest_valid(pin) { return error('completed seed companion base/controller/framework/native producers required') } }
+	if seed_companion_controller_seal == broker_tail_controller_seal || seed_companion_controller_pin == broker_tail_controller_pin
+		|| seed_companion_seal == window_system_ui_seal || seed_companion_native_seal == window_system_ui_native_seal { return error('new coupled seed companion producers required') }
+	for name, expected in seed_companion_fields() {
+		if receipt[name] or { json2.Any('absent') } != json2.Any(expected) { return error('seed companion receipt differs: ' + name) }
+	}
+	for name, expected in seed_companion_proofs() {
+		if receipt[name] or { json2.Any('absent') } != json2.decode[json2.Any](expected)! { return error('seed companion proof differs: ' + name) }
+	}
+	mut seals := map[string]string{}
+	for path, pin in stage.inputs_sha256 { if path.ends_with('/sha256.json') { seals[path] = pin } }
+	if seals.len != 70 || seals != seed_companion_inputs() { return error('seed companion exact seventy dependency seals differ') }
+	if stage.format != 1 || stage.original_modules_sha256 != seed_companion_modules() || stage.preserved_modules_sha256 != seed_companion_modules() { return error('seed companion original thirty modules differ') }
+	verify_seed_companion_overlay(receipt)!
+}
+fn seed_companion_baseline(receipt map[string]json2.Any, stage Stage) !string {
+	verify_seed_companion_receipt(receipt, stage)!
+	path := seed_companion_base + '/sha256.json'
+	regular(path)!
+	if os.lstat(path)!.size > 8 * 1024 * 1024 || hash(path)! != seed_companion_base_seal { return error('seed companion original broker-tail manifest differs') }
+	pins := json2.decode[map[string]string](os.read_file(path)!)!
+	if pins['boot.img'] or { '' } != seed_companion_boot || pins['maps-broker-tail.tar'] or { '' } != seed_companion_base_overlay { return error('seed companion original boot or broker-tail overlay differs') }
+	return seed_companion_base + '/boot.img'
+}
+
 fn service_query_modules() map[string]string {
 	mut modules := controller_modules()
 	modules['maps-controller-diagnostic.tar'] = 'bef5f25859e77a9671a6a144ccb56891da5ed2f7b4324a93a96da7fdcab1987a'
@@ -3411,6 +3600,8 @@ fn patch(root string, build_root string, receipt_sha string, profile Profile) ! 
 		baseline = window_system_ui_baseline(stage_map, stage)!
 	} else if profile.name == 'maps-broker-tail' {
 		baseline = broker_tail_baseline(stage_map, stage)!
+	} else if profile.name == 'maps-seed-account-companion' {
+		baseline = seed_companion_baseline(stage_map, stage)!
 	} else {
 		for path, expected in stage.inputs_sha256 {
 			if os.file_name(path) == 'boot.img' && expected == baseline_pin {
@@ -6391,6 +6582,166 @@ fn broker_tail_profile_self_test() ! {
 	println('MAPS-BROKER-TAIL KERNEL-PROFILE-SELF-TEST PASS four files three input changes sixty-five seals twenty-nine inherited modules retained framework/native/headless and historical rejection')
 }
 
+fn seed_companion_entries_fixture() []ServiceQueryEntry {
+	paths := seed_companion_overlay_paths()
+	mut parents := map[string]bool{}
+	for path in paths {
+		mut parent := os.dir(path)
+		for parent !in ['', '.'] { parents[parent] = true; parent = os.dir(parent) }
+	}
+	mut entries := []ServiceQueryEntry{}
+	for parent in parents.keys().sorted() { entries << ServiceQueryEntry{name: parent, kind: 'directory', mode: 0o755} }
+	mut pins := seed_companion_known_delta()
+	pins['/' + native_onboarding_trace_path] = seed_companion_native_pin
+	pins['/' + seed_companion_vending_path] = seed_companion_vending_pin
+	pins['/' + service_query_headless + '/guest-inputs.json'] = 'c'.repeat(64)
+	pins['/' + service_query_deployment] = 'd'.repeat(64)
+	for path in paths {
+		mode := if path in ['opt/vinix-maps-account/bin/maps-account-guest', 'usr/bin/run-android-calculator', native_onboarding_trace_path] { u32(0o755) } else { u32(0o644) }
+		entries << ServiceQueryEntry{name: path, kind: 'regular', sha256: pins['/' + path]!, mode: mode}
+	}
+	return entries
+}
+fn seed_companion_receipt_fixture() !map[string]json2.Any {
+	mut receipt := map[string]json2.Any{}
+	for name, value in seed_companion_fields() { receipt[name] = json2.Any(value) }
+	for name, value in seed_companion_proofs() { receipt[name] = json2.decode[json2.Any](value)! }
+	mut delta := seed_companion_known_delta()
+	delta['/' + service_query_headless + '/guest-inputs.json'] = 'c'.repeat(64)
+	receipt['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(delta))!
+	receipt['deployment_top_level_delta'] = json2.decode[json2.Any](json2.encode(['inputs_sha256', 'framework_manifest_sha256', 'native_manifest_sha256']))!
+	receipt['overlay_inventory'] = json2.decode[json2.Any](json2.encode(seed_companion_entries_fixture()))!
+	return receipt
+}
+fn seed_companion_profile_self_test() ! {
+	profile := seed_companion_profile()
+	if profile.baseline_sha != seed_companion_boot || profile.modules.len != 30 || profile.modules.last() != 'maps-broker-tail.tar'
+		|| seed_companion_inputs().len != 70 { return error('seed companion strict profile differs') }
+	mut final_modules := profile.modules.clone()
+	final_modules << profile.overlay
+	if final_modules.len != 31 || seed_companion_overlay_paths().len != 10
+		|| seed_companion_known_delta().len != (if seed_companion_native_pin == window_system_ui_native_pin { 6 } else { 7 }) {
+		return error('seed companion module, payload or actual deployment change count differs')
+	}
+	verify_modules(profile, Config{'vinix', profile.modules}, Config{'vinix', final_modules})!
+	stage := Stage{format: 1, inputs_sha256: seed_companion_inputs(), original_modules_sha256: seed_companion_modules(), preserved_modules_sha256: seed_companion_modules()}
+	receipt := seed_companion_receipt_fixture()!
+	verify_seed_companion_receipt(receipt, stage)!
+	mut fields := seed_companion_fields().keys()
+	fields << seed_companion_proofs().keys()
+	fields << ['deployment_input_delta', 'deployment_top_level_delta', 'overlay_inventory']
+	for field in fields {
+		mut bad := seed_companion_receipt_fixture()!
+		bad[field] = json2.Any('changed')
+		if _ := verify_seed_companion_receipt(bad, stage) { return error('changed seed companion field/proof accepted') }
+		bad.delete(field)
+		if _ := verify_seed_companion_receipt(bad, stage) { return error('missing seed companion field/proof accepted') }
+	}
+	for proof in ['native_builder_helper_delta', 'framework_source_delta', 'framework_canonical_delta',
+		'deployment_input_additions', 'deployment_top_level_additions'] {
+		original := json2.decode[map[string]string](json2.encode(receipt[proof]!))!
+		for path in original.keys() {
+			mut changed := original.clone()
+			changed[path] = '0'.repeat(64)
+			mut bad := seed_companion_receipt_fixture()!
+			bad[proof] = json2.decode[json2.Any](json2.encode(changed))!
+			if _ := verify_seed_companion_receipt(bad, stage) { return error('changed seed companion proof map member accepted') }
+			changed.delete(path)
+			bad[proof] = json2.decode[json2.Any](json2.encode(changed))!
+			if _ := verify_seed_companion_receipt(bad, stage) { return error('missing seed companion proof map member accepted') }
+		}
+		mut extra := original.clone()
+		extra['unreviewed'] = 'a'.repeat(64)
+		mut bad := seed_companion_receipt_fixture()!
+		bad[proof] = json2.decode[json2.Any](json2.encode(extra))!
+		if _ := verify_seed_companion_receipt(bad, stage) { return error('extra seed companion proof map member accepted') }
+	}
+	for path in stage.inputs_sha256.keys() {
+		mut pins := seed_companion_inputs()
+		pins[path] = '0'.repeat(64)
+		if _ := verify_seed_companion_receipt(receipt, Stage{...stage, inputs_sha256: pins}) { return error('changed seed companion dependency accepted') }
+		pins.delete(path)
+		if _ := verify_seed_companion_receipt(receipt, Stage{...stage, inputs_sha256: pins}) { return error('missing seed companion dependency accepted') }
+	}
+	mut extra_inputs := seed_companion_inputs()
+	extra_inputs['/unreviewed/sha256.json'] = 'a'.repeat(64)
+	if _ := verify_seed_companion_receipt(receipt, Stage{...stage, inputs_sha256: extra_inputs}) { return error('extra seed companion dependency accepted') }
+	for bad in [Stage{...stage, format: 0}, Stage{...stage, original_modules_sha256: broker_tail_modules()}, Stage{...stage, preserved_modules_sha256: broker_tail_modules()}] {
+		if _ := verify_seed_companion_receipt(receipt, bad) { return error('wrong seed companion module inventory accepted') }
+	}
+	delta := json2.decode[map[string]string](json2.encode(receipt['deployment_input_delta']!))!
+	mut stale_headless_delta := delta.clone()
+	stale_headless_delta['/' + service_query_headless + '/guest-inputs.json'] = seed_companion_old_headless
+	mut stale_headless_entries := seed_companion_entries_fixture()
+	for index, entry in stale_headless_entries {
+		if entry.name == service_query_headless + '/guest-inputs.json' {
+			stale_headless_entries[index] = ServiceQueryEntry{...entry, sha256: seed_companion_old_headless}
+		}
+	}
+	mut stale_headless := seed_companion_receipt_fixture()!
+	stale_headless['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(stale_headless_delta))!
+	stale_headless['overlay_inventory'] = json2.decode[json2.Any](json2.encode(stale_headless_entries))!
+	if _ := verify_seed_companion_receipt(stale_headless, stage) { return error('seed companion stale headless receipt accepted') }
+	for path in delta.keys() {
+		mut incomplete := delta.clone()
+		incomplete.delete(path)
+		mut bad := seed_companion_receipt_fixture()!
+		bad['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(incomplete))!
+		if _ := verify_seed_companion_receipt(bad, stage) { return error('missing seed companion deployment change accepted') }
+	}
+	mut extra_delta := delta.clone()
+	extra_delta['/' + account_handoff_broker_path] = broker_tail_broker_pin
+	mut extra_delta_receipt := seed_companion_receipt_fixture()!
+	extra_delta_receipt['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(extra_delta))!
+	if _ := verify_seed_companion_receipt(extra_delta_receipt, stage) { return error('unexpected seed companion broker deployment change accepted') }
+	mut addition_as_replacement := delta.clone()
+	addition_as_replacement['/' + seed_companion_vending_path] = seed_companion_vending_pin
+	mut bad_addition := seed_companion_receipt_fixture()!
+	bad_addition['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(addition_as_replacement))!
+	if _ := verify_seed_companion_receipt(bad_addition, stage) { return error('new Vending input declared as an existing-key replacement') }
+	if seed_companion_native_pin == window_system_ui_native_pin {
+		mut unchanged_native := delta.clone()
+		unchanged_native['/' + native_onboarding_trace_path] = seed_companion_native_pin
+		mut bad := seed_companion_receipt_fixture()!
+		bad['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(unchanged_native))!
+		if _ := verify_seed_companion_receipt(bad, stage) { return error('unchanged seed companion DSO declared as actual input change') }
+	}
+	entries := seed_companion_entries_fixture()
+	for index, entry in entries {
+		for changed in [ServiceQueryEntry{...entry, name: '../escape'}, ServiceQueryEntry{...entry, kind: 'symlink'},
+			ServiceQueryEntry{...entry, mode: 0o777}, ServiceQueryEntry{...entry, mode: 0o4755}] {
+			mut bad_entries := entries.clone()
+			bad_entries[index] = changed
+			mut bad := seed_companion_receipt_fixture()!
+			bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(bad_entries))!
+			if _ := verify_seed_companion_receipt(bad, stage) { return error('unsafe seed companion inode accepted') }
+		}
+		if entry.kind == 'regular' {
+			mut bad_entries := entries.clone()
+			bad_entries.delete(index)
+			mut bad := seed_companion_receipt_fixture()!
+			bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(bad_entries))!
+			if _ := verify_seed_companion_receipt(bad, stage) { return error('missing seed companion overlay file accepted') }
+			if entry.name != service_query_deployment {
+				mut corrupt_entries := entries.clone()
+				corrupt_entries[index] = ServiceQueryEntry{...entry, sha256: '0'.repeat(64)}
+				bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(corrupt_entries))!
+				if _ := verify_seed_companion_receipt(bad, stage) { return error('changed seed companion payload hash accepted') }
+			}
+		}
+	}
+	for extra_entry in [entries.last(), ServiceQueryEntry{name: account_handoff_broker_path, kind: 'regular', sha256: broker_tail_broker_pin, mode: 0o755}] {
+		mut bad_entries := entries.clone()
+		bad_entries << extra_entry
+		mut bad := seed_companion_receipt_fixture()!
+		bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(bad_entries))!
+		if _ := verify_seed_companion_receipt(bad, stage) { return error('extra or duplicate seed companion overlay file accepted') }
+	}
+	if _ := verify_seed_companion_receipt(broker_tail_receipt_fixture()!, stage) { return error('broker-tail receipt accepted by seed companion profile') }
+	if _ := verify_broker_tail_receipt(receipt, stage) { return error('seed companion receipt accepted by broker-tail profile') }
+	println('MAPS-SEED-ACCOUNT-COMPANION KERNEL-PROFILE-SELF-TEST PASS ten files seven or eight input replacements one addition seventy seals thirty inherited modules unchanged broker and native consumed inputs')
+}
+
 fn self_test() ! {
 	protected_profile_self_test()!
 	controller_profile_self_test()!
@@ -6415,6 +6766,7 @@ fn self_test() ! {
 	imageview_bounds_profile_self_test()!
 	window_system_ui_profile_self_test()!
 	broker_tail_profile_self_test()!
+	seed_companion_profile_self_test()!
 	maps := maps_profile()
 	before := Config{'vinix', maps.modules}
 	mut modules := maps.modules.clone()
@@ -6519,9 +6871,10 @@ fn main() {
 	is_imageview_bounds := os.args.len == 5 && os.args[1] == '--maps-imageview-bounds'
 	is_window_system_ui := os.args.len == 5 && os.args[1] == '--maps-window-system-ui'
 	is_broker_tail := os.args.len == 5 && os.args[1] == '--maps-broker-tail'
-	is_selected := is_maps || is_protected || is_controller || is_service_query || is_controller_memory || is_direct_boot || is_context_storage || is_broadcast_result || is_onboarding_trace || is_native_onboarding_trace || is_onboarding_framework || is_native_heartbeat || is_browser_poll || is_account_pump || is_application_restrictions || is_account_handoff || is_auth_exception || is_auth_worker || is_binder_identity || is_service_lifecycle || is_platform_fragments || is_imageview_bounds || is_window_system_ui || is_broker_tail
+	is_seed_companion := os.args.len == 5 && os.args[1] == '--maps-seed-account-companion'
+	is_selected := is_maps || is_protected || is_controller || is_service_query || is_controller_memory || is_direct_boot || is_context_storage || is_broadcast_result || is_onboarding_trace || is_native_onboarding_trace || is_onboarding_framework || is_native_heartbeat || is_browser_poll || is_account_pump || is_application_restrictions || is_account_handoff || is_auth_exception || is_auth_worker || is_binder_identity || is_service_lifecycle || is_platform_fragments || is_imageview_bounds || is_window_system_ui || is_broker_tail || is_seed_companion
 	if os.args.len != 4 && !is_selected {
-		eprintln('usage: patch-kernel [--maps-account|--protected-storage-maps|--maps-controller|--maps-service-query|--maps-controller-memory|--maps-direct-boot|--maps-context-storage|--maps-broadcast-result|--maps-onboarding-trace|--maps-native-onboarding-trace|--maps-onboarding-framework|--maps-native-heartbeat|--maps-browser-poll|--maps-account-pump|--maps-application-restrictions|--maps-account-handoff|--maps-auth-exception|--maps-auth-worker|--maps-binder-identity|--maps-service-lifecycle|--maps-platform-fragments|--maps-imageview-bounds|--maps-window-system-ui|--maps-broker-tail] FRESH_STAGE FROZEN_KERNEL_BUILD BUILD_JSON_SHA256')
+		eprintln('usage: patch-kernel [--maps-account|--protected-storage-maps|--maps-controller|--maps-service-query|--maps-controller-memory|--maps-direct-boot|--maps-context-storage|--maps-broadcast-result|--maps-onboarding-trace|--maps-native-onboarding-trace|--maps-onboarding-framework|--maps-native-heartbeat|--maps-browser-poll|--maps-account-pump|--maps-application-restrictions|--maps-account-handoff|--maps-auth-exception|--maps-auth-worker|--maps-binder-identity|--maps-service-lifecycle|--maps-platform-fragments|--maps-imageview-bounds|--maps-window-system-ui|--maps-broker-tail|--maps-seed-account-companion] FRESH_STAGE FROZEN_KERNEL_BUILD BUILD_JSON_SHA256')
 		exit(2)
 	}
 	offset := if is_selected { 1 } else { 0 }
@@ -6533,7 +6886,7 @@ fn main() {
 		eprintln(err)
 		exit(1)
 	}
-	profile := if is_broker_tail { broker_tail_profile() } else if is_window_system_ui { window_system_ui_profile() } else if is_imageview_bounds { imageview_bounds_profile() } else if is_platform_fragments { platform_fragments_profile() } else if is_service_lifecycle { service_lifecycle_profile() } else if is_binder_identity { binder_identity_profile() } else if is_auth_worker { auth_worker_profile() } else if is_auth_exception { auth_exception_profile() } else if is_account_handoff { account_handoff_profile() } else if is_application_restrictions { application_restrictions_profile() } else if is_account_pump { account_pump_profile() } else if is_browser_poll { browser_poll_profile() } else if is_native_heartbeat { native_heartbeat_profile() } else if is_onboarding_framework { onboarding_framework_profile() } else if is_native_onboarding_trace { native_onboarding_trace_profile() } else if is_onboarding_trace { onboarding_trace_profile() } else if is_broadcast_result { broadcast_result_profile() } else if is_context_storage { context_storage_profile() } else if is_direct_boot { direct_boot_profile() } else if is_controller_memory { controller_memory_profile() } else if is_service_query { service_query_profile() } else if is_controller { controller_profile() } else if is_protected { protected_maps_profile() } else if is_maps { maps_profile() } else { browser_profile() }
+	profile := if is_seed_companion { seed_companion_profile() } else if is_broker_tail { broker_tail_profile() } else if is_window_system_ui { window_system_ui_profile() } else if is_imageview_bounds { imageview_bounds_profile() } else if is_platform_fragments { platform_fragments_profile() } else if is_service_lifecycle { service_lifecycle_profile() } else if is_binder_identity { binder_identity_profile() } else if is_auth_worker { auth_worker_profile() } else if is_auth_exception { auth_exception_profile() } else if is_account_handoff { account_handoff_profile() } else if is_application_restrictions { application_restrictions_profile() } else if is_account_pump { account_pump_profile() } else if is_browser_poll { browser_poll_profile() } else if is_native_heartbeat { native_heartbeat_profile() } else if is_onboarding_framework { onboarding_framework_profile() } else if is_native_onboarding_trace { native_onboarding_trace_profile() } else if is_onboarding_trace { onboarding_trace_profile() } else if is_broadcast_result { broadcast_result_profile() } else if is_context_storage { context_storage_profile() } else if is_direct_boot { direct_boot_profile() } else if is_controller_memory { controller_memory_profile() } else if is_service_query { service_query_profile() } else if is_controller { controller_profile() } else if is_protected { protected_maps_profile() } else if is_maps { maps_profile() } else { browser_profile() }
 	patch(root, build_root, os.args[3 + offset], profile) or {
 		eprintln(err)
 		exit(1)
