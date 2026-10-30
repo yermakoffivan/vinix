@@ -471,6 +471,91 @@ fn window_system_ui_profile() NarrowProfile {
  }
 }
 
+fn seed_account_options_profile() NarrowProfile {
+ manager := 'android/os/UserManager.smali'
+ bundle := 'android/os/PersistableBundle.smali'
+ array_map := 'android/util/ArrayMap.smali'
+ return NarrowProfile{
+  name: 'seed-account-options'
+  baseline_name: 'combined-account-webview-window-system-ui-framework-2026-10-30-r1'
+  manifest_pin: '1e24a8dcc2f5b315ebbb63cb06d3de46e0799b4b1a0d19339d3b98ecab0c3b09'
+  jar_pin: '3f0d220a24e7d91a47f7b2d42cd5620aa498981e915a90cdbd806164b8ef0fc1'
+  baseline_classes: 2105
+  providers: ['framework_seed_account_options.v']
+  calls: {manager: 'framework_seed_account_options_source', bundle: 'framework_seed_account_empty_source', array_map: 'framework_seed_account_array_map_source'}
+  methods: {manager: ['getSeedAccountOptions()Landroid/os/PersistableBundle;'], bundle: ['<clinit>()V'], array_map: ['<clinit>()V']}
+  changed: {manager: 0, bundle: 0, array_map: 1}
+  added: {manager: 1, bundle: 1, array_map: 0}
+  fields: {bundle: ['.field public static final EMPTY:Landroid/os/PersistableBundle;']}
+ }
+}
+
+fn seed_account_options_abi(target string, source string) ! {
+ manager := 'android/os/UserManager.smali'
+ bundle := 'android/os/PersistableBundle.smali'
+ array_map := 'android/util/ArrayMap.smali'
+ if target !in [manager, bundle, array_map] { return error('unexpected seed account options target') }
+ signature := if target == manager { 'getSeedAccountOptions()Landroid/os/PersistableBundle;' } else { '<clinit>()V' }
+ method := store_parts(source)!.methods[signature] or { return error('missing UserManager seed account options API') }
+ flags := if target == manager { 'public' } else { 'static constructor' }
+ if method.all_before('\n').trim_space() != '.method ' + flags + ' ' + signature {
+  return error('unexpected UserManager seed account options method ABI')
+ }
+ if target == bundle && !store_parts(source)!.metadata.split_into_lines().contains('.field public static final EMPTY:Landroid/os/PersistableBundle;') {
+  return error('unexpected PersistableBundle EMPTY field ABI')
+ }
+}
+
+fn seed_account_options_self_test() ! {
+ profile := seed_account_options_profile()
+ manager := 'android/os/UserManager.smali'
+ bundle := 'android/os/PersistableBundle.smali'
+ array_map := 'android/util/ArrayMap.smali'
+ signature := 'getSeedAccountOptions()Landroid/os/PersistableBundle;'
+ if profile.baseline_classes != 2105 || profile.methods != {manager: [signature], bundle: ['<clinit>()V'], array_map: ['<clinit>()V']}
+  || profile.calls != {manager: 'framework_seed_account_options_source', bundle: 'framework_seed_account_empty_source', array_map: 'framework_seed_account_array_map_source'}
+  || profile.changed != {manager: 0, bundle: 0, array_map: 1} || profile.added != {manager: 1, bundle: 1, array_map: 0}
+  || profile.fields != {bundle: ['.field public static final EMPTY:Landroid/os/PersistableBundle;']} || profile.providers != ['framework_seed_account_options.v']
+  || profile.extra_classes.len != 0 || profile.class_provider != '' || profile.directory_provider != '' {
+  return error('seed account options requires exact getter, EMPTY and initializer-order targets')
+ }
+ before := '.class public Landroid/os/UserManager;\n.super Ljava/lang/Object;\n' +
+  '.method public existing()V\n.locals 0\nreturn-void\n.end method\n'
+ method := '.method public ' + signature + '\n.locals 1\nconst/4 v0, 0x0\nreturn-object v0\n.end method\n'
+ after := before + method
+ narrow_member_delta(before, after, [signature], 0, 1, []string{})!
+ seed_account_options_abi(manager, after)!
+ for bad in [before, after + method, after + '.field private extra:I\n',
+  after.replace('public existing()V', 'private existing()V'), after.replace('.locals 0', '.locals 1'),
+  after.replace('.super Ljava/lang/Object;', '.super Landroid/os/Bundle;'),
+  after + '.method public extra()V\n.locals 0\nreturn-void\n.end method\n'] {
+  narrow_member_delta(before, bad, [signature], 0, 1, []string{}) or { continue }
+  return error('invalid seed account options member delta accepted')
+ }
+ for flags in ['private', 'public static', 'public final', 'public synthetic'] {
+  seed_account_options_abi(manager, after.replace('.method public ' + signature, '.method ' + flags + ' ' + signature)) or { continue }
+  return error('invalid seed account options API flags accepted')
+ }
+ narrow_method_self_test(['<clinit>()V'], 1, 0)!
+ bundle_before := '.class public Landroid/os/PersistableBundle;\n.super Landroid/os/BaseBundle;\n'
+ bundle_after := bundle_before + '.field public static final EMPTY:Landroid/os/PersistableBundle;\n' +
+  '.method static constructor <clinit>()V\n.locals 0\nreturn-void\n.end method\n'
+ narrow_member_delta(bundle_before, bundle_after, ['<clinit>()V'], 0, 1, profile.fields[bundle]!)!
+ seed_account_options_abi(bundle, bundle_after)!
+ for flags in ['private static final', 'public static', 'public final', 'public static final synthetic'] {
+  seed_account_options_abi(bundle, bundle_after.replace('.field public static final EMPTY:', '.field ' + flags + ' EMPTY:')) or { continue }
+  return error('invalid PersistableBundle EMPTY API flags accepted')
+ }
+ mut old := {manager: 'old', bundle: 'old', array_map: 'old'}
+ for i in 0 .. 2102 { old['other/' + i.str() + '.smali'] = 'same' }
+ mut new_classes := old.clone()
+ for target in [manager, bundle, array_map] { new_classes[target] = 'new' }
+ narrow_profile_class_delta(old, new_classes, [manager, bundle, array_map], []string{}, 2105)!
+ new_classes['other/0.smali'] = 'changed'
+ narrow_profile_class_delta(old, new_classes, [manager, bundle, array_map], []string{}, 2105) or { return }
+ return error('unrelated class change accepted for seed account options')
+}
+
 fn window_system_ui_self_test() ! {
  profile := window_system_ui_profile()
  layout := 'android/view/WindowManager$LayoutParams.smali'
@@ -1240,6 +1325,7 @@ fn self_test() ! {
  platform_fragments_self_test()!
  imageview_bounds_self_test()!
  window_system_ui_self_test()!
+ seed_account_options_self_test()!
  query_profile := service_query_profile()
  narrow_method_self_test(query_profile.methods['android/content/pm/PackageManager.smali']!, 1, 0)!
  boot_profile := direct_boot_profile()
@@ -1509,6 +1595,7 @@ fn build_narrow(profile NarrowProfile, baseline string, manifest_pin string, jar
    platform_fragments_abi(os.read_file(root + '/smali/' + target)!, target)!
   }
   if profile.name == 'imageview-bounds' { imageview_bounds_abi(os.read_file(root + '/smali/' + target)!)! }
+  if profile.name == 'seed-account-options' { seed_account_options_abi(target, os.read_file(root + '/smali/' + target)!)! }
  }
  if profile.name == 'platform-fragments' {
   for target in profile.extra_classes { platform_fragments_abi(os.read_file(root + '/smali/' + target)!, target)! }
@@ -1530,6 +1617,7 @@ fn build_narrow(profile NarrowProfile, baseline string, manifest_pin string, jar
    platform_fragments_abi(os.read_file(root + '/new-dex/' + target)!, target)!
   }
   if profile.name == 'imageview-bounds' { imageview_bounds_abi(os.read_file(root + '/new-dex/' + target)!)! }
+  if profile.name == 'seed-account-options' { seed_account_options_abi(target, os.read_file(root + '/new-dex/' + target)!)! }
  }
  if profile.name == 'platform-fragments' {
   for target in profile.extra_classes { platform_fragments_abi(os.read_file(root + '/new-dex/' + target)!, target)! }
@@ -1802,6 +1890,10 @@ fn main() {
  if os.args.len == 4 && os.args[1] == '--check' {
   sealed_baseline(os.abs_path(os.args[2]), os.args[3]) or { eprintln(err); exit(1) }
   println('COMBINED-FRAMEWORK-INTEGRITY-PASS ' + os.args[3])
+  return
+ }
+ if os.args.len == 6 && os.args[1] == '--seed-account-options' {
+  build_narrow(seed_account_options_profile(), os.abs_path(os.args[2]), os.args[3], os.args[4], os.abs_path(os.args[5])) or { eprintln(err); exit(1) }
   return
  }
  if os.args.len == 6 && os.args[1] in ['--store', '--auth', '--cache', '--descriptions', '--protected-storage', '--service-query', '--direct-boot', '--credential-storage', '--broadcast-result', '--onboarding', '--application-restrictions', '--auth-exception', '--binder-identity', '--service-lifecycle', '--platform-fragments', '--imageview-bounds', '--window-system-ui'] {
