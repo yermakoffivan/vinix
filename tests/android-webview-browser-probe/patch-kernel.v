@@ -367,6 +367,29 @@ const persistent_data_block_context_raw = 'd87e937313ee9a20ea98095bb1b3f0733621f
 const persistent_data_block_context_canonical = 'bb3370f9aac0630357dfced4d361a358f990b982441fe78cc046f7e938540eac'
 const persistent_data_block_manager_raw = '1454cbd051ea70c12bdac38fd882bd1e7ad8fed0f88ba64d030277c291ac7859'
 const persistent_data_block_manager_canonical = '1454cbd051ea70c12bdac38fd882bd1e7ad8fed0f88ba64d030277c291ac7859'
+const bitmap_tiles_base = '/Users/alex/.local/state/vinix/android/maps-persistent-data-block-r1'
+const bitmap_tiles_base_seal = '6a170ca8049800d72852cf56dab5754880ffccd256ab3142defbeb2f400058d8'
+const bitmap_tiles_boot = 'aced4f9d9449b4d94001414acf6a7fe4c9d7a5bb07c329dac0b396454c741a51'
+const bitmap_tiles_base_overlay = '95ed04a408ae32538606458ae02c19c23b0d8a9fea798a4926a9aaee36ee321c'
+const bitmap_tiles_old_deployment = '6d1074eb3d88406067b0617f63cbb372a63964d4da717df4c6d5e14239fecd03'
+const bitmap_tiles_old_headless = 'beb32a257e960539a4df941cf62d78382762609228f2e0545b66396bc2b79a9c'
+const bitmap_tiles_framework = '/Users/alex/.local/state/vinix/android/combined-account-webview-bitmap-tiles-framework-2026-10-30-r1'
+const bitmap_tiles_seal = 'bf8626569c82826e4d6b6379a3e2266741db3d2919d2eda4cf647b18c5b5f7df'
+const bitmap_tiles_build = 'd11743557721c5bbbc1febac8098ff73cca29f5c7918fab33066279ad42842a7'
+const bitmap_tiles_jar = '741641c30098cf2f682672889c7ac653c6b2f23b9c09001a7af8f56bb01d9500'
+const bitmap_tiles_dex = '9cc070c5f4b0db062bff5856a4cb64ad1974dddf23646cf295e9ddeed365bb20'
+const bitmap_tiles_native = '/Users/alex/.local/state/vinix/android/current-native-build-2026-10-30-bitmap-tiles-r1'
+const bitmap_tiles_native_seal = 'f4c9ab784fc630803ffb81554ec120aca8706ef4ce29751a0be25a84eb9e692e'
+const bitmap_tiles_native_build = 'd933ea795fee49dc8cc19e342c30a61eb6094d71f945d8d10d3251a528c7c4ee'
+const bitmap_tiles_native_pin = '6969a813fbfe69cd882f3cb47760cb09cb106ca9aad748ea67ab93967aacad20'
+const bitmap_tiles_framework_helper = '96f9ffa1619147aed0ed776a19013a823488a3e964650d97a21c6f2ba22e0b90'
+const bitmap_tiles_provider_helper = 'f46309f337b205dce3341caf411278d199dba9234b54e4fadc54cfe12252633e'
+const bitmap_tiles_native_source = 'db5eae1e2ef30a7bb612808f0117a50cc004aaea91926b5d44fa6c6dbc3e311a'
+const bitmap_tiles_bindings = '094e136e5847cf6f9207e4c031bbf25db959014dcb5ed92fcef7f08ac58d9571'
+const bitmap_tiles_generated = '256807c4a8ff63a2e86cd726bf9782ac93ffa1a6b22ca3edcff6bcc4b6b118c7'
+const bitmap_tiles_before = '29cf11d5b112e4525cdaf77cd66a83551589f3de19b43f8f2faf67ebb3ca8e2b'
+const bitmap_tiles_raw = 'c743a4258c33fd97aa3f2dc628c040322dc109451005066bb3966bfc93c5caa8'
+const bitmap_tiles_canonical = '82ffe62e6a4460403ebb7c194072750543f414d9c1013c76dd8de1821a70ae68'
 const source = $embed_file(@FILE).to_string()
 
 struct Profile {
@@ -3154,6 +3177,146 @@ fn persistent_data_block_baseline(receipt map[string]json2.Any, stage Stage) !st
 	return persistent_data_block_base + '/boot.img'
 }
 
+fn bitmap_tiles_profile() Profile {
+	mut modules := persistent_data_block_profile().modules.clone()
+	modules << 'maps-persistent-data-block.tar'
+	return Profile{'maps-bitmap-tiles', bitmap_tiles_boot, 'maps-bitmap-tiles.tar', modules}
+}
+fn bitmap_tiles_modules() map[string]string {
+	mut modules := persistent_data_block_modules()
+	modules['maps-persistent-data-block.tar'] = bitmap_tiles_base_overlay
+	return modules
+}
+fn bitmap_tiles_fields() map[string]string {
+	mut fields := persistent_data_block_fields()
+	fields['kind'] = 'vinix-maps-bitmap-tiles-v1'
+	fields['base_root'] = bitmap_tiles_base
+	fields['base_manifest_sha256'] = bitmap_tiles_base_seal
+	fields['framework_build_root'] = bitmap_tiles_framework
+	fields['framework_manifest_sha256'] = bitmap_tiles_seal
+	fields['framework_jar_sha256'] = bitmap_tiles_jar
+	fields['framework_dex_sha256'] = bitmap_tiles_dex
+	fields['retained_framework_manifest_sha256'] = persistent_data_block_seal
+	fields['native_compatibility_framework_manifest_sha256'] = persistent_data_block_seal
+	fields['native_build_root'] = bitmap_tiles_native
+	fields['native_manifest_sha256'] = bitmap_tiles_native_seal
+	fields['native_build_sha256'] = bitmap_tiles_native_build
+	fields['native_sha256'] = bitmap_tiles_native_pin
+	fields['retained_native_manifest_sha256'] = persistent_data_block_native_seal
+	fields['native_framework_manifest_sha256'] = bitmap_tiles_seal
+	fields['generated_jni_sha256'] = bitmap_tiles_generated
+	return fields
+}
+fn bitmap_tiles_inputs() map[string]string {
+	mut inputs := persistent_data_block_inputs()
+	inputs[bitmap_tiles_base + '/sha256.json'] = bitmap_tiles_base_seal
+	inputs[bitmap_tiles_framework + '/sha256.json'] = bitmap_tiles_seal
+	inputs[bitmap_tiles_native + '/sha256.json'] = bitmap_tiles_native_seal
+	return inputs
+}
+fn bitmap_tiles_known_delta() map[string]string {
+	mut delta := {'/' + service_query_jar_path: bitmap_tiles_jar,
+		'/' + service_query_dex_path: bitmap_tiles_dex,
+		'/' + native_onboarding_trace_path: bitmap_tiles_native_pin,
+		'/' + service_query_headless + '/framework-build.json': bitmap_tiles_build,
+		'/' + service_query_headless + '/framework-sha256.json': bitmap_tiles_seal}
+	if bitmap_tiles_native_pin == persistent_data_block_native_pin { delta.delete('/' + native_onboarding_trace_path) }
+	return delta
+}
+fn bitmap_tiles_proofs() map[string]string {
+	return {
+		'headless_input_delta': json2.encode({'/' + service_query_jar_path: bitmap_tiles_jar})
+		'headless_top_level_delta': json2.encode(['inputs_sha256'])
+		'deployment_top_level_delta': json2.encode(['inputs_sha256', 'framework_manifest_sha256', 'native_manifest_sha256'])
+		'framework_class_count': json2.encode(2106)
+		'framework_source_delta': json2.encode({'smali/android/graphics/drawable/BitmapDrawable.smali': bitmap_tiles_raw})
+		'framework_canonical_delta': json2.encode({'new-dex/android/graphics/drawable/BitmapDrawable.smali': bitmap_tiles_canonical})
+		'native_source_delta': json2.encode({'native/atlframework/bitmap_tiles.v': bitmap_tiles_native_source})
+		'native_builder_helper_delta': json2.encode({'tests/native-android-tools/androidtools/framework.v': bitmap_tiles_framework_helper,
+			'tests/native-android-tools/androidtools/framework_bitmap_tiles.v': bitmap_tiles_provider_helper})
+		'native_bindings_delta': json2.encode({'native/bindings.txt': [persistent_data_block_bindings, bitmap_tiles_bindings]})
+		'native_generated_jni_delta': json2.encode({'native/atlframework/ws_generated.v': [persistent_data_block_generated, bitmap_tiles_generated]})
+		'native_consumed_class_count': json2.encode(69)
+		'native_consumed_raw_delta': json2.encode(map[string][]string{})
+		'native_consumed_canonical_delta': json2.encode(map[string][]string{})
+		'native_consumed_raw_additions': json2.encode({'smali/android/graphics/drawable/BitmapDrawable.smali': bitmap_tiles_raw})
+		'native_consumed_canonical_additions': json2.encode({'new-dex/android/graphics/drawable/BitmapDrawable.smali': bitmap_tiles_canonical})
+	}
+}
+fn bitmap_tiles_overlay_paths() []string {
+	return [service_query_jar_path, service_query_dex_path, native_onboarding_trace_path,
+		service_query_headless + '/framework-build.json', service_query_headless + '/framework-sha256.json',
+		service_query_headless + '/guest-inputs.json', service_query_deployment]
+}
+fn verify_bitmap_tiles_overlay(receipt map[string]json2.Any) ! {
+	if 'deployment_input_additions' in receipt || 'deployment_top_level_additions' in receipt {
+		return error('bitmap tiles changes existing framework/native inputs only')
+	}
+	delta := json2.decode[map[string]string](json2.encode(receipt['deployment_input_delta'] or { return error('bitmap tiles deployment delta absent') }))!
+	mut expected := bitmap_tiles_known_delta()
+	guest := '/' + service_query_headless + '/guest-inputs.json'
+	guest_pin := delta[guest] or { return error('bitmap tiles headless pin absent') }
+	if !digest_valid(guest_pin) || guest_pin == bitmap_tiles_old_headless { return error('new bitmap tiles headless receipt required') }
+	expected[guest] = guest_pin
+	if delta != expected { return error('bitmap tiles exact deployment input changes differ') }
+	entries := json2.decode[[]ServiceQueryEntry](json2.encode(receipt['overlay_inventory'] or { return error('bitmap tiles overlay inventory absent') }))!
+	paths := bitmap_tiles_overlay_paths()
+	mut regulars := map[string]string{}
+	mut seen := map[string]bool{}
+	for entry in entries {
+		if entry.name in seen || !relative(entry.name) || entry.mode & 0o7022 != 0 { return error('unsafe bitmap tiles overlay inode') }
+		seen[entry.name] = true
+		if entry.kind == 'regular' {
+			mode := if entry.name == native_onboarding_trace_path { u32(0o755) } else { u32(0o644) }
+			if entry.name !in paths || !digest_valid(entry.sha256) || entry.mode != mode { return error('bitmap tiles regular allowlist or mode differs') }
+			regulars[entry.name] = entry.sha256
+		} else if entry.kind != 'directory' || entry.mode != 0o755 || !paths.any(it.starts_with(entry.name + '/')) {
+			return error('unexpected bitmap tiles overlay inode')
+		}
+	}
+	if regulars.len != 7 || regulars[service_query_deployment] or { '' } == bitmap_tiles_old_deployment { return error('exact seven bitmap tiles files required') }
+	if regulars[native_onboarding_trace_path] or { '' } != bitmap_tiles_native_pin { return error('bitmap tiles coupled native DSO differs') }
+	for path, pin in expected { if regulars[path.trim_left('/')] or { '' } != pin { return error('bitmap tiles input differs from inventory') } }
+}
+fn verify_bitmap_tiles_receipt(receipt map[string]json2.Any, stage Stage) ! {
+	for pin in [bitmap_tiles_base_seal, bitmap_tiles_boot, bitmap_tiles_base_overlay,
+		bitmap_tiles_old_deployment, bitmap_tiles_old_headless, bitmap_tiles_seal,
+		bitmap_tiles_build, bitmap_tiles_jar, bitmap_tiles_dex, bitmap_tiles_native_seal,
+		bitmap_tiles_native_build, bitmap_tiles_native_pin, bitmap_tiles_framework_helper,
+		bitmap_tiles_provider_helper, bitmap_tiles_native_source, bitmap_tiles_bindings, bitmap_tiles_generated,
+		bitmap_tiles_before, bitmap_tiles_raw, bitmap_tiles_canonical] {
+		if !digest_valid(pin) { return error('completed bitmap tiles framework/native producers required') }
+	}
+	if bitmap_tiles_seal == persistent_data_block_seal || bitmap_tiles_jar == persistent_data_block_jar
+		|| bitmap_tiles_dex == persistent_data_block_dex || bitmap_tiles_native_seal == persistent_data_block_native_seal
+		|| bitmap_tiles_bindings == persistent_data_block_bindings || bitmap_tiles_generated == persistent_data_block_generated
+		|| bitmap_tiles_canonical == bitmap_tiles_before {
+		return error('new bitmap tiles framework and coupled native receipt required')
+	}
+	for name, expected in bitmap_tiles_fields() {
+		if receipt[name] or { json2.Any('absent') } != json2.Any(expected) { return error('bitmap tiles receipt differs: ' + name) }
+	}
+	for name, expected in bitmap_tiles_proofs() {
+		if receipt[name] or { json2.Any('absent') } != json2.decode[json2.Any](expected)! { return error('bitmap tiles proof differs: ' + name) }
+	}
+	mut seals := map[string]string{}
+	for path, pin in stage.inputs_sha256 { if path.ends_with('/sha256.json') { seals[path] = pin } }
+	if seals.len != 76 || seals != bitmap_tiles_inputs() { return error('bitmap tiles exact seventy-six dependency seals differ') }
+	if stage.format != 1 || stage.original_modules_sha256 != bitmap_tiles_modules()
+		|| stage.preserved_modules_sha256 != bitmap_tiles_modules() { return error('bitmap tiles original thirty-two modules differ') }
+	verify_bitmap_tiles_overlay(receipt)!
+}
+fn bitmap_tiles_baseline(receipt map[string]json2.Any, stage Stage) !string {
+	verify_bitmap_tiles_receipt(receipt, stage)!
+	path := bitmap_tiles_base + '/sha256.json'
+	regular(path)!
+	if os.lstat(path)!.size > 8 * 1024 * 1024 || hash(path)! != bitmap_tiles_base_seal { return error('bitmap tiles original persistent data manifest differs') }
+	pins := json2.decode[map[string]string](os.read_file(path)!)!
+	if pins['boot.img'] or { '' } != bitmap_tiles_boot
+		|| pins['maps-persistent-data-block.tar'] or { '' } != bitmap_tiles_base_overlay { return error('bitmap tiles original boot or persistent data overlay differs') }
+	return bitmap_tiles_base + '/boot.img'
+}
+
 fn service_query_modules() map[string]string {
 	mut modules := controller_modules()
 	modules['maps-controller-diagnostic.tar'] = 'bef5f25859e77a9671a6a144ccb56891da5ed2f7b4324a93a96da7fdcab1987a'
@@ -3770,6 +3933,8 @@ fn patch(root string, build_root string, receipt_sha string, profile Profile) ! 
 		baseline = seed_companion_baseline(stage_map, stage)!
 	} else if profile.name == 'maps-persistent-data-block' {
 		baseline = persistent_data_block_baseline(stage_map, stage)!
+	} else if profile.name == 'maps-bitmap-tiles' {
+		baseline = bitmap_tiles_baseline(stage_map, stage)!
 	} else {
 		for path, expected in stage.inputs_sha256 {
 			if os.file_name(path) == 'boot.img' && expected == baseline_pin {
@@ -7091,6 +7256,188 @@ fn persistent_data_block_profile_self_test() ! {
 	println('MAPS-PERSISTENT-DATA-BLOCK KERNEL-PROFILE-SELF-TEST PASS seven files exact framework/native input replacements seventy-three seals thirty-one inherited modules memberless manager type guarded window JNI and historical rejection')
 }
 
+fn bitmap_tiles_entries_fixture() []ServiceQueryEntry {
+	paths := bitmap_tiles_overlay_paths()
+	mut parents := map[string]bool{}
+	for path in paths {
+		mut parent := os.dir(path)
+		for parent !in ['', '.'] { parents[parent] = true; parent = os.dir(parent) }
+	}
+	mut entries := []ServiceQueryEntry{}
+	for parent in parents.keys().sorted() { entries << ServiceQueryEntry{name: parent, kind: 'directory', mode: 0o755} }
+	mut pins := bitmap_tiles_known_delta()
+	pins['/' + native_onboarding_trace_path] = bitmap_tiles_native_pin
+	pins['/' + service_query_headless + '/guest-inputs.json'] = 'c'.repeat(64)
+	pins['/' + service_query_deployment] = 'd'.repeat(64)
+	for path in paths {
+		mode := if path == native_onboarding_trace_path { u32(0o755) } else { u32(0o644) }
+		entries << ServiceQueryEntry{name: path, kind: 'regular', sha256: pins['/' + path]!, mode: mode}
+	}
+	return entries
+}
+fn bitmap_tiles_receipt_fixture() !map[string]json2.Any {
+	mut receipt := map[string]json2.Any{}
+	for name, value in bitmap_tiles_fields() { receipt[name] = json2.Any(value) }
+	for name, value in bitmap_tiles_proofs() { receipt[name] = json2.decode[json2.Any](value)! }
+	mut delta := bitmap_tiles_known_delta()
+	delta['/' + service_query_headless + '/guest-inputs.json'] = 'c'.repeat(64)
+	receipt['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(delta))!
+	receipt['overlay_inventory'] = json2.decode[json2.Any](json2.encode(bitmap_tiles_entries_fixture()))!
+	return receipt
+}
+fn bitmap_tiles_profile_self_test() ! {
+	profile := bitmap_tiles_profile()
+	if profile.baseline_sha != bitmap_tiles_boot || profile.modules.len != 32
+		|| profile.modules.last() != 'maps-persistent-data-block.tar' || bitmap_tiles_inputs().len != 76 {
+		return error('bitmap tiles strict profile differs')
+	}
+	mut final_modules := profile.modules.clone()
+	final_modules << profile.overlay
+	if final_modules.len != 33 || bitmap_tiles_overlay_paths().len != 7
+		|| bitmap_tiles_known_delta().len != (if bitmap_tiles_native_pin == persistent_data_block_native_pin { 4 } else { 5 }) {
+		return error('bitmap tiles module, payload or actual input change count differs')
+	}
+	verify_modules(profile, Config{'vinix', profile.modules}, Config{'vinix', final_modules})!
+	for bad in [Config{'vinix', profile.modules}, Config{'vinix', final_modules.reverse()}, Config{'other', final_modules}] {
+		if _ := verify_modules(profile, Config{'vinix', profile.modules}, bad) { return error('wrong bitmap tiles module order accepted') }
+	}
+	stage := Stage{format: 1, inputs_sha256: bitmap_tiles_inputs(), original_modules_sha256: bitmap_tiles_modules(), preserved_modules_sha256: bitmap_tiles_modules()}
+	receipt := bitmap_tiles_receipt_fixture()!
+	verify_bitmap_tiles_receipt(receipt, stage)!
+	mut fields := bitmap_tiles_fields().keys()
+	fields << bitmap_tiles_proofs().keys()
+	fields << ['deployment_input_delta', 'overlay_inventory']
+	for field in fields {
+		mut bad := bitmap_tiles_receipt_fixture()!
+		bad[field] = json2.Any('changed')
+		if _ := verify_bitmap_tiles_receipt(bad, stage) { return error('changed bitmap tiles field/proof accepted') }
+		bad.delete(field)
+		if _ := verify_bitmap_tiles_receipt(bad, stage) { return error('missing bitmap tiles field/proof accepted') }
+	}
+	for proof in ['native_builder_helper_delta', 'framework_source_delta', 'framework_canonical_delta',
+		'native_source_delta', 'native_bindings_delta', 'native_generated_jni_delta',
+		'native_consumed_raw_delta', 'native_consumed_canonical_delta', 'native_consumed_raw_additions',
+		'native_consumed_canonical_additions', 'headless_input_delta'] {
+		original := json2.decode[map[string]json2.Any](json2.encode(receipt[proof]!))!
+		for path in original.keys() {
+			mut changed := json2.decode[map[string]json2.Any](json2.encode(original))!
+			changed[path] = json2.Any('0'.repeat(64))
+			mut bad := bitmap_tiles_receipt_fixture()!
+			bad[proof] = json2.Any(changed)
+			if _ := verify_bitmap_tiles_receipt(bad, stage) { return error('changed bitmap tiles proof map member accepted') }
+			changed.delete(path)
+			bad[proof] = json2.Any(changed)
+			if _ := verify_bitmap_tiles_receipt(bad, stage) { return error('missing bitmap tiles proof map member accepted') }
+		}
+		mut extra := json2.decode[map[string]json2.Any](json2.encode(original))!
+		extra['unreviewed'] = json2.Any('a'.repeat(64))
+		mut bad := bitmap_tiles_receipt_fixture()!
+		bad[proof] = json2.Any(extra)
+		if _ := verify_bitmap_tiles_receipt(bad, stage) { return error('extra bitmap tiles proof map member accepted') }
+	}
+	for proof in ['native_bindings_delta', 'native_generated_jni_delta'] {
+		original := json2.decode[map[string][]string](json2.encode(receipt[proof]!))!
+		for path, pair in original {
+			for index in 0 .. 2 {
+				mut changed := pair.clone()
+				changed[index] = '0'.repeat(64)
+				mut bad := bitmap_tiles_receipt_fixture()!
+				bad[proof] = json2.decode[json2.Any](json2.encode({path: changed}))!
+				if _ := verify_bitmap_tiles_receipt(bad, stage) { return error('changed bitmap tiles before/after proof accepted') }
+			}
+		}
+	}
+	for path in stage.inputs_sha256.keys() {
+		mut pins := bitmap_tiles_inputs()
+		pins[path] = '0'.repeat(64)
+		if _ := verify_bitmap_tiles_receipt(receipt, Stage{...stage, inputs_sha256: pins}) { return error('changed bitmap tiles dependency accepted') }
+		pins.delete(path)
+		if _ := verify_bitmap_tiles_receipt(receipt, Stage{...stage, inputs_sha256: pins}) { return error('missing bitmap tiles dependency accepted') }
+	}
+	mut extra_inputs := bitmap_tiles_inputs()
+	extra_inputs['/unreviewed/sha256.json'] = 'a'.repeat(64)
+	if _ := verify_bitmap_tiles_receipt(receipt, Stage{...stage, inputs_sha256: extra_inputs}) { return error('extra bitmap tiles dependency accepted') }
+	for bad in [Stage{...stage, format: 0}, Stage{...stage, original_modules_sha256: persistent_data_block_modules()}, Stage{...stage, preserved_modules_sha256: persistent_data_block_modules()}] {
+		if _ := verify_bitmap_tiles_receipt(receipt, bad) { return error('wrong bitmap tiles module inventory accepted') }
+	}
+	for addition in ['deployment_input_additions', 'deployment_top_level_additions'] {
+		mut bad := bitmap_tiles_receipt_fixture()!
+		bad[addition] = json2.Any(map[string]json2.Any{})
+		if _ := verify_bitmap_tiles_receipt(bad, stage) { return error('bitmap tiles deployment addition accepted') }
+	}
+	delta := json2.decode[map[string]string](json2.encode(receipt['deployment_input_delta']!))!
+	for path in delta.keys() {
+		mut incomplete := delta.clone()
+		incomplete.delete(path)
+		mut bad := bitmap_tiles_receipt_fixture()!
+		bad['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(incomplete))!
+		if _ := verify_bitmap_tiles_receipt(bad, stage) { return error('missing bitmap tiles deployment change accepted') }
+	}
+	for path, pin in {'/opt/vinix-maps-account/bin/maps-account-guest': seed_companion_controller_pin,
+		'/' + account_handoff_broker_path: broker_tail_broker_pin, '/' + seed_companion_vending_path: seed_companion_vending_pin} {
+		mut changed := delta.clone()
+		changed[path] = pin
+		mut bad := bitmap_tiles_receipt_fixture()!
+		bad['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(changed))!
+		if _ := verify_bitmap_tiles_receipt(bad, stage) { return error('unrelated bitmap tiles deployment input change accepted') }
+	}
+	entries := bitmap_tiles_entries_fixture()
+	mut stale_delta := delta.clone()
+	stale_delta['/' + service_query_headless + '/guest-inputs.json'] = bitmap_tiles_old_headless
+	mut stale_entries := entries.clone()
+	for index, entry in stale_entries {
+		if entry.name == service_query_headless + '/guest-inputs.json' { stale_entries[index] = ServiceQueryEntry{...entry, sha256: bitmap_tiles_old_headless} }
+	}
+	mut stale := bitmap_tiles_receipt_fixture()!
+	stale['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(stale_delta))!
+	stale['overlay_inventory'] = json2.decode[json2.Any](json2.encode(stale_entries))!
+	if _ := verify_bitmap_tiles_receipt(stale, stage) { return error('stale bitmap tiles headless receipt accepted') }
+	for index, entry in entries {
+		for changed in [ServiceQueryEntry{...entry, name: '../escape'}, ServiceQueryEntry{...entry, kind: 'symlink'},
+			ServiceQueryEntry{...entry, mode: 0o777}, ServiceQueryEntry{...entry, mode: 0o4755}] {
+			mut bad_entries := entries.clone()
+			bad_entries[index] = changed
+			mut bad := bitmap_tiles_receipt_fixture()!
+			bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(bad_entries))!
+			if _ := verify_bitmap_tiles_receipt(bad, stage) { return error('unsafe bitmap tiles inode accepted') }
+		}
+		if entry.kind == 'regular' {
+			mut bad_entries := entries.clone()
+			bad_entries.delete(index)
+			mut bad := bitmap_tiles_receipt_fixture()!
+			bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(bad_entries))!
+			if _ := verify_bitmap_tiles_receipt(bad, stage) { return error('missing bitmap tiles file accepted') }
+			if entry.name != service_query_deployment {
+				mut corrupt := entries.clone()
+				corrupt[index] = ServiceQueryEntry{...entry, sha256: '0'.repeat(64)}
+				bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(corrupt))!
+				if _ := verify_bitmap_tiles_receipt(bad, stage) { return error('changed bitmap tiles overlay hash accepted') }
+			}
+		}
+	}
+	for extra in [entries.last(), ServiceQueryEntry{name: seed_companion_vending_path, kind: 'regular', mode: 0o644, sha256: seed_companion_vending_pin}] {
+		mut bad_entries := entries.clone()
+		bad_entries << extra
+		mut bad := bitmap_tiles_receipt_fixture()!
+		bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(bad_entries))!
+		if _ := verify_bitmap_tiles_receipt(bad, stage) { return error('extra or duplicated bitmap tiles overlay file accepted') }
+	}
+	if bitmap_tiles_native_pin == persistent_data_block_native_pin {
+		mut unchanged := delta.clone()
+		unchanged['/' + native_onboarding_trace_path] = bitmap_tiles_native_pin
+		mut bad := bitmap_tiles_receipt_fixture()!
+		bad['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(unchanged))!
+		if _ := verify_bitmap_tiles_receipt(bad, stage) { return error('unchanged bitmap tiles DSO declared changed') }
+	}
+	for old in [persistent_data_block_receipt_fixture()!, seed_companion_receipt_fixture()!, broker_tail_receipt_fixture()!, window_system_ui_receipt_fixture()!, imageview_bounds_receipt_fixture()!] {
+		if _ := verify_bitmap_tiles_receipt(old, stage) { return error('historical receipt accepted by bitmap tiles profile') }
+	}
+	if _ := verify_persistent_data_block_receipt(receipt, stage) { return error('bitmap tiles receipt accepted by persistent data profile') }
+	if _ := verify_seed_companion_receipt(receipt, stage) { return error('bitmap tiles receipt accepted by seed companion profile') }
+	if _ := verify_broker_tail_receipt(receipt, stage) { return error('bitmap tiles receipt accepted by broker tail profile') }
+	println('MAPS-BITMAP-TILES KERNEL-PROFILE-SELF-TEST PASS seven files exact framework/native receipt replacements seventy-six seals thirty-two inherited modules one bitmap sampling bridge and historical rejection')
+}
+
 fn self_test() ! {
 	protected_profile_self_test()!
 	controller_profile_self_test()!
@@ -7117,6 +7464,7 @@ fn self_test() ! {
 	broker_tail_profile_self_test()!
 	seed_companion_profile_self_test()!
 	persistent_data_block_profile_self_test()!
+	bitmap_tiles_profile_self_test()!
 	maps := maps_profile()
 	before := Config{'vinix', maps.modules}
 	mut modules := maps.modules.clone()
@@ -7187,6 +7535,7 @@ fn self_test() ! {
 	fat_self_test(root + '/application-restrictions', 'maps-application-restrictions.tar', application_restrictions_profile().modules)!
 	fat_self_test(root + '/account-handoff', 'maps-account-handoff.tar', account_handoff_profile().modules)!
 	fat_self_test(root + '/persistent-data-block', 'maps-persistent-data-block.tar', persistent_data_block_profile().modules)!
+	fat_self_test(root + '/bitmap-tiles', 'maps-bitmap-tiles.tar', bitmap_tiles_profile().modules)!
 	println('BROWSER-KERNEL-PATCH SELF-TEST PASS configuration inventory digest symlink launched-stage guards')
 }
 
@@ -7224,9 +7573,10 @@ fn main() {
 	is_broker_tail := os.args.len == 5 && os.args[1] == '--maps-broker-tail'
 	is_seed_companion := os.args.len == 5 && os.args[1] == '--maps-seed-account-companion'
 	is_persistent_data_block := os.args.len == 5 && os.args[1] == '--maps-persistent-data-block'
-	is_selected := is_maps || is_protected || is_controller || is_service_query || is_controller_memory || is_direct_boot || is_context_storage || is_broadcast_result || is_onboarding_trace || is_native_onboarding_trace || is_onboarding_framework || is_native_heartbeat || is_browser_poll || is_account_pump || is_application_restrictions || is_account_handoff || is_auth_exception || is_auth_worker || is_binder_identity || is_service_lifecycle || is_platform_fragments || is_imageview_bounds || is_window_system_ui || is_broker_tail || is_seed_companion || is_persistent_data_block
+	is_bitmap_tiles := os.args.len == 5 && os.args[1] == '--maps-bitmap-tiles'
+	is_selected := is_maps || is_protected || is_controller || is_service_query || is_controller_memory || is_direct_boot || is_context_storage || is_broadcast_result || is_onboarding_trace || is_native_onboarding_trace || is_onboarding_framework || is_native_heartbeat || is_browser_poll || is_account_pump || is_application_restrictions || is_account_handoff || is_auth_exception || is_auth_worker || is_binder_identity || is_service_lifecycle || is_platform_fragments || is_imageview_bounds || is_window_system_ui || is_broker_tail || is_seed_companion || is_persistent_data_block || is_bitmap_tiles
 	if os.args.len != 4 && !is_selected {
-		eprintln('usage: patch-kernel [--maps-account|--protected-storage-maps|--maps-controller|--maps-service-query|--maps-controller-memory|--maps-direct-boot|--maps-context-storage|--maps-broadcast-result|--maps-onboarding-trace|--maps-native-onboarding-trace|--maps-onboarding-framework|--maps-native-heartbeat|--maps-browser-poll|--maps-account-pump|--maps-application-restrictions|--maps-account-handoff|--maps-auth-exception|--maps-auth-worker|--maps-binder-identity|--maps-service-lifecycle|--maps-platform-fragments|--maps-imageview-bounds|--maps-window-system-ui|--maps-broker-tail|--maps-seed-account-companion|--maps-persistent-data-block] FRESH_STAGE FROZEN_KERNEL_BUILD BUILD_JSON_SHA256')
+		eprintln('usage: patch-kernel [--maps-account|--protected-storage-maps|--maps-controller|--maps-service-query|--maps-controller-memory|--maps-direct-boot|--maps-context-storage|--maps-broadcast-result|--maps-onboarding-trace|--maps-native-onboarding-trace|--maps-onboarding-framework|--maps-native-heartbeat|--maps-browser-poll|--maps-account-pump|--maps-application-restrictions|--maps-account-handoff|--maps-auth-exception|--maps-auth-worker|--maps-binder-identity|--maps-service-lifecycle|--maps-platform-fragments|--maps-imageview-bounds|--maps-window-system-ui|--maps-broker-tail|--maps-seed-account-companion|--maps-persistent-data-block|--maps-bitmap-tiles] FRESH_STAGE FROZEN_KERNEL_BUILD BUILD_JSON_SHA256')
 		exit(2)
 	}
 	offset := if is_selected { 1 } else { 0 }
@@ -7239,7 +7589,7 @@ fn main() {
 		exit(1)
 	}
 	profile := if is_seed_companion { seed_companion_profile() } else if is_broker_tail { broker_tail_profile() } else if is_window_system_ui { window_system_ui_profile() } else if is_imageview_bounds { imageview_bounds_profile() } else if is_platform_fragments { platform_fragments_profile() } else if is_service_lifecycle { service_lifecycle_profile() } else if is_binder_identity { binder_identity_profile() } else if is_auth_worker { auth_worker_profile() } else if is_auth_exception { auth_exception_profile() } else if is_account_handoff { account_handoff_profile() } else if is_application_restrictions { application_restrictions_profile() } else if is_account_pump { account_pump_profile() } else if is_browser_poll { browser_poll_profile() } else if is_native_heartbeat { native_heartbeat_profile() } else if is_onboarding_framework { onboarding_framework_profile() } else if is_native_onboarding_trace { native_onboarding_trace_profile() } else if is_onboarding_trace { onboarding_trace_profile() } else if is_broadcast_result { broadcast_result_profile() } else if is_context_storage { context_storage_profile() } else if is_direct_boot { direct_boot_profile() } else if is_controller_memory { controller_memory_profile() } else if is_service_query { service_query_profile() } else if is_controller { controller_profile() } else if is_protected { protected_maps_profile() } else if is_maps { maps_profile() } else { browser_profile() }
-	selected_profile := if is_persistent_data_block { persistent_data_block_profile() } else { profile }
+	selected_profile := if is_bitmap_tiles { bitmap_tiles_profile() } else if is_persistent_data_block { persistent_data_block_profile() } else { profile }
 	patch(root, build_root, os.args[3 + offset], selected_profile) or {
 		eprintln(err)
 		exit(1)
