@@ -343,6 +343,30 @@ const seed_companion_vending_pin = '444e41ee8ef6ec8c55815087c51c28e516ea32f93d85
 const seed_companion_vending_signer = 'f0fd6c5b410f25cb25c3b53346c8972fae30f8ee7411df910480ad6b2d60db83'
 const seed_companion_vending_module = '1c6988d1f3d3844425f0e8cbb49a878b3a16f2a270b4eb3852c71dfaa8fe200e'
 const seed_companion_vending_member = 'tmp/maps256-data/_installed_apks_/com.android.vending.apk'
+const persistent_data_block_base = '/Users/alex/.local/state/vinix/android/maps-seed-account-companion-r1'
+const persistent_data_block_base_seal = '67be52229ca728113d7819f6020ba928a26745f7ce59f7ab458cabfe88d30137'
+const persistent_data_block_boot = '007dd34379674112af3bb039b95d21dd6d374df251c946884cd23a392ccd47ad'
+const persistent_data_block_base_overlay = 'd8de7b35dbe9b99e8bdea4cbfd86cb2a4d57758232ec97f32e474a9a83e158f3'
+const persistent_data_block_old_deployment = 'd1aaa88cfb2edd190158a9394e08a219fe4a0c78849635531eff3115f3837636'
+const persistent_data_block_old_headless = '08d01053bdacf288b1aa08b4ed4aecd437da9accdea2b23c59e1b7a9b48609fb'
+const persistent_data_block_framework = '/Users/alex/.local/state/vinix/android/combined-account-webview-persistent-data-block-framework-2026-10-30-r1'
+const persistent_data_block_seal = 'a6d34af62a2b8fd6f85c84dd36493d47b3eefa9690cf875c7ac0e67abe882858'
+const persistent_data_block_build = 'f0f7cbad1cea5f966c9be3a75ca8e75e1e34e6ab14b2c65b903f8db3f38b5262'
+const persistent_data_block_jar = '7c1b2fa03924003c7717e07ef463bff81c6429c7667b2bc42d35954fb6d41752'
+const persistent_data_block_dex = 'c7aa301de104c40a793477d4a86349301b21e243932011088b22e2d16228eb53'
+const persistent_data_block_native = '/Users/alex/.local/state/vinix/android/current-native-build-2026-10-30-persistent-data-block-r1'
+const persistent_data_block_native_seal = 'a3be17ca4753f9bc816ee21483ed3481aa229ecc6383a5daa9b3691bf71f3da9'
+const persistent_data_block_native_build = 'd65c4d31c93933828924a63655e2bf9197c5d782422940b5fe6edcd17e6b7838'
+const persistent_data_block_native_pin = '192411171dec072c89a64a81d8b35f36e92d060c75505fadceb47d683e9ed2e5'
+const persistent_data_block_framework_helper = '68e00e36424a12d379153aa62705524d172da711c284073b621d28f4e5beb3ef'
+const persistent_data_block_provider_helper = '5af098c201f898ed4592203f21227fe9d543814280799ddb8b99542c602f0408'
+const persistent_data_block_bindings = 'a94a653fe96f3f05310ab07d68f9d551f1a3b192129e2fd93d9d4f90409547d5'
+const persistent_data_block_generated = 'efc0319f32eb20e944caa8bd91dfd4b42efaa05df65365f3c616a4916dd8f70f'
+const persistent_data_block_context_before = '5e61970bcb36e5f4354d1c17ac85583db7bc4e8bb6d0983426ab6e72265ef07a'
+const persistent_data_block_context_raw = 'd87e937313ee9a20ea98095bb1b3f0733621fde0c2630d58c4556d75c7d35ff1'
+const persistent_data_block_context_canonical = 'bb3370f9aac0630357dfced4d361a358f990b982441fe78cc046f7e938540eac'
+const persistent_data_block_manager_raw = '1454cbd051ea70c12bdac38fd882bd1e7ad8fed0f88ba64d030277c291ac7859'
+const persistent_data_block_manager_canonical = '1454cbd051ea70c12bdac38fd882bd1e7ad8fed0f88ba64d030277c291ac7859'
 const source = $embed_file(@FILE).to_string()
 
 struct Profile {
@@ -2988,6 +3012,148 @@ fn seed_companion_baseline(receipt map[string]json2.Any, stage Stage) !string {
 	return seed_companion_base + '/boot.img'
 }
 
+fn persistent_data_block_profile() Profile {
+	mut modules := seed_companion_profile().modules.clone()
+	modules << 'maps-seed-account-companion.tar'
+	return Profile{'maps-persistent-data-block', persistent_data_block_boot, 'maps-persistent-data-block.tar', modules}
+}
+fn persistent_data_block_modules() map[string]string {
+	mut modules := seed_companion_modules()
+	modules['maps-seed-account-companion.tar'] = persistent_data_block_base_overlay
+	return modules
+}
+fn persistent_data_block_fields() map[string]string {
+	mut fields := seed_companion_fields()
+	fields['kind'] = 'vinix-maps-persistent-data-block-v1'
+	fields['base_root'] = persistent_data_block_base
+	fields['base_manifest_sha256'] = persistent_data_block_base_seal
+	fields['framework_build_root'] = persistent_data_block_framework
+	fields['framework_manifest_sha256'] = persistent_data_block_seal
+	fields['framework_jar_sha256'] = persistent_data_block_jar
+	fields['framework_dex_sha256'] = persistent_data_block_dex
+	fields['retained_framework_manifest_sha256'] = seed_companion_seal
+	fields['native_compatibility_framework_manifest_sha256'] = seed_companion_seal
+	fields['native_build_root'] = persistent_data_block_native
+	fields['native_manifest_sha256'] = persistent_data_block_native_seal
+	fields['native_build_sha256'] = persistent_data_block_native_build
+	fields['native_sha256'] = persistent_data_block_native_pin
+	fields['retained_native_manifest_sha256'] = seed_companion_native_seal
+	fields['native_framework_manifest_sha256'] = persistent_data_block_seal
+	fields['generated_jni_sha256'] = persistent_data_block_generated
+	return fields
+}
+fn persistent_data_block_inputs() map[string]string {
+	mut inputs := seed_companion_inputs()
+	inputs[persistent_data_block_base + '/sha256.json'] = persistent_data_block_base_seal
+	inputs[persistent_data_block_framework + '/sha256.json'] = persistent_data_block_seal
+	inputs[persistent_data_block_native + '/sha256.json'] = persistent_data_block_native_seal
+	return inputs
+}
+fn persistent_data_block_known_delta() map[string]string {
+	mut delta := {'/' + service_query_jar_path: persistent_data_block_jar,
+		'/' + service_query_dex_path: persistent_data_block_dex,
+		'/' + native_onboarding_trace_path: persistent_data_block_native_pin,
+		'/' + service_query_headless + '/framework-build.json': persistent_data_block_build,
+		'/' + service_query_headless + '/framework-sha256.json': persistent_data_block_seal}
+	if persistent_data_block_native_pin == seed_companion_native_pin { delta.delete('/' + native_onboarding_trace_path) }
+	return delta
+}
+fn persistent_data_block_proofs() map[string]string {
+	return {
+		'headless_input_delta': json2.encode({'/' + service_query_jar_path: persistent_data_block_jar})
+		'headless_top_level_delta': json2.encode(['inputs_sha256'])
+		'deployment_top_level_delta': json2.encode(['inputs_sha256', 'framework_manifest_sha256', 'native_manifest_sha256'])
+		'framework_class_count': json2.encode(2106)
+		'framework_source_delta': json2.encode({'smali/android/app/ContextImpl.smali': persistent_data_block_context_raw,
+			'smali/android/service/persistentdata/PersistentDataBlockManager.smali': persistent_data_block_manager_raw})
+		'framework_canonical_delta': json2.encode({'new-dex/android/app/ContextImpl.smali': persistent_data_block_context_canonical,
+			'new-dex/android/service/persistentdata/PersistentDataBlockManager.smali': persistent_data_block_manager_canonical})
+		'native_source_delta': json2.encode(map[string]string{})
+		'native_builder_helper_delta': json2.encode({'tests/native-android-tools/androidtools/framework.v': persistent_data_block_framework_helper,
+			'tests/native-android-tools/androidtools/framework_persistent_data_block.v': persistent_data_block_provider_helper})
+		'native_bindings_delta': json2.encode({'native/bindings.txt': [binder_identity_bindings, persistent_data_block_bindings]})
+		'native_generated_jni_delta': json2.encode({'native/atlframework/ws_generated.v': [binder_identity_generated, persistent_data_block_generated]})
+		'native_consumed_class_count': json2.encode(68)
+		'native_consumed_raw_delta': json2.encode(map[string][]string{})
+		'native_consumed_canonical_delta': json2.encode(map[string][]string{})
+	}
+}
+fn persistent_data_block_overlay_paths() []string {
+	return [service_query_jar_path, service_query_dex_path, native_onboarding_trace_path,
+		service_query_headless + '/framework-build.json', service_query_headless + '/framework-sha256.json',
+		service_query_headless + '/guest-inputs.json', service_query_deployment]
+}
+fn verify_persistent_data_block_overlay(receipt map[string]json2.Any) ! {
+	if 'deployment_input_additions' in receipt || 'deployment_top_level_additions' in receipt {
+		return error('persistent data block changes existing framework/native inputs only')
+	}
+	delta := json2.decode[map[string]string](json2.encode(receipt['deployment_input_delta'] or { return error('persistent data block deployment delta absent') }))!
+	mut expected := persistent_data_block_known_delta()
+	guest := '/' + service_query_headless + '/guest-inputs.json'
+	guest_pin := delta[guest] or { return error('persistent data block headless pin absent') }
+	if !digest_valid(guest_pin) || guest_pin == persistent_data_block_old_headless { return error('new persistent data block headless receipt required') }
+	expected[guest] = guest_pin
+	if delta != expected { return error('persistent data block exact deployment input changes differ') }
+	entries := json2.decode[[]ServiceQueryEntry](json2.encode(receipt['overlay_inventory'] or { return error('persistent data block overlay inventory absent') }))!
+	paths := persistent_data_block_overlay_paths()
+	mut regulars := map[string]string{}
+	mut seen := map[string]bool{}
+	for entry in entries {
+		if entry.name in seen || !relative(entry.name) || entry.mode & 0o7022 != 0 { return error('unsafe persistent data block overlay inode') }
+		seen[entry.name] = true
+		if entry.kind == 'regular' {
+			mode := if entry.name == native_onboarding_trace_path { u32(0o755) } else { u32(0o644) }
+			if entry.name !in paths || !digest_valid(entry.sha256) || entry.mode != mode { return error('persistent data block regular allowlist or mode differs') }
+			regulars[entry.name] = entry.sha256
+		} else if entry.kind != 'directory' || entry.mode != 0o755 || !paths.any(it.starts_with(entry.name + '/')) {
+			return error('unexpected persistent data block overlay inode')
+		}
+	}
+	if regulars.len != 7 || regulars[service_query_deployment] or { '' } == persistent_data_block_old_deployment { return error('exact seven new persistent data block files required') }
+	if regulars[native_onboarding_trace_path] or { '' } != persistent_data_block_native_pin { return error('persistent data block coupled native DSO differs') }
+	for path, pin in expected { if regulars[path.trim_left('/')] or { '' } != pin { return error('persistent data block input differs from inventory') } }
+}
+fn verify_persistent_data_block_receipt(receipt map[string]json2.Any, stage Stage) ! {
+	for pin in [persistent_data_block_base_seal, persistent_data_block_boot, persistent_data_block_base_overlay,
+		persistent_data_block_old_deployment, persistent_data_block_old_headless, persistent_data_block_seal,
+		persistent_data_block_build, persistent_data_block_jar, persistent_data_block_dex,
+		persistent_data_block_native_seal, persistent_data_block_native_build, persistent_data_block_native_pin,
+		persistent_data_block_framework_helper, persistent_data_block_provider_helper,
+		persistent_data_block_context_before, persistent_data_block_context_raw, persistent_data_block_context_canonical,
+		persistent_data_block_manager_raw, persistent_data_block_manager_canonical,
+		persistent_data_block_bindings, persistent_data_block_generated] {
+		if !digest_valid(pin) { return error('completed persistent data block framework/native producers required') }
+	}
+	if persistent_data_block_seal == seed_companion_seal || persistent_data_block_jar == seed_companion_jar
+		|| persistent_data_block_dex == seed_companion_dex || persistent_data_block_native_seal == seed_companion_native_seal
+		|| persistent_data_block_bindings == binder_identity_bindings || persistent_data_block_generated == binder_identity_generated
+		|| persistent_data_block_context_canonical == persistent_data_block_context_before {
+		return error('new persistent data block framework and guarded window JNI required')
+	}
+	for name, expected in persistent_data_block_fields() {
+		if receipt[name] or { json2.Any('absent') } != json2.Any(expected) { return error('persistent data block receipt differs: ' + name) }
+	}
+	for name, expected in persistent_data_block_proofs() {
+		if receipt[name] or { json2.Any('absent') } != json2.decode[json2.Any](expected)! { return error('persistent data block proof differs: ' + name) }
+	}
+	mut seals := map[string]string{}
+	for path, pin in stage.inputs_sha256 { if path.ends_with('/sha256.json') { seals[path] = pin } }
+	if seals.len != 73 || seals != persistent_data_block_inputs() { return error('persistent data block exact seventy-three dependency seals differ') }
+	if stage.format != 1 || stage.original_modules_sha256 != persistent_data_block_modules()
+		|| stage.preserved_modules_sha256 != persistent_data_block_modules() { return error('persistent data block original thirty-one modules differ') }
+	verify_persistent_data_block_overlay(receipt)!
+}
+fn persistent_data_block_baseline(receipt map[string]json2.Any, stage Stage) !string {
+	verify_persistent_data_block_receipt(receipt, stage)!
+	path := persistent_data_block_base + '/sha256.json'
+	regular(path)!
+	if os.lstat(path)!.size > 8 * 1024 * 1024 || hash(path)! != persistent_data_block_base_seal { return error('persistent data block original seed companion manifest differs') }
+	pins := json2.decode[map[string]string](os.read_file(path)!)!
+	if pins['boot.img'] or { '' } != persistent_data_block_boot
+		|| pins['maps-seed-account-companion.tar'] or { '' } != persistent_data_block_base_overlay { return error('persistent data block original boot or seed companion overlay differs') }
+	return persistent_data_block_base + '/boot.img'
+}
+
 fn service_query_modules() map[string]string {
 	mut modules := controller_modules()
 	modules['maps-controller-diagnostic.tar'] = 'bef5f25859e77a9671a6a144ccb56891da5ed2f7b4324a93a96da7fdcab1987a'
@@ -3602,6 +3768,8 @@ fn patch(root string, build_root string, receipt_sha string, profile Profile) ! 
 		baseline = broker_tail_baseline(stage_map, stage)!
 	} else if profile.name == 'maps-seed-account-companion' {
 		baseline = seed_companion_baseline(stage_map, stage)!
+	} else if profile.name == 'maps-persistent-data-block' {
+		baseline = persistent_data_block_baseline(stage_map, stage)!
 	} else {
 		for path, expected in stage.inputs_sha256 {
 			if os.file_name(path) == 'boot.img' && expected == baseline_pin {
@@ -6742,6 +6910,187 @@ fn seed_companion_profile_self_test() ! {
 	println('MAPS-SEED-ACCOUNT-COMPANION KERNEL-PROFILE-SELF-TEST PASS ten files seven or eight input replacements one addition seventy seals thirty inherited modules unchanged broker and native consumed inputs')
 }
 
+fn persistent_data_block_entries_fixture() []ServiceQueryEntry {
+	paths := persistent_data_block_overlay_paths()
+	mut parents := map[string]bool{}
+	for path in paths {
+		mut parent := os.dir(path)
+		for parent !in ['', '.'] { parents[parent] = true; parent = os.dir(parent) }
+	}
+	mut entries := []ServiceQueryEntry{}
+	for parent in parents.keys().sorted() { entries << ServiceQueryEntry{name: parent, kind: 'directory', mode: 0o755} }
+	mut pins := persistent_data_block_known_delta()
+	pins['/' + native_onboarding_trace_path] = persistent_data_block_native_pin
+	pins['/' + service_query_headless + '/guest-inputs.json'] = 'c'.repeat(64)
+	pins['/' + service_query_deployment] = 'd'.repeat(64)
+	for path in paths {
+		mode := if path == native_onboarding_trace_path { u32(0o755) } else { u32(0o644) }
+		entries << ServiceQueryEntry{name: path, kind: 'regular', sha256: pins['/' + path]!, mode: mode}
+	}
+	return entries
+}
+fn persistent_data_block_receipt_fixture() !map[string]json2.Any {
+	mut receipt := map[string]json2.Any{}
+	for name, value in persistent_data_block_fields() { receipt[name] = json2.Any(value) }
+	for name, value in persistent_data_block_proofs() { receipt[name] = json2.decode[json2.Any](value)! }
+	mut delta := persistent_data_block_known_delta()
+	delta['/' + service_query_headless + '/guest-inputs.json'] = 'c'.repeat(64)
+	receipt['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(delta))!
+	receipt['overlay_inventory'] = json2.decode[json2.Any](json2.encode(persistent_data_block_entries_fixture()))!
+	return receipt
+}
+fn persistent_data_block_profile_self_test() ! {
+	profile := persistent_data_block_profile()
+	if profile.baseline_sha != persistent_data_block_boot || profile.modules.len != 31
+		|| profile.modules.last() != 'maps-seed-account-companion.tar' || persistent_data_block_inputs().len != 73 {
+		return error('persistent data block strict profile differs')
+	}
+	mut final_modules := profile.modules.clone()
+	final_modules << profile.overlay
+	if final_modules.len != 32 || persistent_data_block_overlay_paths().len != 7
+		|| persistent_data_block_known_delta().len != (if persistent_data_block_native_pin == seed_companion_native_pin { 4 } else { 5 }) {
+		return error('persistent data block module, payload or actual input change count differs')
+	}
+	verify_modules(profile, Config{'vinix', profile.modules}, Config{'vinix', final_modules})!
+	for bad in [Config{'vinix', profile.modules}, Config{'vinix', final_modules.reverse()}, Config{'other', final_modules}] {
+		if _ := verify_modules(profile, Config{'vinix', profile.modules}, bad) { return error('wrong persistent data block module order accepted') }
+	}
+	stage := Stage{format: 1, inputs_sha256: persistent_data_block_inputs(), original_modules_sha256: persistent_data_block_modules(), preserved_modules_sha256: persistent_data_block_modules()}
+	receipt := persistent_data_block_receipt_fixture()!
+	verify_persistent_data_block_receipt(receipt, stage)!
+	mut fields := persistent_data_block_fields().keys()
+	fields << persistent_data_block_proofs().keys()
+	fields << ['deployment_input_delta', 'overlay_inventory']
+	for field in fields {
+		mut bad := persistent_data_block_receipt_fixture()!
+		bad[field] = json2.Any('changed')
+		if _ := verify_persistent_data_block_receipt(bad, stage) { return error('changed persistent data block field/proof accepted') }
+		bad.delete(field)
+		if _ := verify_persistent_data_block_receipt(bad, stage) { return error('missing persistent data block field/proof accepted') }
+	}
+	for proof in ['native_builder_helper_delta', 'framework_source_delta', 'framework_canonical_delta',
+		'native_source_delta', 'native_bindings_delta', 'native_generated_jni_delta',
+		'native_consumed_raw_delta', 'native_consumed_canonical_delta', 'headless_input_delta'] {
+		original := json2.decode[map[string]json2.Any](json2.encode(receipt[proof]!))!
+		for path in original.keys() {
+			mut changed := json2.decode[map[string]json2.Any](json2.encode(original))!
+			changed[path] = json2.Any('0'.repeat(64))
+			mut bad := persistent_data_block_receipt_fixture()!
+			bad[proof] = json2.Any(changed)
+			if _ := verify_persistent_data_block_receipt(bad, stage) { return error('changed persistent data block proof map member accepted') }
+			changed.delete(path)
+			bad[proof] = json2.Any(changed)
+			if _ := verify_persistent_data_block_receipt(bad, stage) { return error('missing persistent data block proof map member accepted') }
+		}
+		mut extra := json2.decode[map[string]json2.Any](json2.encode(original))!
+		extra['unreviewed'] = json2.Any('a'.repeat(64))
+		mut bad := persistent_data_block_receipt_fixture()!
+		bad[proof] = json2.Any(extra)
+		if _ := verify_persistent_data_block_receipt(bad, stage) { return error('extra persistent data block proof map member accepted') }
+	}
+	for proof in ['native_bindings_delta', 'native_generated_jni_delta'] {
+		original := json2.decode[map[string][]string](json2.encode(receipt[proof]!))!
+		for path, pair in original {
+			for index in 0 .. 2 {
+				mut changed := pair.clone()
+				changed[index] = '0'.repeat(64)
+				mut bad := persistent_data_block_receipt_fixture()!
+				bad[proof] = json2.decode[json2.Any](json2.encode({path: changed}))!
+				if _ := verify_persistent_data_block_receipt(bad, stage) { return error('changed persistent data block before/after proof accepted') }
+			}
+		}
+	}
+	for path in stage.inputs_sha256.keys() {
+		mut pins := persistent_data_block_inputs()
+		pins[path] = '0'.repeat(64)
+		if _ := verify_persistent_data_block_receipt(receipt, Stage{...stage, inputs_sha256: pins}) { return error('changed persistent data block dependency accepted') }
+		pins.delete(path)
+		if _ := verify_persistent_data_block_receipt(receipt, Stage{...stage, inputs_sha256: pins}) { return error('missing persistent data block dependency accepted') }
+	}
+	mut extra_inputs := persistent_data_block_inputs()
+	extra_inputs['/unreviewed/sha256.json'] = 'a'.repeat(64)
+	if _ := verify_persistent_data_block_receipt(receipt, Stage{...stage, inputs_sha256: extra_inputs}) { return error('extra persistent data block dependency accepted') }
+	for bad in [Stage{...stage, format: 0}, Stage{...stage, original_modules_sha256: seed_companion_modules()}, Stage{...stage, preserved_modules_sha256: seed_companion_modules()}] {
+		if _ := verify_persistent_data_block_receipt(receipt, bad) { return error('wrong persistent data block module inventory accepted') }
+	}
+	for addition in ['deployment_input_additions', 'deployment_top_level_additions'] {
+		mut bad := persistent_data_block_receipt_fixture()!
+		bad[addition] = json2.Any(map[string]json2.Any{})
+		if _ := verify_persistent_data_block_receipt(bad, stage) { return error('persistent data block deployment addition accepted') }
+	}
+	delta := json2.decode[map[string]string](json2.encode(receipt['deployment_input_delta']!))!
+	for path in delta.keys() {
+		mut incomplete := delta.clone()
+		incomplete.delete(path)
+		mut bad := persistent_data_block_receipt_fixture()!
+		bad['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(incomplete))!
+		if _ := verify_persistent_data_block_receipt(bad, stage) { return error('missing persistent data block deployment change accepted') }
+	}
+	for path, pin in {'/opt/vinix-maps-account/bin/maps-account-guest': seed_companion_controller_pin,
+		'/' + account_handoff_broker_path: broker_tail_broker_pin, '/' + seed_companion_vending_path: seed_companion_vending_pin} {
+		mut changed := delta.clone()
+		changed[path] = pin
+		mut bad := persistent_data_block_receipt_fixture()!
+		bad['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(changed))!
+		if _ := verify_persistent_data_block_receipt(bad, stage) { return error('unrelated persistent data block deployment input change accepted') }
+	}
+	entries := persistent_data_block_entries_fixture()
+	mut stale_delta := delta.clone()
+	stale_delta['/' + service_query_headless + '/guest-inputs.json'] = persistent_data_block_old_headless
+	mut stale_entries := entries.clone()
+	for index, entry in stale_entries {
+		if entry.name == service_query_headless + '/guest-inputs.json' { stale_entries[index] = ServiceQueryEntry{...entry, sha256: persistent_data_block_old_headless} }
+	}
+	mut stale := persistent_data_block_receipt_fixture()!
+	stale['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(stale_delta))!
+	stale['overlay_inventory'] = json2.decode[json2.Any](json2.encode(stale_entries))!
+	if _ := verify_persistent_data_block_receipt(stale, stage) { return error('stale persistent data block headless receipt accepted') }
+	for index, entry in entries {
+		for changed in [ServiceQueryEntry{...entry, name: '../escape'}, ServiceQueryEntry{...entry, kind: 'symlink'},
+			ServiceQueryEntry{...entry, mode: 0o777}, ServiceQueryEntry{...entry, mode: 0o4755}] {
+			mut bad_entries := entries.clone()
+			bad_entries[index] = changed
+			mut bad := persistent_data_block_receipt_fixture()!
+			bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(bad_entries))!
+			if _ := verify_persistent_data_block_receipt(bad, stage) { return error('unsafe persistent data block inode accepted') }
+		}
+		if entry.kind == 'regular' {
+			mut bad_entries := entries.clone()
+			bad_entries.delete(index)
+			mut bad := persistent_data_block_receipt_fixture()!
+			bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(bad_entries))!
+			if _ := verify_persistent_data_block_receipt(bad, stage) { return error('missing persistent data block file accepted') }
+			if entry.name != service_query_deployment {
+				mut corrupt := entries.clone()
+				corrupt[index] = ServiceQueryEntry{...entry, sha256: '0'.repeat(64)}
+				bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(corrupt))!
+				if _ := verify_persistent_data_block_receipt(bad, stage) { return error('changed persistent data block overlay hash accepted') }
+			}
+		}
+	}
+	for extra in [entries.last(), ServiceQueryEntry{name: seed_companion_vending_path, kind: 'regular', mode: 0o644, sha256: seed_companion_vending_pin}] {
+		mut bad_entries := entries.clone()
+		bad_entries << extra
+		mut bad := persistent_data_block_receipt_fixture()!
+		bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(bad_entries))!
+		if _ := verify_persistent_data_block_receipt(bad, stage) { return error('extra or duplicated persistent data block overlay file accepted') }
+	}
+	if persistent_data_block_native_pin == seed_companion_native_pin {
+		mut unchanged := delta.clone()
+		unchanged['/' + native_onboarding_trace_path] = persistent_data_block_native_pin
+		mut bad := persistent_data_block_receipt_fixture()!
+		bad['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(unchanged))!
+		if _ := verify_persistent_data_block_receipt(bad, stage) { return error('unchanged persistent data block DSO declared changed') }
+	}
+	for old in [seed_companion_receipt_fixture()!, broker_tail_receipt_fixture()!, window_system_ui_receipt_fixture()!, imageview_bounds_receipt_fixture()!] {
+		if _ := verify_persistent_data_block_receipt(old, stage) { return error('historical receipt accepted by persistent data block profile') }
+	}
+	if _ := verify_seed_companion_receipt(receipt, stage) { return error('persistent data block receipt accepted by seed companion profile') }
+	if _ := verify_broker_tail_receipt(receipt, stage) { return error('persistent data block receipt accepted by broker tail profile') }
+	if _ := verify_window_system_ui_receipt(receipt, stage) { return error('persistent data block receipt accepted by Window system UI profile') }
+	println('MAPS-PERSISTENT-DATA-BLOCK KERNEL-PROFILE-SELF-TEST PASS seven files exact framework/native input replacements seventy-three seals thirty-one inherited modules memberless manager type guarded window JNI and historical rejection')
+}
+
 fn self_test() ! {
 	protected_profile_self_test()!
 	controller_profile_self_test()!
@@ -6767,6 +7116,7 @@ fn self_test() ! {
 	window_system_ui_profile_self_test()!
 	broker_tail_profile_self_test()!
 	seed_companion_profile_self_test()!
+	persistent_data_block_profile_self_test()!
 	maps := maps_profile()
 	before := Config{'vinix', maps.modules}
 	mut modules := maps.modules.clone()
@@ -6836,6 +7186,7 @@ fn self_test() ! {
 	fat_self_test(root + '/account-pump', 'maps-account-pump.tar', account_pump_profile().modules)!
 	fat_self_test(root + '/application-restrictions', 'maps-application-restrictions.tar', application_restrictions_profile().modules)!
 	fat_self_test(root + '/account-handoff', 'maps-account-handoff.tar', account_handoff_profile().modules)!
+	fat_self_test(root + '/persistent-data-block', 'maps-persistent-data-block.tar', persistent_data_block_profile().modules)!
 	println('BROWSER-KERNEL-PATCH SELF-TEST PASS configuration inventory digest symlink launched-stage guards')
 }
 
@@ -6872,9 +7223,10 @@ fn main() {
 	is_window_system_ui := os.args.len == 5 && os.args[1] == '--maps-window-system-ui'
 	is_broker_tail := os.args.len == 5 && os.args[1] == '--maps-broker-tail'
 	is_seed_companion := os.args.len == 5 && os.args[1] == '--maps-seed-account-companion'
-	is_selected := is_maps || is_protected || is_controller || is_service_query || is_controller_memory || is_direct_boot || is_context_storage || is_broadcast_result || is_onboarding_trace || is_native_onboarding_trace || is_onboarding_framework || is_native_heartbeat || is_browser_poll || is_account_pump || is_application_restrictions || is_account_handoff || is_auth_exception || is_auth_worker || is_binder_identity || is_service_lifecycle || is_platform_fragments || is_imageview_bounds || is_window_system_ui || is_broker_tail || is_seed_companion
+	is_persistent_data_block := os.args.len == 5 && os.args[1] == '--maps-persistent-data-block'
+	is_selected := is_maps || is_protected || is_controller || is_service_query || is_controller_memory || is_direct_boot || is_context_storage || is_broadcast_result || is_onboarding_trace || is_native_onboarding_trace || is_onboarding_framework || is_native_heartbeat || is_browser_poll || is_account_pump || is_application_restrictions || is_account_handoff || is_auth_exception || is_auth_worker || is_binder_identity || is_service_lifecycle || is_platform_fragments || is_imageview_bounds || is_window_system_ui || is_broker_tail || is_seed_companion || is_persistent_data_block
 	if os.args.len != 4 && !is_selected {
-		eprintln('usage: patch-kernel [--maps-account|--protected-storage-maps|--maps-controller|--maps-service-query|--maps-controller-memory|--maps-direct-boot|--maps-context-storage|--maps-broadcast-result|--maps-onboarding-trace|--maps-native-onboarding-trace|--maps-onboarding-framework|--maps-native-heartbeat|--maps-browser-poll|--maps-account-pump|--maps-application-restrictions|--maps-account-handoff|--maps-auth-exception|--maps-auth-worker|--maps-binder-identity|--maps-service-lifecycle|--maps-platform-fragments|--maps-imageview-bounds|--maps-window-system-ui|--maps-broker-tail|--maps-seed-account-companion] FRESH_STAGE FROZEN_KERNEL_BUILD BUILD_JSON_SHA256')
+		eprintln('usage: patch-kernel [--maps-account|--protected-storage-maps|--maps-controller|--maps-service-query|--maps-controller-memory|--maps-direct-boot|--maps-context-storage|--maps-broadcast-result|--maps-onboarding-trace|--maps-native-onboarding-trace|--maps-onboarding-framework|--maps-native-heartbeat|--maps-browser-poll|--maps-account-pump|--maps-application-restrictions|--maps-account-handoff|--maps-auth-exception|--maps-auth-worker|--maps-binder-identity|--maps-service-lifecycle|--maps-platform-fragments|--maps-imageview-bounds|--maps-window-system-ui|--maps-broker-tail|--maps-seed-account-companion|--maps-persistent-data-block] FRESH_STAGE FROZEN_KERNEL_BUILD BUILD_JSON_SHA256')
 		exit(2)
 	}
 	offset := if is_selected { 1 } else { 0 }
@@ -6887,7 +7239,8 @@ fn main() {
 		exit(1)
 	}
 	profile := if is_seed_companion { seed_companion_profile() } else if is_broker_tail { broker_tail_profile() } else if is_window_system_ui { window_system_ui_profile() } else if is_imageview_bounds { imageview_bounds_profile() } else if is_platform_fragments { platform_fragments_profile() } else if is_service_lifecycle { service_lifecycle_profile() } else if is_binder_identity { binder_identity_profile() } else if is_auth_worker { auth_worker_profile() } else if is_auth_exception { auth_exception_profile() } else if is_account_handoff { account_handoff_profile() } else if is_application_restrictions { application_restrictions_profile() } else if is_account_pump { account_pump_profile() } else if is_browser_poll { browser_poll_profile() } else if is_native_heartbeat { native_heartbeat_profile() } else if is_onboarding_framework { onboarding_framework_profile() } else if is_native_onboarding_trace { native_onboarding_trace_profile() } else if is_onboarding_trace { onboarding_trace_profile() } else if is_broadcast_result { broadcast_result_profile() } else if is_context_storage { context_storage_profile() } else if is_direct_boot { direct_boot_profile() } else if is_controller_memory { controller_memory_profile() } else if is_service_query { service_query_profile() } else if is_controller { controller_profile() } else if is_protected { protected_maps_profile() } else if is_maps { maps_profile() } else { browser_profile() }
-	patch(root, build_root, os.args[3 + offset], profile) or {
+	selected_profile := if is_persistent_data_block { persistent_data_block_profile() } else { profile }
+	patch(root, build_root, os.args[3 + offset], selected_profile) or {
 		eprintln(err)
 		exit(1)
 	}
