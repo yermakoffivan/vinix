@@ -79,6 +79,11 @@ const bitmap_tiles_pass_marker = 'BITMAP-TILES-PASS modes reset invalidation sta
 // Read-only network observations use the same bitmap runtime, without assertions of connectivity.
 const connectivity_truth_apk_sha = 'e562c6344c8560908a5d5cd70fa0480d76ea60ba6929e0720a2fbe69abba943d'
 const connectivity_truth_pass_marker = 'CONNECTIVITY-TRUTH-PASS observations active-info active-network all-networks capabilities interfaces raw-native'
+// Window animation resource attributes and callbacks use their own exact pair.
+const window_animations_framework_sha = '255718e8a943f8d3e276f99694c52ed5ec39af86d5d06abef3c9b14d7b9aa197'
+const window_animations_native_sha = 'a1f27a68285dfe6d5cef34ad077bde7537ee41c136fd40d82ad42e14097377ba'
+const window_animations_apk_sha = 'b78a43516d2f5f42ec7686c39acd81b3612402d80eb25ccd854de512fd6119a6'
+const window_animations_pass_marker = 'WINDOW-ANIMATIONS-PASS attributes alias always-dispatch callbacks reentrancy exceptions activity dialog'
 
 struct FixtureProfile {
 	name          string
@@ -267,6 +272,17 @@ fn connectivity_truth_profile() FixtureProfile {
 	}
 }
 
+fn window_animations_profile() FixtureProfile {
+	return FixtureProfile{
+		name: 'window-animations'
+		apk_sha: window_animations_apk_sha
+		framework_sha: window_animations_framework_sha
+		native_sha: window_animations_native_sha
+		pass_marker: window_animations_pass_marker
+		scope: 'standalone Window animation resource attributes and callback dispatch regression with Activity and Dialog controls; visual animation execution, GMS and Google authentication are not exercised'
+	}
+}
+
 struct Configuration {
 	runtime   string
 	apk       string
@@ -376,7 +392,7 @@ fn health(line string, expected_marker string) ! {
 		|| line.contains('PLATFORM-FRAGMENTS-PASS') || line.contains('IMAGE-BOUNDS-PASS')
 		|| line.contains('WINDOW-SYSTEM-UI-PASS') || line.contains('SEED-ACCOUNT-OPTIONS-PASS')
 		|| line.contains('PERSISTENT-DATA-BLOCK-PASS') || line.contains('BITMAP-TILES-PASS')
-		|| line.contains('CONNECTIVITY-TRUTH-PASS')) && line != expected_marker {
+		|| line.contains('CONNECTIVITY-TRUTH-PASS') || line.contains('WINDOW-ANIMATIONS-PASS')) && line != expected_marker {
 		return error('conflicting fixture marker')
 	}
 }
@@ -577,7 +593,7 @@ fn export_evidence(output string) ! {
 
 fn selftest() ! {
 	mut cases := 0
-	profiles := [child_attach_profile(), settings_global_profile(), application_restrictions_profile(), authenticator_exception_profile(), maps_network_profile(), authenticator_worker_profile(), maps_network_v2_profile(), authenticator_binder_identity_profile(), maps_network_v3_profile(), service_lifecycle_profile(), platform_fragments_profile(), image_bounds_profile(), window_system_ui_profile(), seed_account_options_profile(), persistent_data_block_profile(), bitmap_tiles_profile(), connectivity_truth_profile()]
+	profiles := [child_attach_profile(), settings_global_profile(), application_restrictions_profile(), authenticator_exception_profile(), maps_network_profile(), authenticator_worker_profile(), maps_network_v2_profile(), authenticator_binder_identity_profile(), maps_network_v3_profile(), service_lifecycle_profile(), platform_fragments_profile(), image_bounds_profile(), window_system_ui_profile(), seed_account_options_profile(), persistent_data_block_profile(), bitmap_tiles_profile(), connectivity_truth_profile(), window_animations_profile()]
 	require(child_attach_profile().framework_sha == framework_sha
 		&& settings_global_profile().framework_sha == framework_sha
 		&& application_restrictions_profile().framework_sha != framework_sha, 'exact per-profile framework identities')!
@@ -631,6 +647,11 @@ fn selftest() ! {
 		&& connectivity_truth_profile().apk_sha != bitmap_tiles_profile().apk_sha
 		&& connectivity_truth_profile().pass_marker != bitmap_tiles_profile().pass_marker,
 		'connectivity observations require the exact existing pair and a distinct signed diagnostic fixture')!
+	require(window_animations_profile().framework_sha != bitmap_tiles_profile().framework_sha
+		&& window_animations_profile().native_sha.len == 64
+		&& window_animations_profile().apk_sha != bitmap_tiles_profile().apk_sha
+		&& window_animations_profile().apk_sha != connectivity_truth_profile().apk_sha,
+		'window animations require their new framework and fixture with the actual coupled native pin')!
 	for profile in profiles {
 		mut pins := [profile.apk_sha, profile.framework_sha]
 		if profile.native_sha != '' { pins << profile.native_sha }
@@ -676,7 +697,7 @@ fn selftest() ! {
 		cases++
 	}
 	require(canonical('/var/lib/onboarding-api-r1'), 'canonical path rejected')!
-	for selector in ['--authenticator-binder-identity', '--maps-network-v3', '--service-lifecycle', '--platform-fragments', '--image-bounds', '--window-system-ui', '--seed-account-options', '--persistent-data-block', '--bitmap-tiles', '--connectivity-truth'] {
+	for selector in ['--authenticator-binder-identity', '--maps-network-v3', '--service-lifecycle', '--platform-fragments', '--image-bounds', '--window-system-ui', '--seed-account-options', '--persistent-data-block', '--bitmap-tiles', '--connectivity-truth', '--window-animations'] {
 		full := [selector, '/runtime', '/fixture.apk', '10117', '10117', '/results']
 		for count in 1 .. full.len {
 			mut argv := [os.executable()]
@@ -705,9 +726,10 @@ fn run() ! {
 		return
 	}
 	mut arguments := os.args[1..]
-	require(arguments.len == 6 && arguments[0] in ['--child-attach', '--settings-global', '--application-restrictions', '--authenticator-private-exception', '--maps-network', '--authenticator-worker', '--maps-network-v2', '--authenticator-binder-identity', '--maps-network-v3', '--service-lifecycle', '--platform-fragments', '--image-bounds', '--window-system-ui', '--seed-account-options', '--persistent-data-block', '--bitmap-tiles', '--connectivity-truth'],
-		'usage: onboarding-api-run (--child-attach|--settings-global|--application-restrictions|--authenticator-private-exception|--maps-network|--authenticator-worker|--maps-network-v2|--authenticator-binder-identity|--maps-network-v3|--service-lifecycle|--platform-fragments|--image-bounds|--window-system-ui|--seed-account-options|--persistent-data-block|--bitmap-tiles|--connectivity-truth) RUNTIME APK UID GID FRESH_OUTPUT | selftest')!
+	require(arguments.len == 6 && arguments[0] in ['--child-attach', '--settings-global', '--application-restrictions', '--authenticator-private-exception', '--maps-network', '--authenticator-worker', '--maps-network-v2', '--authenticator-binder-identity', '--maps-network-v3', '--service-lifecycle', '--platform-fragments', '--image-bounds', '--window-system-ui', '--seed-account-options', '--persistent-data-block', '--bitmap-tiles', '--connectivity-truth', '--window-animations'],
+		'usage: onboarding-api-run (--child-attach|--settings-global|--application-restrictions|--authenticator-private-exception|--maps-network|--authenticator-worker|--maps-network-v2|--authenticator-binder-identity|--maps-network-v3|--service-lifecycle|--platform-fragments|--image-bounds|--window-system-ui|--seed-account-options|--persistent-data-block|--bitmap-tiles|--connectivity-truth|--window-animations) RUNTIME APK UID GID FRESH_OUTPUT | selftest')!
 	profile := if arguments[0] == '--authenticator-private-exception' { authenticator_exception_profile() }
+		else if arguments[0] == '--window-animations' { window_animations_profile() }
 		else if arguments[0] == '--connectivity-truth' { connectivity_truth_profile() }
 		else if arguments[0] == '--bitmap-tiles' { bitmap_tiles_profile() }
 		else if arguments[0] == '--persistent-data-block' { persistent_data_block_profile() }
