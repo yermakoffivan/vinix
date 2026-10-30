@@ -40,7 +40,9 @@ Only Layout raw text is expected to canonicalize (`d91a460d...` → `8877258e...
 There is no native rebuild or new relink proof. This validator and media/kernel
 source remain unqualified and uncommitted, awaiting a sealed SDK.
 
-Frozen pending source snapshot, relative to the repository root:
+Frozen source snapshot, relative to the repository root. The first three paths
+remain unqualified and uncommitted. The batch helper and its tests are committed
+as `347166341` after their guarded checks passed.
 
 | Source | SHA-256 |
 | --- | --- |
@@ -51,7 +53,10 @@ Frozen pending source snapshot, relative to the repository root:
 | `tests/native-android-ws/mapsaccountstage/batches_test.v` | `bb156d061e98eab48f59c654b94b3f70d686178dde6107a9539d1c8a287cb151` |
 
 The focused 82-root batch tests passed; their complete original evidence remains
-at `S/maps-user-restrictions-inventory-batches-tests-2026-10-30-r1`. Restore host
+at `S/maps-user-restrictions-inventory-batches-tests-2026-10-30-r1`; sealing is
+pending. The frozen media checkpoint is
+`S/user-restrictions-media-checkpoint-2026-10-30-r1.txt`, SHA-256
+`0e64706b73fcdac6d6519eae37b445d2ee31511c7ff3b329a09115dbfdaf09b2`. Restore host
 space before a fresh bounded R2 production, then complete the actual SDK/native
 compatibility audit and runner/media checks. Do not recover, resume or admit R1.
 Keep all original complete bundles and failed controls.
