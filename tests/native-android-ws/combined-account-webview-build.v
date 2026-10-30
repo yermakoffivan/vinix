@@ -454,6 +454,68 @@ fn imageview_bounds_abi(source string) ! {
  }
 }
 
+fn window_system_ui_profile() NarrowProfile {
+ layout := 'android/view/WindowManager$LayoutParams.smali'
+ return NarrowProfile{
+  name: 'window-system-ui'
+  baseline_name: 'combined-account-webview-imageview-bounds-framework-2026-10-30-r1'
+  manifest_pin: '95853b2f31ac34f731c8c31fc1251fd695ed6d856a8bfef0f71041efc10273e0'
+  jar_pin: '9cfdbeaff047b693837508c3f7676510a63c05af118e864964b4b432fb813af9'
+  baseline_classes: 2105
+  providers: ['framework_window_system_ui.v']
+  calls: {layout: 'framework_window_system_ui_source'}
+  methods: {layout: []string{}}
+  changed: {layout: 0}
+  added: {layout: 0}
+  fields: {layout: ['.field public systemUiVisibility:I']}
+ }
+}
+
+fn window_system_ui_self_test() ! {
+ profile := window_system_ui_profile()
+ layout := 'android/view/WindowManager$LayoutParams.smali'
+ fields := profile.fields[layout]!
+ if profile.baseline_classes != 2105 || profile.methods != {layout: []string{}}
+  || profile.calls != {layout: 'framework_window_system_ui_source'}
+  || profile.changed != {layout: 0} || profile.added != {layout: 0}
+  || profile.fields != {layout: ['.field public systemUiVisibility:I']}
+  || profile.providers != ['framework_window_system_ui.v']
+  || profile.extra_classes.len != 0 || profile.class_provider != '' || profile.directory_provider != '' {
+  return error('Window system UI requires exactly one field-only target')
+ }
+ before := '.class public Landroid/view/WindowManager$LayoutParams;\n.super Landroid/view/ViewGroup$LayoutParams;\n.field public flags:I\n' +
+  '.method public constructor <init>()V\n.locals 0\nreturn-void\n.end method\n'
+ after := before + fields.join('\n') + '\n'
+ narrow_member_delta(before, after, []string{}, 0, 0, fields)!
+ for bad in [before, after + fields[0] + '\n', after.replace('public systemUiVisibility:I', 'private systemUiVisibility:I'),
+  after.replace('public systemUiVisibility:I', 'public static systemUiVisibility:I'),
+  after.replace('public systemUiVisibility:I', 'public final systemUiVisibility:I'),
+  after.replace('public systemUiVisibility:I', 'public systemUiVisibility:J'),
+  after.replace('public flags:I', 'public flags:J'), after.replace('.locals 0', '.locals 1'),
+  after.replace('.super Landroid/view/ViewGroup$LayoutParams;', '.super Ljava/lang/Object;'),
+  after + '.method public added()V\n.locals 0\nreturn-void\n.end method\n'] {
+  narrow_member_delta(before, bad, []string{}, 0, 0, fields) or { continue }
+  return error('invalid Window field-only ABI or retained-member delta accepted')
+ }
+ mut old_classes := {layout: 'old'}
+ for i in 0 .. 2104 { old_classes['other/' + i.str() + '.smali'] = 'same' }
+ mut good := old_classes.clone()
+ good[layout] = 'new'
+ narrow_profile_class_delta(old_classes, good, [layout], []string{}, 2105)!
+ for case in 0 .. 5 {
+  mut bad := good.clone()
+  match case {
+   0 { bad[layout] = 'old' }
+   1 { bad['other/0.smali'] = 'changed' }
+   2 { bad.delete(layout) }
+   3 { bad['unrelated.smali'] = 'added' }
+   else { bad.delete(layout); bad['substituted.smali'] = 'new' }
+  }
+  narrow_profile_class_delta(old_classes, bad, [layout], []string{}, 2105) or { continue }
+  return error('invalid Window-only class delta accepted')
+ }
+}
+
 fn platform_fragments_method_headers(target string) !map[string]string {
  profile := platform_fragments_profile()
  signatures := profile.methods[target] or { return error('unexpected platform fragment target') }
@@ -1177,6 +1239,7 @@ fn self_test() ! {
  service_lifecycle_self_test()!
  platform_fragments_self_test()!
  imageview_bounds_self_test()!
+ window_system_ui_self_test()!
  query_profile := service_query_profile()
  narrow_method_self_test(query_profile.methods['android/content/pm/PackageManager.smali']!, 1, 0)!
  boot_profile := direct_boot_profile()
@@ -1741,11 +1804,11 @@ fn main() {
   println('COMBINED-FRAMEWORK-INTEGRITY-PASS ' + os.args[3])
   return
  }
- if os.args.len == 6 && os.args[1] in ['--store', '--auth', '--cache', '--descriptions', '--protected-storage', '--service-query', '--direct-boot', '--credential-storage', '--broadcast-result', '--onboarding', '--application-restrictions', '--auth-exception', '--binder-identity', '--service-lifecycle', '--platform-fragments', '--imageview-bounds'] {
-  profile := match os.args[1] { '--store' { storage_profile() } '--auth' { auth_profile() } '--cache' { cache_profile() } '--descriptions' { descriptions_profile() } '--protected-storage' { protected_storage_profile() } '--service-query' { service_query_profile() } '--direct-boot' { direct_boot_profile() } '--credential-storage' { credential_storage_profile() } '--broadcast-result' { broadcast_result_profile() } '--application-restrictions' { application_restrictions_profile() } '--auth-exception' { auth_exception_profile() } '--binder-identity' { binder_identity_profile() } '--service-lifecycle' { service_lifecycle_profile() } '--platform-fragments' { platform_fragments_profile() } '--imageview-bounds' { imageview_bounds_profile() } else { onboarding_profile() } }
+ if os.args.len == 6 && os.args[1] in ['--store', '--auth', '--cache', '--descriptions', '--protected-storage', '--service-query', '--direct-boot', '--credential-storage', '--broadcast-result', '--onboarding', '--application-restrictions', '--auth-exception', '--binder-identity', '--service-lifecycle', '--platform-fragments', '--imageview-bounds', '--window-system-ui'] {
+  profile := match os.args[1] { '--store' { storage_profile() } '--auth' { auth_profile() } '--cache' { cache_profile() } '--descriptions' { descriptions_profile() } '--protected-storage' { protected_storage_profile() } '--service-query' { service_query_profile() } '--direct-boot' { direct_boot_profile() } '--credential-storage' { credential_storage_profile() } '--broadcast-result' { broadcast_result_profile() } '--application-restrictions' { application_restrictions_profile() } '--auth-exception' { auth_exception_profile() } '--binder-identity' { binder_identity_profile() } '--service-lifecycle' { service_lifecycle_profile() } '--platform-fragments' { platform_fragments_profile() } '--imageview-bounds' { imageview_bounds_profile() } '--window-system-ui' { window_system_ui_profile() } else { onboarding_profile() } }
   build_narrow(profile, os.abs_path(os.args[2]), os.args[3], os.args[4], os.abs_path(os.args[5])) or { eprintln(err); exit(1) }
   return
  }
- if os.args.len != 5 { eprintln('usage: combined-account-webview-build [--store|--auth|--cache|--descriptions|--protected-storage|--service-query|--direct-boot|--credential-storage|--broadcast-result|--onboarding|--application-restrictions|--auth-exception|--binder-identity|--service-lifecycle|--platform-fragments|--imageview-bounds] BASELINE BASELINE_MANIFEST_SHA256 BASELINE_JAR_SHA256 FRESH_OUTPUT | --self-test'); exit(2) }
+ if os.args.len != 5 { eprintln('usage: combined-account-webview-build [--store|--auth|--cache|--descriptions|--protected-storage|--service-query|--direct-boot|--credential-storage|--broadcast-result|--onboarding|--application-restrictions|--auth-exception|--binder-identity|--service-lifecycle|--platform-fragments|--imageview-bounds|--window-system-ui] BASELINE BASELINE_MANIFEST_SHA256 BASELINE_JAR_SHA256 FRESH_OUTPUT | --self-test'); exit(2) }
  build(os.abs_path(os.args[1]), os.args[2], os.args[3], os.abs_path(os.args[4])) or { eprintln(err); exit(1) }
 }
