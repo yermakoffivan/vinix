@@ -42,4 +42,5 @@ Qualified executable SHA-256:
 The earlier builder qualifications remain retained in the adjacent `r1`/`r2` roots;
 the final profile delegates clipped pixel sampling to the native renderer.
 
-Full framework production and the coupled native build remain pending.
+The [complete framework/native pair](bitmap-tiles-pair-2026-10-30.md) now passes
+production and full evidence readback. Runtime validation remains separate.
