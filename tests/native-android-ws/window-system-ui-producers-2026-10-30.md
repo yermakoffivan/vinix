@@ -43,6 +43,15 @@ generated JNI remain identical; generated JNI SHA-256 is
 The unchanged source-matching native bootstrap and compiler closure follow the
 [ImageView producer](imageview-bounds-producers-2026-10-30.md).
 
+The retained host builder closure additionally incorporates commit `a07c876ab`
+in `tools/sourcecommand/pty.v` and `reader.v`: each file has exactly four local
+identifier substitutions from `arguments` to `argv_pointers`. Independent review
+compared the complete retained sources and found no other byte changes. These
+helpers are absent from the target native generated C; the native builder uses
+`os.exec(argv)`. The media audit requires both exact before/after hashes and
+whole-source four-substitution equality, alongside the explicit framework
+registration/provider changes. The native-generator closure stays unchanged.
+
 | Phase | Guard seconds | Sampled aggregate RSS, bytes | Time maximum RSS, bytes |
 | --- | ---: | ---: | ---: |
 | Builder compile | 1.599 | 348,028,928 | 379,191,296 |
