@@ -73,6 +73,7 @@ const retained = {
 	'tests/native-android-ws/maps-imageview-bounds-stage.v': carry($embed_file(@FILE))
 	'tests/native-android-ws/mapsaccountstage/bundle.v': carry($embed_file('mapsaccountstage/bundle.v'))
 	'tests/native-android-ws/mapsaccountstage/hostsha.v': carry($embed_file('mapsaccountstage/hostsha.v'))
+	'tests/native-android-ws/mapsaccountstage/parallel.v': carry($embed_file('mapsaccountstage/parallel.v'))
 	'tests/native-android-ws/mapsaccountstage/elf.v': carry($embed_file('mapsaccountstage/elf.v'))
 	'tests/native-android-ws/mapsaccountstage/media.v': carry($embed_file('mapsaccountstage/media.v'))
 	'tests/native-android-ws/mapsaccountstage/headless.v': carry($embed_file('mapsaccountstage/headless.v'))
@@ -681,8 +682,8 @@ fn run(destination string) ! {
 	inputs[base_root + '/sha256.json'] = base_seal
 	deps := dependencies(base)!
 	stage.disjoint(root, deps.keys())!
+	stage.audit_inventories_parallel(deps)!
 	for path, pin in deps {
-		stage.load_inventory(path, pin)!
 		inputs[path + '/sha256.json'] = pin
 	}
 	controller := stage.load_bundle(controller_root, controller_seal)!
@@ -794,7 +795,7 @@ fn run(destination string) ! {
 	mut after := audit_modules(root, 'readback', root + '/boot.img', final_modules, media_pins, mut disk, mut disk_samples)!
 	after.delete(overlay)
 	println('MAPS-IMAGEVIEW-BOUNDS rechecking complete inputs')
-	for path, pin in deps { stage.load_inventory(path, pin)! }
+	stage.audit_inventories_parallel(deps)!
 	stage.recheck(controller)!
 	stage.recheck(broker)!
 	stage.recheck(framework)!
