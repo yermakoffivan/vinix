@@ -1,0 +1,51 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+module mapsaccountstage
+
+import os
+
+type InventoryBatchAudit = fn (map[string]string) !
+
+// The public image contract is exactly seventy roots. The private sixty-five
+// case exercises the boundary immediately above the unchanged helper limit.
+fn inventory_batch_plan(pins map[string]string, expected int) ![]map[string]string {
+	if expected !in [65, 70] || pins.len != expected {
+		return error('exact bounded inventory batch count required')
+	}
+	mut roots := pins.keys()
+	roots.sort()
+	mut first := map[string]string{}
+	mut second := map[string]string{}
+	for index, root in roots {
+		if !os.is_abs_path(root) || os.norm_path(root) != root || root.contains_any('\\\x00\r\n\t')
+			|| !valid_pin(pins[root]!) { return error('canonical absolute inventory selector and exact pin required') }
+		if index < 64 {
+			first[root.clone()] = pins[root]!.clone()
+		} else {
+			second[root.clone()] = pins[root]!.clone()
+		}
+	}
+	if first.len != 64 || second.len != expected - 64 { return error('exact inventory batch partition required') }
+	mut combined := map[string]string{}
+	for batch in [first, second] {
+		for root, pin in batch {
+			if root in combined { return error('inventory batches overlap') }
+			combined[root] = pin
+		}
+	}
+	if combined != pins { return error('complete inventory batch union differs') }
+	return [first, second]
+}
+
+fn audit_inventory_batches_with(pins map[string]string, expected int, audit InventoryBatchAudit) ! {
+	batches := inventory_batch_plan(pins, expected)!
+	// Each call joins every worker it started before returning. Do not spawn
+	// these calls: the second batch starts only after the first succeeds.
+	audit(batches[0])!
+	audit(batches[1])!
+}
+
+// Both image audit phases call this afresh. Every root and complete inventory
+// is read again; no inventory or successful result survives between calls.
+pub fn audit_seventy_inventories(pins map[string]string) ! {
+	audit_inventory_batches_with(pins, 70, audit_inventories_parallel)!
+}
