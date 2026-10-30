@@ -257,6 +257,26 @@ const platform_fragments_transaction_canonical = '8ca0812c9d83251eed4befb750309a
 const platform_fragments_added_class = 'android/app/VinixFragmentCommit.smali'
 const platform_fragments_added_raw = '9c1b575f2fd9d254ccf068948b52b0229e1b1d3435bc97fe7702b6e6d80fcd2a'
 const platform_fragments_added_canonical = '445b9ed0be07cbe8f8018d357f9ce277b560dd545fdae039a71193eca4223011'
+const imageview_bounds_base = '/Users/alex/.local/state/vinix/android/maps-platform-fragments-r2'
+const imageview_bounds_base_seal = '1a079687d54ed8eae5ab881be3f0459d37ce8e69533bc12df48874cf7335199a'
+const imageview_bounds_boot = '68f9b50cb56b188d5c3f8526f3f8ce5fc90b4f89ecaa9ce7560bfc19ac3d5de2'
+const imageview_bounds_base_overlay = '6f8481f4db93ec78e5b181d1dcd6bd5be4e7fe298330ebb953598ee7219f73b1'
+const imageview_bounds_old_deployment = 'e39c076f40e06c63d15d0a4ac9ed1425e1704ff51b26db2fd0eb7af661b9e323'
+const imageview_bounds_old_headless = '0fc136686978f96d0bd7d70be8cca6de9dc8fa70b3913f73af83fbb0374e9964'
+const imageview_bounds_framework = '/Users/alex/.local/state/vinix/android/combined-account-webview-imageview-bounds-framework-2026-10-30-r1'
+const imageview_bounds_seal = '95853b2f31ac34f731c8c31fc1251fd695ed6d856a8bfef0f71041efc10273e0'
+const imageview_bounds_build = 'aa8594f4f07818e8c289fc7ce0caa96007bfa2984f9a310e895e1dd911746f4e'
+const imageview_bounds_jar = '9cfdbeaff047b693837508c3f7676510a63c05af118e864964b4b432fb813af9'
+const imageview_bounds_dex = 'fb8ec08f3830293c3859ca043d9296ada34fecb3fe2cb7f11c3ed03dfa69e474'
+const imageview_bounds_native = '/Users/alex/.local/state/vinix/android/current-native-build-2026-10-30-imageview-bounds-r1'
+const imageview_bounds_native_seal = 'd7d8ac996d63b2bd8ad8f6b658a32ae23903ebb9e248297d219f46f6df8f59c8'
+const imageview_bounds_native_pin = 'fd38d7f8e3c0d17934617242cb95b0412a0c6ed676cb4454e5a52c8cf494dc2c'
+const imageview_bounds_native_build = 'c5d2428b0f9ac1e66e702d29957b6c5b347030fa495e4adf375bffed50310a1c'
+const imageview_bounds_framework_helper = '7bd90c8476e331003aff80fb387890bbe07bf9e4e8674d904863ba1d55be7c56'
+const imageview_bounds_provider_helper = '225b41a530a4f3bf1d7d627ecc7adfae67bb62e11823405d0abba92292943f46'
+const imageview_bounds_before = '08d95bbb3030dd12e17dbfd0f3ac17f3f97b28ced3c79cab104c41d44c4a86d8'
+const imageview_bounds_raw = '6ff7772b2474b6efe5cb267aa017afd1d85dfc4c6105c6a2d1106535e00f68ec'
+const imageview_bounds_canonical = '20b3e0ec72ce502400c741b517a9953dbd045ffa0524a277d63e343252ce2029'
 const source = $embed_file(@FILE).to_string()
 
 struct Profile {
@@ -2387,6 +2407,138 @@ fn platform_fragments_baseline(receipt map[string]json2.Any, stage Stage) !strin
 	return platform_fragments_base + '/boot.img'
 }
 
+fn imageview_bounds_profile() Profile {
+	mut modules := platform_fragments_profile().modules.clone()
+	modules << 'maps-platform-fragments.tar'
+	return Profile{'maps-imageview-bounds', imageview_bounds_boot, 'maps-imageview-bounds.tar', modules}
+}
+fn imageview_bounds_modules() map[string]string {
+	mut modules := platform_fragments_modules()
+	modules['maps-platform-fragments.tar'] = imageview_bounds_base_overlay
+	return modules
+}
+fn imageview_bounds_fields() map[string]string {
+	mut fields := platform_fragments_fields()
+	fields['kind'] = 'vinix-maps-imageview-bounds-v1'
+	fields['base_root'] = imageview_bounds_base
+	fields['base_manifest_sha256'] = imageview_bounds_base_seal
+	fields['framework_build_root'] = imageview_bounds_framework
+	fields['framework_manifest_sha256'] = imageview_bounds_seal
+	fields['framework_jar_sha256'] = imageview_bounds_jar
+	fields['framework_dex_sha256'] = imageview_bounds_dex
+	fields['retained_framework_manifest_sha256'] = platform_fragments_seal
+	fields['native_compatibility_framework_manifest_sha256'] = platform_fragments_seal
+	fields['native_build_root'] = imageview_bounds_native
+	fields['native_manifest_sha256'] = imageview_bounds_native_seal
+	fields['native_sha256'] = imageview_bounds_native_pin
+	fields['native_build_sha256'] = imageview_bounds_native_build
+	fields['retained_native_manifest_sha256'] = platform_fragments_native_seal
+	fields['native_framework_manifest_sha256'] = imageview_bounds_seal
+	return fields
+}
+fn imageview_bounds_inputs() map[string]string {
+	mut inputs := platform_fragments_inputs()
+	inputs[imageview_bounds_base + '/sha256.json'] = imageview_bounds_base_seal
+	inputs[imageview_bounds_framework + '/sha256.json'] = imageview_bounds_seal
+	inputs[imageview_bounds_native + '/sha256.json'] = imageview_bounds_native_seal
+	return inputs
+}
+fn imageview_bounds_known_delta() map[string]string {
+	mut delta := {'/' + service_query_jar_path: imageview_bounds_jar, '/' + service_query_dex_path: imageview_bounds_dex,
+		'/' + native_onboarding_trace_path: imageview_bounds_native_pin,
+		'/' + service_query_headless + '/framework-build.json': imageview_bounds_build,
+		'/' + service_query_headless + '/framework-sha256.json': imageview_bounds_seal}
+	if imageview_bounds_native_pin == platform_fragments_native_pin { delta.delete('/' + native_onboarding_trace_path) }
+	return delta
+}
+fn imageview_bounds_raw_delta() map[string][]string {
+	return {'smali/android/widget/ImageView.smali': [imageview_bounds_before, imageview_bounds_raw],
+		'smali/android/app/Activity.smali': [platform_fragments_activity_raw, platform_fragments_activity_canonical]}
+}
+fn imageview_bounds_canonical_delta() map[string][]string {
+	return {'android/widget/ImageView.smali': [imageview_bounds_before, imageview_bounds_canonical]}
+}
+fn imageview_bounds_proofs() map[string]string {
+	return {
+		'headless_input_delta': json2.encode({'/' + service_query_jar_path: imageview_bounds_jar})
+		'headless_top_level_delta': json2.encode(['inputs_sha256'])
+		'deployment_top_level_delta': json2.encode(['inputs_sha256', 'framework_manifest_sha256', 'native_manifest_sha256'])
+		'native_source_delta': json2.encode(map[string]string{})
+		'native_builder_helper_delta': json2.encode({'tests/native-android-tools/androidtools/framework.v': imageview_bounds_framework_helper,
+			'tests/native-android-tools/androidtools/framework_image_bounds.v': imageview_bounds_provider_helper})
+		'framework_source_delta': json2.encode({'smali/android/widget/ImageView.smali': imageview_bounds_raw})
+		'framework_canonical_delta': json2.encode({'new-dex/android/widget/ImageView.smali': imageview_bounds_canonical})
+		'framework_class_count': json2.encode(2105)
+		'native_consumed_raw_delta': json2.encode(imageview_bounds_raw_delta())
+		'native_consumed_canonical_delta': json2.encode(imageview_bounds_canonical_delta())
+		'native_consumed_class_count': json2.encode(68)
+	}
+}
+fn verify_imageview_bounds_overlay(receipt map[string]json2.Any) ! {
+	delta := json2.decode[map[string]string](json2.encode(receipt['deployment_input_delta'] or { return error('ImageView bounds deployment delta absent') }))!
+	mut expected := imageview_bounds_known_delta()
+	guest := '/' + service_query_headless + '/guest-inputs.json'
+	guest_pin := delta[guest] or { return error('ImageView bounds headless pin absent') }
+	if !digest_valid(guest_pin) || guest_pin == imageview_bounds_old_headless { return error('new ImageView bounds headless receipt required') }
+	expected[guest] = guest_pin
+	if delta != expected { return error('ImageView bounds exact deployment input changes differ') }
+	for name, value in imageview_bounds_proofs() {
+		if receipt[name] or { json2.Any('absent') } != json2.decode[json2.Any](value)! { return error('ImageView bounds declared proof/delta differs: ' + name) }
+	}
+	entries := json2.decode[[]ServiceQueryEntry](json2.encode(receipt['overlay_inventory'] or { return error('ImageView bounds overlay inventory absent') }))!
+	mut regulars := map[string]string{}
+	mut seen := map[string]bool{}
+	mut paths := expected.keys().map(it.trim_left('/'))
+	if native_onboarding_trace_path !in paths { paths << native_onboarding_trace_path }
+	paths << service_query_deployment
+	for entry in entries {
+		if entry.name in seen || !relative(entry.name) || entry.mode & 0o7022 != 0 { return error('unsafe ImageView bounds overlay inode') }
+		seen[entry.name] = true
+		if entry.kind == 'regular' {
+			mode := if entry.name == native_onboarding_trace_path { u32(0o755) } else { u32(0o644) }
+			if entry.name !in paths || !digest_valid(entry.sha256) || entry.mode != mode { return error('ImageView bounds file allowlist or mode differs') }
+			regulars[entry.name] = entry.sha256
+		} else if entry.kind != 'directory' || entry.mode != 0o755 || !paths.any(it.starts_with(entry.name + '/')) { return error('unexpected ImageView bounds inode') }
+	}
+	if regulars.len != 7 || regulars[service_query_deployment] or { '' } == imageview_bounds_old_deployment { return error('exact seven new ImageView bounds files required') }
+	if regulars[native_onboarding_trace_path] or { '' } != imageview_bounds_native_pin { return error('ImageView bounds coupled native overlay differs') }
+	for path, pin in expected {
+		if regulars[path.trim_left('/')] or { '' } != pin { return error('ImageView bounds declared input differs from inventory') }
+	}
+}
+fn verify_imageview_bounds_receipt(receipt map[string]json2.Any, stage Stage) ! {
+	for pin in [imageview_bounds_base_seal, imageview_bounds_boot, imageview_bounds_base_overlay,
+		imageview_bounds_old_deployment, imageview_bounds_old_headless, imageview_bounds_seal,
+		imageview_bounds_build, imageview_bounds_jar, imageview_bounds_dex,
+		imageview_bounds_native_seal, imageview_bounds_native_pin, imageview_bounds_native_build,
+		imageview_bounds_framework_helper, imageview_bounds_provider_helper,
+		imageview_bounds_before, imageview_bounds_raw, imageview_bounds_canonical] {
+		if !digest_valid(pin) { return error('completed ImageView bounds framework/native producer required') }
+	}
+	if imageview_bounds_seal == platform_fragments_seal || imageview_bounds_jar == platform_fragments_jar
+		|| imageview_bounds_dex == platform_fragments_dex || imageview_bounds_native_seal == platform_fragments_native_seal
+		|| imageview_bounds_raw == imageview_bounds_before || imageview_bounds_canonical == imageview_bounds_before {
+		return error('new ImageView bounds framework and coupled native receipts required')
+	}
+	for name, expected in imageview_bounds_fields() {
+		if receipt[name] or { json2.Any('absent') } != json2.Any(expected) { return error('ImageView bounds receipt differs: ' + name) }
+	}
+	mut seals := map[string]string{}
+	for path, pin in stage.inputs_sha256 { if path.ends_with('/sha256.json') { seals[path] = pin } }
+	if seals.len != 59 || seals != imageview_bounds_inputs() { return error('ImageView bounds exact fifty-nine dependency seals differ') }
+	if stage.format != 1 || stage.original_modules_sha256 != imageview_bounds_modules() || stage.preserved_modules_sha256 != imageview_bounds_modules() { return error('ImageView bounds original twenty-seven modules differ') }
+	verify_imageview_bounds_overlay(receipt)!
+}
+fn imageview_bounds_baseline(receipt map[string]json2.Any, stage Stage) !string {
+	verify_imageview_bounds_receipt(receipt, stage)!
+	path := imageview_bounds_base + '/sha256.json'
+	regular(path)!
+	if os.lstat(path)!.size > 8 * 1024 * 1024 || hash(path)! != imageview_bounds_base_seal { return error('ImageView bounds original Fragment image manifest differs') }
+	pins := json2.decode[map[string]string](os.read_file(path)!)!
+	if pins['boot.img'] or { '' } != imageview_bounds_boot || pins['maps-platform-fragments.tar'] or { '' } != imageview_bounds_base_overlay { return error('ImageView bounds original boot or Fragment overlay differs') }
+	return imageview_bounds_base + '/boot.img'
+}
+
 fn service_query_modules() map[string]string {
 	mut modules := controller_modules()
 	modules['maps-controller-diagnostic.tar'] = 'bef5f25859e77a9671a6a144ccb56891da5ed2f7b4324a93a96da7fdcab1987a'
@@ -2993,6 +3145,8 @@ fn patch(root string, build_root string, receipt_sha string, profile Profile) ! 
 		baseline = service_lifecycle_baseline(stage_map, stage)!
 	} else if profile.name == 'maps-platform-fragments' {
 		baseline = platform_fragments_baseline(stage_map, stage)!
+	} else if profile.name == 'maps-imageview-bounds' {
+		baseline = imageview_bounds_baseline(stage_map, stage)!
 	} else {
 		for path, expected in stage.inputs_sha256 {
 			if os.file_name(path) == 'boot.img' && expected == baseline_pin {
@@ -5654,6 +5808,106 @@ fn platform_fragments_profile_self_test() ! {
 	println('MAPS-PLATFORM-FRAGMENTS KERNEL-PROFILE-SELF-TEST PASS seven files six input changes fifty-six seals twenty-six inherited modules exact framework/native deltas consumed Activity proof and historical rejection')
 }
 
+fn imageview_bounds_entries_fixture() []ServiceQueryEntry {
+	mut entries := platform_fragments_entries_fixture().filter(it.kind == 'directory')
+	for path, pin in imageview_bounds_known_delta() {
+		name := path.trim_left('/')
+		entries << ServiceQueryEntry{name: name, kind: 'regular', sha256: pin, mode: if name == native_onboarding_trace_path { u32(0o755) } else { u32(0o644) }}
+	}
+	if imageview_bounds_native_pin == platform_fragments_native_pin {
+		entries << ServiceQueryEntry{name: native_onboarding_trace_path, kind: 'regular', sha256: imageview_bounds_native_pin, mode: 0o755}
+	}
+	entries << ServiceQueryEntry{name: service_query_headless + '/guest-inputs.json', kind: 'regular', sha256: 'c'.repeat(64), mode: 0o644}
+	entries << ServiceQueryEntry{name: service_query_deployment, kind: 'regular', sha256: 'd'.repeat(64), mode: 0o644}
+	return entries
+}
+fn imageview_bounds_receipt_fixture() !map[string]json2.Any {
+	mut receipt := map[string]json2.Any{}
+	for name, value in imageview_bounds_fields() { receipt[name] = json2.Any(value) }
+	mut delta := imageview_bounds_known_delta()
+	delta['/' + service_query_headless + '/guest-inputs.json'] = 'c'.repeat(64)
+	receipt['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(delta))!
+	for name, value in imageview_bounds_proofs() { receipt[name] = json2.decode[json2.Any](value)! }
+	receipt['overlay_inventory'] = json2.decode[json2.Any](json2.encode(imageview_bounds_entries_fixture()))!
+	return receipt
+}
+fn imageview_bounds_profile_self_test() ! {
+	profile := imageview_bounds_profile()
+	if profile.baseline_sha != imageview_bounds_boot || profile.modules.len != 27
+		|| profile.modules.last() != 'maps-platform-fragments.tar' || imageview_bounds_inputs().len != 59 { return error('ImageView bounds strict profile differs') }
+	if imageview_bounds_known_delta().len != (if imageview_bounds_native_pin == platform_fragments_native_pin { 4 } else { 5 }) { return error('ImageView bounds actual changed input count differs') }
+	mut final_modules := profile.modules.clone()
+	final_modules << profile.overlay
+	verify_modules(profile, Config{'vinix', profile.modules}, Config{'vinix', final_modules})!
+	stage := Stage{format: 1, inputs_sha256: imageview_bounds_inputs(), original_modules_sha256: imageview_bounds_modules(), preserved_modules_sha256: imageview_bounds_modules()}
+	receipt := imageview_bounds_receipt_fixture()!
+	verify_imageview_bounds_receipt(receipt, stage)!
+	mut fields := imageview_bounds_fields().keys()
+	fields << imageview_bounds_proofs().keys()
+	fields << 'deployment_input_delta'
+	for field in fields {
+		mut bad := imageview_bounds_receipt_fixture()!
+		bad[field] = json2.Any('changed')
+		if _ := verify_imageview_bounds_receipt(bad, stage) { return error('changed ImageView bounds field/proof accepted') }
+		bad.delete(field)
+		if _ := verify_imageview_bounds_receipt(bad, stage) { return error('missing ImageView bounds field/proof accepted') }
+	}
+	for path in stage.inputs_sha256.keys() {
+		mut pins := imageview_bounds_inputs()
+		pins[path] = '0'.repeat(64)
+		if _ := verify_imageview_bounds_receipt(receipt, Stage{...stage, inputs_sha256: pins}) { return error('changed ImageView bounds dependency accepted') }
+		pins.delete(path)
+		if _ := verify_imageview_bounds_receipt(receipt, Stage{...stage, inputs_sha256: pins}) { return error('missing ImageView bounds dependency accepted') }
+	}
+	mut extra := imageview_bounds_inputs()
+	extra['/unreviewed/sha256.json'] = 'a'.repeat(64)
+	if _ := verify_imageview_bounds_receipt(receipt, Stage{...stage, inputs_sha256: extra}) { return error('extra ImageView bounds dependency accepted') }
+	for bad in [Stage{...stage, format: 0}, Stage{...stage, original_modules_sha256: platform_fragments_modules()}, Stage{...stage, preserved_modules_sha256: platform_fragments_modules()}] {
+		if _ := verify_imageview_bounds_receipt(receipt, bad) { return error('wrong ImageView bounds module inventory accepted') }
+	}
+	stale_receipt := platform_fragments_receipt_fixture()!
+	for field in ['native_source_delta', 'native_builder_helper_delta', 'framework_source_delta', 'framework_canonical_delta', 'native_consumed_raw_delta', 'native_consumed_canonical_delta'] {
+		mut bad := imageview_bounds_receipt_fixture()!
+		bad[field] = stale_receipt[field]!
+		if _ := verify_imageview_bounds_receipt(bad, stage) { return error('stale Fragment transition proof accepted') }
+	}
+	entries := imageview_bounds_entries_fixture()
+	for index, entry in entries {
+		for changed in [ServiceQueryEntry{...entry, name: '../escape'}, ServiceQueryEntry{...entry, kind: 'symlink'},
+			ServiceQueryEntry{...entry, mode: 0o777}, ServiceQueryEntry{...entry, mode: 0o4755}] {
+			mut bad_entries := entries.clone()
+			bad_entries[index] = changed
+			mut bad := imageview_bounds_receipt_fixture()!
+			bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(bad_entries))!
+			if _ := verify_imageview_bounds_receipt(bad, stage) { return error('unsafe ImageView bounds inode accepted') }
+		}
+		if entry.kind == 'regular' {
+			mut corrupt_entries := entries.clone()
+			corrupt_entries[index] = ServiceQueryEntry{...entry, sha256: '0'.repeat(64)}
+			mut corrupt := imageview_bounds_receipt_fixture()!
+			corrupt['overlay_inventory'] = json2.decode[json2.Any](json2.encode(corrupt_entries))!
+			if entry.name != service_query_deployment {
+				if _ := verify_imageview_bounds_receipt(corrupt, stage) { return error('changed ImageView bounds file hash accepted') }
+			}
+			mut bad_entries := entries.clone()
+			bad_entries.delete(index)
+			mut bad := imageview_bounds_receipt_fixture()!
+			bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(bad_entries))!
+			if _ := verify_imageview_bounds_receipt(bad, stage) { return error('missing ImageView bounds file accepted') }
+		}
+	}
+	for extra_entry in [entries.last(), ServiceQueryEntry{name: native_onboarding_trace_path, kind: 'regular', sha256: platform_fragments_native_pin, mode: 0o755}] {
+		mut bad_entries := entries.clone()
+		bad_entries << extra_entry
+		mut bad := imageview_bounds_receipt_fixture()!
+		bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(bad_entries))!
+		if _ := verify_imageview_bounds_receipt(bad, stage) { return error('extra or stale ImageView bounds file accepted') }
+	}
+	if _ := verify_imageview_bounds_receipt(stale_receipt, stage) { return error('Fragment receipt accepted by ImageView bounds profile') }
+	if _ := verify_platform_fragments_receipt(receipt, stage) { return error('ImageView bounds receipt accepted by Fragment profile') }
+	println('MAPS-IMAGEVIEW-BOUNDS KERNEL-PROFILE-SELF-TEST PASS seven files exact actual input changes fifty-nine seals twenty-seven inherited modules ImageView consumed delta unchanged native sources and historical rejection')
+}
+
 fn self_test() ! {
 	protected_profile_self_test()!
 	controller_profile_self_test()!
@@ -5675,6 +5929,7 @@ fn self_test() ! {
 	binder_identity_profile_self_test()!
 	service_lifecycle_profile_self_test()!
 	platform_fragments_profile_self_test()!
+	imageview_bounds_profile_self_test()!
 	maps := maps_profile()
 	before := Config{'vinix', maps.modules}
 	mut modules := maps.modules.clone()
@@ -5776,9 +6031,10 @@ fn main() {
 	is_binder_identity := os.args.len == 5 && os.args[1] == '--maps-binder-identity'
 	is_service_lifecycle := os.args.len == 5 && os.args[1] == '--maps-service-lifecycle'
 	is_platform_fragments := os.args.len == 5 && os.args[1] == '--maps-platform-fragments'
-	is_selected := is_maps || is_protected || is_controller || is_service_query || is_controller_memory || is_direct_boot || is_context_storage || is_broadcast_result || is_onboarding_trace || is_native_onboarding_trace || is_onboarding_framework || is_native_heartbeat || is_browser_poll || is_account_pump || is_application_restrictions || is_account_handoff || is_auth_exception || is_auth_worker || is_binder_identity || is_service_lifecycle || is_platform_fragments
+	is_imageview_bounds := os.args.len == 5 && os.args[1] == '--maps-imageview-bounds'
+	is_selected := is_maps || is_protected || is_controller || is_service_query || is_controller_memory || is_direct_boot || is_context_storage || is_broadcast_result || is_onboarding_trace || is_native_onboarding_trace || is_onboarding_framework || is_native_heartbeat || is_browser_poll || is_account_pump || is_application_restrictions || is_account_handoff || is_auth_exception || is_auth_worker || is_binder_identity || is_service_lifecycle || is_platform_fragments || is_imageview_bounds
 	if os.args.len != 4 && !is_selected {
-		eprintln('usage: patch-kernel [--maps-account|--protected-storage-maps|--maps-controller|--maps-service-query|--maps-controller-memory|--maps-direct-boot|--maps-context-storage|--maps-broadcast-result|--maps-onboarding-trace|--maps-native-onboarding-trace|--maps-onboarding-framework|--maps-native-heartbeat|--maps-browser-poll|--maps-account-pump|--maps-application-restrictions|--maps-account-handoff|--maps-auth-exception|--maps-auth-worker|--maps-binder-identity|--maps-service-lifecycle|--maps-platform-fragments] FRESH_STAGE FROZEN_KERNEL_BUILD BUILD_JSON_SHA256')
+		eprintln('usage: patch-kernel [--maps-account|--protected-storage-maps|--maps-controller|--maps-service-query|--maps-controller-memory|--maps-direct-boot|--maps-context-storage|--maps-broadcast-result|--maps-onboarding-trace|--maps-native-onboarding-trace|--maps-onboarding-framework|--maps-native-heartbeat|--maps-browser-poll|--maps-account-pump|--maps-application-restrictions|--maps-account-handoff|--maps-auth-exception|--maps-auth-worker|--maps-binder-identity|--maps-service-lifecycle|--maps-platform-fragments|--maps-imageview-bounds] FRESH_STAGE FROZEN_KERNEL_BUILD BUILD_JSON_SHA256')
 		exit(2)
 	}
 	offset := if is_selected { 1 } else { 0 }
@@ -5790,7 +6046,7 @@ fn main() {
 		eprintln(err)
 		exit(1)
 	}
-	profile := if is_platform_fragments { platform_fragments_profile() } else if is_service_lifecycle { service_lifecycle_profile() } else if is_binder_identity { binder_identity_profile() } else if is_auth_worker { auth_worker_profile() } else if is_auth_exception { auth_exception_profile() } else if is_account_handoff { account_handoff_profile() } else if is_application_restrictions { application_restrictions_profile() } else if is_account_pump { account_pump_profile() } else if is_browser_poll { browser_poll_profile() } else if is_native_heartbeat { native_heartbeat_profile() } else if is_onboarding_framework { onboarding_framework_profile() } else if is_native_onboarding_trace { native_onboarding_trace_profile() } else if is_onboarding_trace { onboarding_trace_profile() } else if is_broadcast_result { broadcast_result_profile() } else if is_context_storage { context_storage_profile() } else if is_direct_boot { direct_boot_profile() } else if is_controller_memory { controller_memory_profile() } else if is_service_query { service_query_profile() } else if is_controller { controller_profile() } else if is_protected { protected_maps_profile() } else if is_maps { maps_profile() } else { browser_profile() }
+	profile := if is_imageview_bounds { imageview_bounds_profile() } else if is_platform_fragments { platform_fragments_profile() } else if is_service_lifecycle { service_lifecycle_profile() } else if is_binder_identity { binder_identity_profile() } else if is_auth_worker { auth_worker_profile() } else if is_auth_exception { auth_exception_profile() } else if is_account_handoff { account_handoff_profile() } else if is_application_restrictions { application_restrictions_profile() } else if is_account_pump { account_pump_profile() } else if is_browser_poll { browser_poll_profile() } else if is_native_heartbeat { native_heartbeat_profile() } else if is_onboarding_framework { onboarding_framework_profile() } else if is_native_onboarding_trace { native_onboarding_trace_profile() } else if is_onboarding_trace { onboarding_trace_profile() } else if is_broadcast_result { broadcast_result_profile() } else if is_context_storage { context_storage_profile() } else if is_direct_boot { direct_boot_profile() } else if is_controller_memory { controller_memory_profile() } else if is_service_query { service_query_profile() } else if is_controller { controller_profile() } else if is_protected { protected_maps_profile() } else if is_maps { maps_profile() } else { browser_profile() }
 	patch(root, build_root, os.args[3 + offset], profile) or {
 		eprintln(err)
 		exit(1)
