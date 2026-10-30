@@ -1,0 +1,265 @@
+// SPDX-License-Identifier: GPL-2.0-or-later
+@[translated]
+module main
+
+// A separate integer reference covers modes without calling production wrap math.
+fn reference_axis(value int, size int, mode int) int {
+	if mode == 0 { return if value < 0 { 0 } else if value >= size { size - 1 } else { value } }
+	period := if mode == 2 { size * 2 } else { size }
+	phase := ((value % period) + period) % period
+	return if mode == 2 && phase >= size { period - 1 - phase } else { phase }
+}
+
+fn sampler_indices() {
+	for size in [1, 2, 3, 7, 16384] {
+		for mode in 0 .. 3 {
+			for value in -50 .. 51 {
+				assert ws_bitmap_tile_index(f32(value) + 0.25, size, mode) == reference_axis(value, size, mode)
+				assert ws_bitmap_tile_index(f32(value) + 0.75, size, mode) == reference_axis(value, size, mode)
+			}
+		}
+	}
+	assert ws_bitmap_tile_index(-1.0, 2147483647, 2) == 0
+	assert ws_bitmap_tile_index(-2147483648.0, 2147483647, 2) == 2147483646
+	assert ws_bitmap_tile_index(2147483648.0, 2147483647, 2) == 2147483645
+	println('BITMAP-TILES-HOST PASS negative-fractional-indices-intmax')
+}
+
+fn patterned(mut bitmap WsBitmap) {
+	unsafe {
+		for y in 0 .. bitmap.height {
+			for x in 0 .. bitmap.width {
+				at := y * bitmap.row_bytes + x * 4
+				bitmap.rgba[at] = u8(x * 25 + 17)
+				bitmap.rgba[at + 1] = u8(y * 25 + 31)
+				bitmap.rgba[at + 2] = u8(x * 7 + y * 11 + 47)
+				bitmap.rgba[at + 3] = 255
+			}
+		}
+	}
+}
+fn tile_apply(source &WsBitmap, paint &WsPaint, bounds [4]i32, mode_x int, mode_y int) {
+	ws_draw_bitmap_tiled(i64(source), bounds[0], bounds[1], bounds[2], bounds[3], i64(paint), mode_x, mode_y)
+}
+
+fn mode_grid() {
+	mut input := [24]u8{}
+	mut source := WsBitmap{width: 3, height: 2, row_bytes: 12, rgba: unsafe { &input[0] }}
+	patterned(mut source)
+	mut output := [192]u8{}
+	mut target := WsBitmap{width: 8, height: 6, row_bytes: 32, rgba: unsafe { &output[0] }}
+	paint := WsPaint{}
+	for bounds in [[i32(0), 0, 8, 6]!, [i32(1), 1, 7, 5]!, [i32(-7), -7, 11, 9]!] {
+		for mode_x in 0 .. 3 {
+			for mode_y in 0 .. 3 {
+				for shift in [0, 3] {
+					fill(mut target, 0xff102030)
+					canvas(mut target)
+					draw_state.transform.x = f32(shift)
+					draw_state.transform.y = f32(shift)
+					tile_apply(&source, &paint, bounds, mode_x, mode_y)
+					for y in 0 .. target.height {
+						for x in 0 .. target.width {
+							local_x, local_y := x - shift, y - shift
+							inside := local_x >= bounds[0] && local_y >= bounds[1] && local_x < bounds[2] && local_y < bounds[3]
+							expected := if inside { argb(&source, reference_axis(local_x, 3, mode_x), reference_axis(local_y, 2, mode_y)) } else { u32(0xff102030) }
+							assert argb(&target, x, y) == expected, 'mode=${mode_x}/${mode_y} shift=${shift} at${x},${y}'
+						}
+					}
+				}
+			}
+		}
+	}
+	println('BITMAP-TILES-HOST PASS all-nine-mode-pairs-origin-negative-partial-bounds')
+}
+
+fn affine_and_huge_clip() {
+	mut input := [24]u8{}
+	mut source := WsBitmap{width: 3, height: 2, row_bytes: 12, rgba: unsafe { &input[0] }}
+	patterned(mut source)
+	mut output := [256]u8{}
+	mut target := WsBitmap{width: 8, height: 8, row_bytes: 32, rgba: unsafe { &output[0] }}
+	paint := WsPaint{}
+	fill(mut target, 0xff123456)
+	canvas(mut target)
+	// Rotate+translate: Canvas local coordinates are (screenY, 7-screenX).
+	draw_state.transform = WsTransform{sx: 0, sy: 0, kx: -1, ky: 1, x: 8, right: 8, bottom: 8, left: 2, top: 1}
+	tile_apply(&source, &paint, [i32(-2147483647 - 1), -2147483647 - 1, 2147483647, 2147483647]!, 1, 2)
+	for y in 0 .. 8 {
+		for x in 0 .. 8 {
+			expected := if x >= 2 && y >= 1 { argb(&source, reference_axis(y, 3, 1), reference_axis(7 - x, 2, 2)) } else { u32(0xff123456) }
+			assert argb(&target, x, y) == expected, 'huge affine clip ${x},${y}'
+		}
+	}
+	fill(mut target, 0xff123456)
+	canvas(mut target)
+	mut points := [WsVertex{2, 1, true}, WsVertex{5, 1, false}, WsVertex{5, 5, false}, WsVertex{2, 5, false}]!
+	mut clip := WsPathClip{points: unsafe { &points[0] }, count: 4}
+	draw_state.transform.path_clip = unsafe { &clip }
+	draw_state.transform.clip_count = 1
+	draw_state.clips[0] = WsClipQuad{x: [f32(1), 7, 7, 1]!, y: [f32(2), 2, 6, 6]!}
+	tile_apply(&source, &paint, [i32(-2147483647 - 1), -2147483647 - 1, 2147483647, 2147483647]!, 1, 2)
+	for y in 0 .. 8 {
+		for x in 0 .. 8 {
+			expected := if x >= 2 && x < 5 && y >= 2 && y < 5 { argb(&source, reference_axis(x, 3, 1), reference_axis(y, 2, 2)) } else { u32(0xff123456) }
+			assert argb(&target, x, y) == expected, 'path and quad clip ${x},${y}'
+		}
+	}
+	// Zero determinant, empty bounds, invalid wire modes and a zero handle do no work.
+	before := output
+	draw_state.transform.sx = 0; draw_state.transform.ky = 0
+	tile_apply(&source, &paint, [i32(0), 0, 8, 8]!, 1, 1)
+	assert output == before
+	tile_apply(&source, &paint, [i32(2), 2, 1, 1]!, 1, 1)
+	tile_apply(&source, &paint, [i32(0), 0, 8, 8]!, -1, 1)
+	ws_draw_bitmap_tiled(0, 0, 0, 8, 8, 0, 1, 1)
+	assert output == before
+	println('BITMAP-TILES-HOST PASS huge-affine-clip-empty-singular-invalid')
+}
+
+fn alias_and_paint() {
+	mut output := [144]u8{}
+	mut target := WsBitmap{width: 6, height: 6, row_bytes: 24, rgba: unsafe { &output[0] }}
+	patterned(mut target)
+	before := output
+	reference := WsBitmap{...target, rgba: unsafe { &before[0] }}
+	paint := WsPaint{}
+	canvas(mut target)
+	draw_state.transform.x = 1; draw_state.transform.y = 1
+	tile_apply(&target, &paint, [i32(-10), -10, 10, 10]!, 1, 2)
+	for y in 0 .. 6 {
+		for x in 0 .. 6 {
+			assert argb(&target, x, y) == argb(&reference, reference_axis(x - 1, 6, 1), reference_axis(y - 1, 6, 2)), 'alias ${x},${y}'
+		}
+	}
+	mut mask_pixels := [u8(0), 128, 255]!
+	mask := WsBitmap{width: 3, height: 1, row_bytes: 3, alpha_only: true, rgba: unsafe { &mask_pixels[0] }}
+	mut p := WsPaint{color: 0x80abcdef}
+	fill(mut target, 0)
+	canvas(mut target)
+	tile_apply(&mask, &p, [i32(0), 0, 6, 6]!, 1, 0)
+	for x in 0 .. 6 {
+		alpha := u32(mask_pixels[x % 3]) * 128 / 255
+		expected := if alpha == 0 { u32(0) } else { (alpha << 24) | 0xabcdef }
+		assert argb(&target, x, 0) == expected
+	}
+	p.xfer_mode = 6
+	fill(mut target, 0x80445566)
+	tile_apply(&mask, &p, [i32(0), 0, 6, 6]!, 1, 0)
+	for x in 0 .. 6 {
+		alpha := 128 * (u32(mask_pixels[x % 3]) * 128 / 255) / 255
+		expected := if alpha == 0 { u32(0) } else { (alpha << 24) | 0x445566 }
+		assert argb(&target, x, 0) == expected
+	}
+	p.xfer_mode = 3; p.filter_mode = 5; p.filter_color = 0x40f1e2d3
+	fill(mut target, 0)
+	tile_apply(&mask, &p, [i32(0), 0, 6, 6]!, 1, 0)
+	assert argb(&target, 2, 0) == 0x20f1e2d3
+	mut alpha_pixels := [6]u8{}
+	mut alpha_target := WsBitmap{width: 6, height: 1, row_bytes: 6, alpha_only: true, rgba: unsafe { &alpha_pixels[0] }}
+	canvas(mut alpha_target)
+	p = WsPaint{color: 0x80abcdef}
+	tile_apply(&mask, &p, [i32(0), 0, 6, 1]!, 1, 0)
+	assert alpha_pixels == [u8(0), 64, 128, 0, 64, 128]!
+	println('BITMAP-TILES-HOST PASS alias-snapshot-paint-alpha-filter-dstin-alphaonly')
+}
+
+__global binding_pending bool
+__global binding_failure int
+__global binding_enter_failure bool
+__global binding_reads int
+__global binding_textures int
+__global binding_enters int
+__global binding_leaves int
+__global binding_throws int
+__global binding_tls voidptr
+__global binding_bitmap i64
+__global binding_paint i64
+
+fn pending(_ voidptr) bool { return binding_pending }
+fn ws_bitmap_texture(_ voidptr, object voidptr) i64 {
+	assert !binding_pending && object == voidptr(usize(2))
+	binding_textures++
+	if binding_failure == 1 { binding_pending = true }
+	return binding_bitmap
+}
+fn get_long(_ voidptr, object voidptr, class &char, field &char) i64 {
+	assert !binding_pending && binding_textures == 1
+	binding_reads++
+	if binding_reads == 1 {
+		assert object == voidptr(usize(3)) && unsafe { cstring_to_vstring(class) } == 'android/graphics/Paint'
+		assert unsafe { cstring_to_vstring(field) } == 'paint'
+		if binding_failure == 2 { binding_pending = true }
+		return binding_paint
+	}
+	assert binding_reads == 2 && object == voidptr(usize(1))
+	assert unsafe { cstring_to_vstring(class) } == 'android/atl/GskCanvas'
+	assert unsafe { cstring_to_vstring(field) } == 'snapshot'
+	if binding_failure == 3 { binding_pending = true }
+	return 123
+}
+fn throw(_ voidptr, class &char, _ &char) {
+	assert unsafe { cstring_to_vstring(class) } == 'java/lang/NullPointerException'
+	binding_throws++; binding_pending = true
+}
+fn ws_canvas_enter(_ voidptr, canvas voidptr, snapshot i64) voidptr {
+	assert canvas == voidptr(usize(1)) && snapshot == 123
+	binding_enters++
+	previous := binding_tls; binding_tls = voidptr(usize(2))
+	if binding_enter_failure { binding_pending = true }
+	return previous
+}
+fn ws_canvas_leave(previous voidptr) { binding_leaves++; binding_tls = previous }
+fn binding_reset() {
+	binding_pending = false; binding_failure = 0; binding_enter_failure = false
+	binding_reads = 0; binding_textures = 0; binding_enters = 0; binding_leaves = 0; binding_throws = 0
+	binding_tls = voidptr(usize(17))
+}
+fn binding_paths() {
+	mut input := [24]u8{}
+	mut source := WsBitmap{width: 3, height: 2, row_bytes: 12, rgba: unsafe { &input[0] }}
+	patterned(mut source)
+	mut output := [64]u8{}
+	mut target := WsBitmap{width: 4, height: 4, row_bytes: 16, rgba: unsafe { &output[0] }}
+	paint := WsPaint{}
+	canvas(mut target)
+	for kind in 0 .. 10 {
+		binding_reset()
+		fill(mut target, 0)
+		mut canvas := voidptr(usize(1))
+		mut bitmap := voidptr(usize(2))
+		mut paint_object := voidptr(usize(3))
+		if kind == 0 { binding_pending = true }
+		if kind == 1 { canvas = unsafe { nil } }
+		if kind == 2 { bitmap = unsafe { nil } }
+		if kind == 3 { paint_object = unsafe { nil } }
+		if kind in [4, 5, 6] { binding_failure = kind - 3 }
+		if kind == 7 { binding_enter_failure = true }
+		binding_bitmap = if kind == 8 { i64(0) } else { i64(unsafe { &source }) }
+		binding_paint = i64(unsafe { &paint })
+		actual_binding(unsafe { nil }, unsafe { nil }, canvas, bitmap, 1, 1, 3, 4, paint_object, 1, 2)
+		assert binding_tls == voidptr(usize(17))
+		assert binding_textures == if kind <= 3 { 0 } else { 1 }
+		assert binding_reads == if kind <= 4 { 0 } else if kind == 5 { 1 } else { 2 }
+		assert binding_enters == if kind <= 6 { 0 } else { 1 }
+		assert binding_leaves == binding_enters
+		assert binding_throws == if kind in [1, 2, 3] { 1 } else { 0 }
+		for y in 0 .. 4 {
+			for x in 0 .. 4 {
+				expected := if kind == 9 && x >= 1 && x < 3 && y >= 1 { argb(&source, x % 3, reference_axis(y, 2, 2)) } else { u32(0) }
+				assert argb(&target, x, y) == expected, 'binding argument/order kind=${kind} at${x},${y}'
+			}
+		}
+	}
+	println('BITMAP-TILES-HOST PASS actual-binding-order-null-pending-enter-leave')
+}
+
+fn main() {
+	existing_compositor_controls()
+	sampler_indices()
+	mode_grid()
+	affine_and_huge_clip()
+	alias_and_paint()
+	binding_paths()
+	println('BITMAP-TILES-HOST PASS all')
+}

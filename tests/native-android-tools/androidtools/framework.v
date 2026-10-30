@@ -169,6 +169,7 @@ pub fn extend_framework(input string, output string, work string, tools string, 
  framework_window_system_ui(smali)!
  framework_seed_account_options(smali)!
  framework_persistent_data_block(smali)!
+ framework_bitmap_tiles(smali)!
  framework_assemble(smali, work + '/classes.dex', tools, java)!
  next := work + '/api-impl.jar'
  os.cp(input, next)!
