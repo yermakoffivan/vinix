@@ -56,6 +56,11 @@ const image_bounds_framework_sha = '9cfdbeaff047b693837508c3f7676510a63c05af118e
 const image_bounds_native_sha = 'fd38d7f8e3c0d17934617242cb95b0412a0c6ed676cb4454e5a52c8cf494dc2c'
 const image_bounds_apk_sha = '7d11a0e6d71b6c556a57f84fd5f27610157f0a49735282f0bb31aaac0ff00a62'
 const image_bounds_pass_marker = 'IMAGE-BOUNDS-PASS defaults setters axis-isolation instance-isolation styled-dimensions'
+// Window attributes use their own fixture and newly coupled runtime inputs.
+const window_system_ui_framework_sha = '3f0d220a24e7d91a47f7b2d42cd5620aa498981e915a90cdbd806164b8ef0fc1'
+const window_system_ui_native_sha = 'c97862ecb4eba730290a832b2766d58c1552ddf58ae40f77d7e140e69538ce75'
+const window_system_ui_apk_sha = 'af7f9bfcb8f106c43f9d86badfa2c5e0deb49e3a1e6da19cbe68ab6a5254ca90'
+const window_system_ui_pass_marker = 'WINDOW-SYSTEM-UI-PASS defaults field-shape bitmasks instance-isolation window-attributes'
 
 struct FixtureProfile {
 	name          string
@@ -189,6 +194,17 @@ fn image_bounds_profile() FixtureProfile {
 	}
 }
 
+fn window_system_ui_profile() FixtureProfile {
+	return FixtureProfile{
+		name: 'window-system-ui'
+		apk_sha: window_system_ui_apk_sha
+		framework_sha: window_system_ui_framework_sha
+		native_sha: window_system_ui_native_sha
+		pass_marker: window_system_ui_pass_marker
+		scope: 'standalone WindowManager.LayoutParams systemUiVisibility field regression; rendering, GMS and Google authentication are not exercised'
+	}
+}
+
 struct Configuration {
 	runtime   string
 	apk       string
@@ -295,7 +311,8 @@ fn health(line string, expected_marker string) ! {
 		|| line.contains('APPLICATION-RESTRICTIONS-PASS') || line.contains('AUTHENTICATOR-BASE-PASS')
 		|| line.contains('MAPS-NETWORK-PASS') || line.contains('MAPS-NETWORK-V2-PASS')
 		|| line.contains('MAPS-NETWORK-V3-PASS') || line.contains('SERVICE-LIFECYCLE-PASS')
-		|| line.contains('PLATFORM-FRAGMENTS-PASS') || line.contains('IMAGE-BOUNDS-PASS')) && line != expected_marker {
+		|| line.contains('PLATFORM-FRAGMENTS-PASS') || line.contains('IMAGE-BOUNDS-PASS')
+		|| line.contains('WINDOW-SYSTEM-UI-PASS')) && line != expected_marker {
 		return error('conflicting fixture marker')
 	}
 }
@@ -496,7 +513,7 @@ fn export_evidence(output string) ! {
 
 fn selftest() ! {
 	mut cases := 0
-	profiles := [child_attach_profile(), settings_global_profile(), application_restrictions_profile(), authenticator_exception_profile(), maps_network_profile(), authenticator_worker_profile(), maps_network_v2_profile(), authenticator_binder_identity_profile(), maps_network_v3_profile(), service_lifecycle_profile(), platform_fragments_profile(), image_bounds_profile()]
+	profiles := [child_attach_profile(), settings_global_profile(), application_restrictions_profile(), authenticator_exception_profile(), maps_network_profile(), authenticator_worker_profile(), maps_network_v2_profile(), authenticator_binder_identity_profile(), maps_network_v3_profile(), service_lifecycle_profile(), platform_fragments_profile(), image_bounds_profile(), window_system_ui_profile()]
 	require(child_attach_profile().framework_sha == framework_sha
 		&& settings_global_profile().framework_sha == framework_sha
 		&& application_restrictions_profile().framework_sha != framework_sha, 'exact per-profile framework identities')!
@@ -529,6 +546,10 @@ fn selftest() ! {
 		&& image_bounds_profile().native_sha.len == 64
 		&& image_bounds_profile().apk_sha != platform_fragments_profile().apk_sha,
 		'ImageView bounds requires its distinct framework and fixture with an exact coupled native pin')!
+	require(window_system_ui_profile().framework_sha != image_bounds_profile().framework_sha
+		&& window_system_ui_profile().native_sha.len == 64
+		&& window_system_ui_profile().apk_sha != image_bounds_profile().apk_sha,
+		'window system UI requires its distinct framework and fixture with an exact coupled native pin')!
 	for profile in profiles {
 		mut pins := [profile.apk_sha, profile.framework_sha]
 		if profile.native_sha != '' { pins << profile.native_sha }
@@ -574,7 +595,7 @@ fn selftest() ! {
 		cases++
 	}
 	require(canonical('/var/lib/onboarding-api-r1'), 'canonical path rejected')!
-	for selector in ['--authenticator-binder-identity', '--maps-network-v3', '--service-lifecycle', '--platform-fragments', '--image-bounds'] {
+	for selector in ['--authenticator-binder-identity', '--maps-network-v3', '--service-lifecycle', '--platform-fragments', '--image-bounds', '--window-system-ui'] {
 		full := [selector, '/runtime', '/fixture.apk', '10117', '10117', '/results']
 		for count in 1 .. full.len {
 			mut argv := [os.executable()]
@@ -603,9 +624,10 @@ fn run() ! {
 		return
 	}
 	mut arguments := os.args[1..]
-	require(arguments.len == 6 && arguments[0] in ['--child-attach', '--settings-global', '--application-restrictions', '--authenticator-private-exception', '--maps-network', '--authenticator-worker', '--maps-network-v2', '--authenticator-binder-identity', '--maps-network-v3', '--service-lifecycle', '--platform-fragments', '--image-bounds'],
-		'usage: onboarding-api-run (--child-attach|--settings-global|--application-restrictions|--authenticator-private-exception|--maps-network|--authenticator-worker|--maps-network-v2|--authenticator-binder-identity|--maps-network-v3|--service-lifecycle|--platform-fragments|--image-bounds) RUNTIME APK UID GID FRESH_OUTPUT | selftest')!
+	require(arguments.len == 6 && arguments[0] in ['--child-attach', '--settings-global', '--application-restrictions', '--authenticator-private-exception', '--maps-network', '--authenticator-worker', '--maps-network-v2', '--authenticator-binder-identity', '--maps-network-v3', '--service-lifecycle', '--platform-fragments', '--image-bounds', '--window-system-ui'],
+		'usage: onboarding-api-run (--child-attach|--settings-global|--application-restrictions|--authenticator-private-exception|--maps-network|--authenticator-worker|--maps-network-v2|--authenticator-binder-identity|--maps-network-v3|--service-lifecycle|--platform-fragments|--image-bounds|--window-system-ui) RUNTIME APK UID GID FRESH_OUTPUT | selftest')!
 	profile := if arguments[0] == '--authenticator-private-exception' { authenticator_exception_profile() }
+		else if arguments[0] == '--window-system-ui' { window_system_ui_profile() }
 		else if arguments[0] == '--image-bounds' { image_bounds_profile() }
 		else if arguments[0] == '--platform-fragments' { platform_fragments_profile() }
 		else if arguments[0] == '--service-lifecycle' { service_lifecycle_profile() }
