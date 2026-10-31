@@ -94,6 +94,10 @@ const user_restrictions_framework_sha = '646a83ea74795fb29b4db8811fc3249add3693b
 const user_restrictions_native_sha = 'b6aeb06b7473220da8844015a253ed87394fef6209173c14317fcbaf19141e95'
 const user_restrictions_apk_sha = '19f8715bcc6e5f19dff1dc11e031912907d7c762a7f1927b85dda697f447dbea'
 const user_restrictions_pass_marker = 'USER-RESTRICTIONS-PASS fresh-snapshots bundle-truth virtual-backend mutation-isolation exceptions context-controls'
+// Boolean null-key repair and absent CrossProfileApps service share this SDK.
+const bundle_cross_profile_framework_sha = '3ebf88615dcb87ec103b098a0baf397f5a4428623f809fd139b23e9f60978235'
+const bundle_cross_profile_apk_sha = 'c781769a0ef5fd5357ae1f678d52ef98a2532a5ae07c155a013e278a7b2248ab'
+const bundle_cross_profile_pass_marker = 'BUNDLE-BOOLEAN-PASS null-keys defaults stored-values nonmutating ordinary-keys legacy-control cross-profile-absent'
 
 struct FixtureProfile {
 	name          string
@@ -315,6 +319,27 @@ fn user_restrictions_profile() FixtureProfile {
 	}
 }
 
+fn bundle_cross_profile_profile() FixtureProfile {
+	return FixtureProfile{
+		name: 'bundle-cross-profile'
+		apk_sha: bundle_cross_profile_apk_sha
+		framework_sha: bundle_cross_profile_framework_sha
+		native_sha: user_restrictions_native_sha
+		pass_marker: bundle_cross_profile_pass_marker
+		scope: 'standalone BaseBundle boolean null-key and default-value regression with typed-null unsupported CrossProfileApps controls; wrong-type warning fallback, cross-profile backend, GMS and authentication are not exercised'
+	}
+}
+
+fn user_restrictions_bundle_profile() FixtureProfile {
+	base := user_restrictions_profile()
+	return FixtureProfile{
+		...base
+		name: 'user-restrictions-bundle'
+		framework_sha: bundle_cross_profile_framework_sha
+		scope: 'unchanged signed UserManager snapshot and backend-query regression on the corrected BaseBundle framework; no fixture cases are removed or altered; policy enforcement, GMS and authentication are not exercised'
+	}
+}
+
 struct Configuration {
 	runtime   string
 	apk       string
@@ -425,7 +450,8 @@ fn health(line string, expected_marker string) ! {
 		|| line.contains('WINDOW-SYSTEM-UI-PASS') || line.contains('SEED-ACCOUNT-OPTIONS-PASS')
 		|| line.contains('PERSISTENT-DATA-BLOCK-PASS') || line.contains('BITMAP-TILES-PASS')
 		|| line.contains('CONNECTIVITY-TRUTH-PASS') || line.contains('WINDOW-ANIMATIONS-PASS')
-		|| line.contains('LAYOUT-ALIGNMENT-PASS') || line.contains('USER-RESTRICTIONS-PASS')) && line != expected_marker {
+		|| line.contains('LAYOUT-ALIGNMENT-PASS') || line.contains('USER-RESTRICTIONS-PASS')
+		|| line.contains('BUNDLE-BOOLEAN-PASS')) && line != expected_marker {
 		return error('conflicting fixture marker')
 	}
 }
@@ -626,7 +652,7 @@ fn export_evidence(output string) ! {
 
 fn selftest() ! {
 	mut cases := 0
-	profiles := [child_attach_profile(), settings_global_profile(), application_restrictions_profile(), authenticator_exception_profile(), maps_network_profile(), authenticator_worker_profile(), maps_network_v2_profile(), authenticator_binder_identity_profile(), maps_network_v3_profile(), service_lifecycle_profile(), platform_fragments_profile(), image_bounds_profile(), window_system_ui_profile(), seed_account_options_profile(), persistent_data_block_profile(), bitmap_tiles_profile(), connectivity_truth_profile(), window_animations_profile(), layout_alignment_profile(), user_restrictions_profile()]
+	profiles := [child_attach_profile(), settings_global_profile(), application_restrictions_profile(), authenticator_exception_profile(), maps_network_profile(), authenticator_worker_profile(), maps_network_v2_profile(), authenticator_binder_identity_profile(), maps_network_v3_profile(), service_lifecycle_profile(), platform_fragments_profile(), image_bounds_profile(), window_system_ui_profile(), seed_account_options_profile(), persistent_data_block_profile(), bitmap_tiles_profile(), connectivity_truth_profile(), window_animations_profile(), layout_alignment_profile(), user_restrictions_profile(), bundle_cross_profile_profile(), user_restrictions_bundle_profile()]
 	require(child_attach_profile().framework_sha == framework_sha
 		&& settings_global_profile().framework_sha == framework_sha
 		&& application_restrictions_profile().framework_sha != framework_sha, 'exact per-profile framework identities')!
@@ -693,6 +719,15 @@ fn selftest() ! {
 		&& user_restrictions_profile().native_sha == layout_alignment_profile().native_sha
 		&& user_restrictions_profile().apk_sha != layout_alignment_profile().apk_sha,
 		'user restriction queries require their new framework and fixture with the verified retained native pin')!
+	require(bundle_cross_profile_profile().framework_sha != user_restrictions_profile().framework_sha
+		&& bundle_cross_profile_profile().native_sha == user_restrictions_profile().native_sha
+		&& bundle_cross_profile_profile().apk_sha != user_restrictions_profile().apk_sha,
+		'boolean and absent-service controls require the corrected framework and their own fixture')!
+	require(user_restrictions_bundle_profile().framework_sha == bundle_cross_profile_profile().framework_sha
+		&& user_restrictions_bundle_profile().native_sha == user_restrictions_profile().native_sha
+		&& user_restrictions_bundle_profile().apk_sha == user_restrictions_profile().apk_sha
+		&& user_restrictions_bundle_profile().pass_marker == user_restrictions_profile().pass_marker,
+		'UserManager retry must preserve the exact original signed fixture and marker on the corrected framework')!
 	for profile in profiles {
 		mut pins := [profile.apk_sha, profile.framework_sha]
 		if profile.native_sha != '' { pins << profile.native_sha }
@@ -738,7 +773,7 @@ fn selftest() ! {
 		cases++
 	}
 	require(canonical('/var/lib/onboarding-api-r1'), 'canonical path rejected')!
-	for selector in ['--authenticator-binder-identity', '--maps-network-v3', '--service-lifecycle', '--platform-fragments', '--image-bounds', '--window-system-ui', '--seed-account-options', '--persistent-data-block', '--bitmap-tiles', '--connectivity-truth', '--window-animations', '--layout-alignment', '--user-restrictions'] {
+	for selector in ['--authenticator-binder-identity', '--maps-network-v3', '--service-lifecycle', '--platform-fragments', '--image-bounds', '--window-system-ui', '--seed-account-options', '--persistent-data-block', '--bitmap-tiles', '--connectivity-truth', '--window-animations', '--layout-alignment', '--user-restrictions', '--bundle-cross-profile', '--user-restrictions-bundle'] {
 		full := [selector, '/runtime', '/fixture.apk', '10117', '10117', '/results']
 		for count in 1 .. full.len {
 			mut argv := [os.executable()]
@@ -767,9 +802,11 @@ fn run() ! {
 		return
 	}
 	mut arguments := os.args[1..]
-	require(arguments.len == 6 && arguments[0] in ['--child-attach', '--settings-global', '--application-restrictions', '--authenticator-private-exception', '--maps-network', '--authenticator-worker', '--maps-network-v2', '--authenticator-binder-identity', '--maps-network-v3', '--service-lifecycle', '--platform-fragments', '--image-bounds', '--window-system-ui', '--seed-account-options', '--persistent-data-block', '--bitmap-tiles', '--connectivity-truth', '--window-animations', '--layout-alignment', '--user-restrictions'],
-		'usage: onboarding-api-run (--child-attach|--settings-global|--application-restrictions|--authenticator-private-exception|--maps-network|--authenticator-worker|--maps-network-v2|--authenticator-binder-identity|--maps-network-v3|--service-lifecycle|--platform-fragments|--image-bounds|--window-system-ui|--seed-account-options|--persistent-data-block|--bitmap-tiles|--connectivity-truth|--window-animations|--layout-alignment|--user-restrictions) RUNTIME APK UID GID FRESH_OUTPUT | selftest')!
+	require(arguments.len == 6 && arguments[0] in ['--child-attach', '--settings-global', '--application-restrictions', '--authenticator-private-exception', '--maps-network', '--authenticator-worker', '--maps-network-v2', '--authenticator-binder-identity', '--maps-network-v3', '--service-lifecycle', '--platform-fragments', '--image-bounds', '--window-system-ui', '--seed-account-options', '--persistent-data-block', '--bitmap-tiles', '--connectivity-truth', '--window-animations', '--layout-alignment', '--user-restrictions', '--bundle-cross-profile', '--user-restrictions-bundle'],
+		'usage: onboarding-api-run (--child-attach|--settings-global|--application-restrictions|--authenticator-private-exception|--maps-network|--authenticator-worker|--maps-network-v2|--authenticator-binder-identity|--maps-network-v3|--service-lifecycle|--platform-fragments|--image-bounds|--window-system-ui|--seed-account-options|--persistent-data-block|--bitmap-tiles|--connectivity-truth|--window-animations|--layout-alignment|--user-restrictions|--bundle-cross-profile|--user-restrictions-bundle) RUNTIME APK UID GID FRESH_OUTPUT | selftest')!
 	profile := if arguments[0] == '--authenticator-private-exception' { authenticator_exception_profile() }
+		else if arguments[0] == '--bundle-cross-profile' { bundle_cross_profile_profile() }
+		else if arguments[0] == '--user-restrictions-bundle' { user_restrictions_bundle_profile() }
 		else if arguments[0] == '--user-restrictions' { user_restrictions_profile() }
 		else if arguments[0] == '--layout-alignment' { layout_alignment_profile() }
 		else if arguments[0] == '--window-animations' { window_animations_profile() }
