@@ -1005,6 +1005,203 @@ fn user_restrictions_self_test() ! {
  }
 }
 
+fn bundle_cross_profile_profile() NarrowProfile {
+ bundle := 'android/os/BaseBundle.smali'
+ context := 'android/app/ContextImpl.smali'
+ return NarrowProfile{
+  name: 'bundle-cross-profile'
+  baseline_name: 'combined-account-webview-user-restrictions-framework-2026-10-31-r3'
+  manifest_pin: '2e3b4a212238fc14a47b6cc72d1abde24c95a26e379ecd79f99f54527314040c'
+  jar_pin: '646a83ea74795fb29b4db8811fc3249add3693b6e2de03e043c52e4e13b09bdc'
+  baseline_classes: 2106
+  providers: ['framework_bundle_boolean.v', 'framework_cross_profile_apps.v']
+  calls: {bundle: 'framework_bundle_boolean_source', context: 'framework_cross_profile_apps_source'}
+  methods: {bundle: ['getBoolean(Ljava/lang/String;Z)Z'], context: ['getSystemService(Ljava/lang/Class;)Ljava/lang/Object;']}
+  changed: {bundle: 1, context: 1}
+  added: {bundle: 0, context: 0}
+  class_provider: 'framework_cross_profile_apps_classes'
+  extra_classes: ['android/content/pm/CrossProfileApps.smali']
+ }
+}
+
+fn bundle_boolean_method(source string) !string {
+ signature := 'getBoolean(Ljava/lang/String;Z)Z'
+ method := store_parts(source)!.methods[signature] or { return error('missing BaseBundle boolean getter') }
+ if method.all_before('\n').trim_space() != '.method public ' + signature {
+  return error('BaseBundle boolean getter must retain its public virtual ABI')
+ }
+ return method.split_into_lines().map(it.all_before('#').trim_space()).filter(it != '').join('\n')
+}
+
+fn bundle_boolean_abi(source string) ! {
+ method := bundle_boolean_method(source)!
+ if method.count('const-string v1, "com.facebook.sdk.AutoLogAppEventsEnabled"') != 1
+  || method.count('invoke-virtual {v1, p1}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z') != 1
+  || method.contains('invoke-virtual {p1, v1}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z') {
+  return error('BaseBundle boolean getter requires the exact constant-first legacy-key comparison')
+ }
+}
+
+fn bundle_boolean_members(before string, after string) ! {
+ narrow_method_delta(before, after, ['getBoolean(Ljava/lang/String;Z)Z'], 1, 0)!
+ original := bundle_boolean_method(before)!
+ updated := bundle_boolean_method(after)!
+ old := 'invoke-virtual {p1, v1}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z'
+ new := 'invoke-virtual {v1, p1}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z'
+ if original.count(old) != 1 || original.contains(new) || updated != original.replace(old, new) {
+  return error('BaseBundle boolean repair may change only the comparison receiver and argument')
+ }
+ bundle_boolean_abi(after)!
+}
+
+fn bundle_boolean_self_test() ! {
+ bundle := 'android/os/BaseBundle.smali'
+ signature := 'getBoolean(Ljava/lang/String;Z)Z'
+ narrow_method_self_test([signature], 1, 0)!
+ old_instruction := 'invoke-virtual {p1, v1}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z'
+ new_instruction := 'invoke-virtual {v1, p1}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z'
+ before := '.class public Landroid/os/BaseBundle;\n.super Ljava/lang/Object;\n' +
+  '.method public ' + signature + '\n.registers 10\nconst-string v1, "com.facebook.sdk.AutoLogAppEventsEnabled"\n' +
+  old_instruction + '\nmove-result v1\nreturn p2\n.end method\n' +
+  '.method public unrelated()V\n.locals 0\nreturn-void\n.end method\n'
+ after := before.replace(old_instruction, new_instruction)
+ bundle_boolean_members(before, after)!
+ for bad in [before, after.replace(new_instruction, 'invoke-virtual {v1, p2}, Ljava/lang/String;->equals(Ljava/lang/Object;)Z'),
+  after.replace(new_instruction, new_instruction + '\n' + new_instruction),
+  after.replace('com.facebook.sdk.AutoLogAppEventsEnabled', 'different-key'),
+  after.replace('return p2', 'const/4 p2, 0x0\nreturn p2'),
+  after.replace('.registers 10', '.registers 11'),
+  after.replace('.locals 0', '.locals 1'),
+  after + '.method public extra()V\n.locals 0\nreturn-void\n.end method\n'] {
+  bundle_boolean_members(before, bad) or { continue }
+  return error('unrelated BaseBundle boolean instruction or member change accepted')
+ }
+ for flags in ['private', 'public final', 'public static', 'public native', 'public synthetic'] {
+  bundle_boolean_abi(after.replace('.method public ' + signature, '.method ' + flags + ' ' + signature)) or { continue }
+  return error('changed BaseBundle getter flags accepted')
+ }
+ mut old := {bundle: 'old'}
+ for i in 0 .. 2105 { old['other/' + i.str() + '.smali'] = 'same' }
+ mut good := old.clone()
+ good[bundle] = 'new'
+ narrow_profile_class_delta(old, good, [bundle], []string{}, 2106)!
+ for case in 0 .. 5 {
+  mut bad := good.clone()
+  match case {
+   0 { bad[bundle] = 'old' }
+   1 { bad['other/0.smali'] = 'changed' }
+   2 { bad.delete(bundle) }
+   3 { bad['unrelated.smali'] = 'new' }
+   else { bad.delete(bundle); bad['substituted.smali'] = 'new' }
+  }
+  narrow_profile_class_delta(old, bad, [bundle], []string{}, 2106) or { continue }
+  return error('invalid BaseBundle-only class scope accepted')
+ }
+}
+
+fn cross_profile_lookup_method(source string) !string {
+ signature := 'getSystemService(Ljava/lang/Class;)Ljava/lang/Object;'
+ method := store_parts(source)!.methods[signature] or { return error('missing typed service lookup') }
+ if method.all_before('\n').trim_space() != '.method public ' + signature {
+  return error('typed cross-profile service lookup must retain public virtual ABI')
+ }
+ return method.split_into_lines().map(it.all_before('#').trim_space()).filter(it != '').join('\n')
+}
+
+fn cross_profile_members(before string, after string) ! {
+ narrow_method_delta(before, after, ['getSystemService(Ljava/lang/Class;)Ljava/lang/Object;'], 1, 0)!
+ old := cross_profile_lookup_method(before)!
+ updated := cross_profile_lookup_method(after)!.split_into_lines()
+ if !old.contains('\n.registers 3\n') || updated.len < 8
+  || updated[..6] != ['.method public getSystemService(Ljava/lang/Class;)Ljava/lang/Object;', '.registers 3',
+   'const-class v0, Landroid/content/pm/CrossProfileApps;',
+   updated[3], 'const/4 v0, 0x0', 'return-object v0'] {
+  return error('typed cross-profile lookup requires one early null-return guard')
+ }
+ original_tail := old.all_after('\n.registers 3\n')
+ actual_tail := updated[7..].join('\n')
+ canonical_tail := original_tail.replace(':cond_c', ':cond_12').replace(':cond_6', ':cond_c')
+ raw := updated[3] == 'if-ne p1, v0, :vinix_cross_profile_other' && updated[6] == ':vinix_cross_profile_other'
+  && actual_tail == original_tail
+ canonical := updated[3] == 'if-ne p1, v0, :cond_6' && updated[6] == ':cond_6' && actual_tail == canonical_tail
+ if !raw && !canonical { return error('typed cross-profile guard or complete retained fallback changed') }
+}
+
+fn cross_profile_type_abi(source string) ! {
+ parts := store_parts(source)!
+ if parts.methods.len != 0 || parts.metadata.split_into_lines().map(it.trim_space()).filter(it != '') != [
+  '.class public Landroid/content/pm/CrossProfileApps;', '.super Ljava/lang/Object;'] {
+  return error('unsupported cross-profile type must remain public, nonfinal and memberless')
+ }
+}
+
+fn bundle_cross_profile_self_test() ! {
+ profile := bundle_cross_profile_profile()
+ bundle := 'android/os/BaseBundle.smali'
+ context := 'android/app/ContextImpl.smali'
+ helper := 'android/content/pm/CrossProfileApps.smali'
+ signature := 'getSystemService(Ljava/lang/Class;)Ljava/lang/Object;'
+ methods := {bundle: ['getBoolean(Ljava/lang/String;Z)Z'], context: [signature]}
+ if profile.baseline_classes != 2106 || profile.methods != methods
+  || profile.calls != {bundle: 'framework_bundle_boolean_source', context: 'framework_cross_profile_apps_source'}
+  || profile.changed != {bundle: 1, context: 1} || profile.added != {bundle: 0, context: 0}
+  || profile.providers != ['framework_bundle_boolean.v', 'framework_cross_profile_apps.v'] || profile.fields.len != 0
+  || profile.extra_classes != [helper] || profile.class_provider != 'framework_cross_profile_apps_classes'
+  || profile.directory_provider != '' {
+  return error('combined Bundle/cross-profile scope requires two changed methods and one memberless type')
+ }
+ bundle_boolean_self_test()!
+ narrow_method_self_test([signature], 1, 0)!
+ header := '.class public final Landroid/app/ContextImpl;\n.super Landroid/content/Context;\n'
+ method_header := '.method public ' + signature + '\n.registers 3\n'
+ tail := 'const-class v0, Landroid/service/persistentdata/PersistentDataBlockManager;\nif-ne p1, v0, :cond_6\nconst/4 v0, 0x0\nreturn-object v0\n:cond_6\nconst-class v0, Landroid/net/wifi/rtt/WifiRttManager;\nif-ne p1, v0, :cond_c\nconst/4 v0, 0x0\nreturn-object v0\n:cond_c\ninvoke-direct {p0, p1}, Landroid/app/ContextImpl;->vinixRttFallbackClass(Ljava/lang/Class;)Ljava/lang/Object;\nmove-result-object v0\nreturn-object v0\n.end method\n'
+ guard := 'const-class v0, Landroid/content/pm/CrossProfileApps;\nif-ne p1, v0, :vinix_cross_profile_other\nconst/4 v0, 0x0\nreturn-object v0\n:vinix_cross_profile_other\n'
+ before := header + method_header + tail
+ raw := header + method_header + guard + tail
+ canonical := header + method_header + guard.replace(':vinix_cross_profile_other', ':cond_6') + tail.replace(':cond_c', ':cond_12').replace(':cond_6', ':cond_c')
+ cross_profile_members(before, raw)!
+ cross_profile_members(before, canonical)!
+ for bad in [before, raw.replace('const/4 v0, 0x0', 'const/4 v0, 0x1'),
+  raw.replace('if-ne p1, v0, :vinix_cross_profile_other', 'if-eq p1, v0, :vinix_cross_profile_other'),
+  raw.replace('vinixRttFallbackClass', 'otherFallback'), raw.replace('.registers 3', '.registers 4'),
+  raw.replace('public ' + signature, 'public final ' + signature),
+  raw + '.method public extra()V\n.locals 0\nreturn-void\n.end method\n',
+  canonical.replace('if-ne p1, v0, :cond_c', 'if-ne p1, v0, :cond_6')] {
+  cross_profile_members(before, bad) or { continue }
+  return error('invalid typed cross-profile null guard or retained fallback accepted')
+ }
+ type_source := '.class public Landroid/content/pm/CrossProfileApps;\n.super Ljava/lang/Object;\n'
+ cross_profile_type_abi(type_source)!
+ for bad in [type_source.replace('.class public ', '.class public final '),
+  type_source.replace('.super Ljava/lang/Object;', '.super Landroid/app/Service;'),
+  type_source + '.field public value:I\n',
+  type_source + '.method public constructor <init>()V\n.locals 0\nreturn-void\n.end method\n'] {
+  cross_profile_type_abi(bad) or { continue }
+  return error('nonmemberless cross-profile API type accepted')
+ }
+ mut old := {bundle: 'old', context: 'old'}
+ for i in 0 .. 2104 { old['other/' + i.str() + '.smali'] = 'same' }
+ mut good := old.clone()
+ good[bundle] = 'new'
+ good[context] = 'new'
+ good[helper] = 'new'
+ narrow_profile_class_delta(old, good, [bundle, context], [helper], 2106)!
+ for case in 0 .. 7 {
+  mut bad := good.clone()
+  match case {
+   0 { bad[bundle] = 'old' }
+   1 { bad[context] = 'old' }
+   2 { bad['other/0.smali'] = 'changed' }
+   3 { bad.delete(helper) }
+   4 { bad['unrelated.smali'] = 'new' }
+   5 { bad.delete(context); bad['substituted.smali'] = 'new' }
+   else { bad.delete(helper); bad['substituted.smali'] = 'new' }
+  }
+  narrow_profile_class_delta(old, bad, [bundle, context], [helper], 2106) or { continue }
+  return error('invalid combined Bundle/cross-profile class scope accepted')
+ }
+}
+
 fn window_system_ui_self_test() ! {
  profile := window_system_ui_profile()
  layout := 'android/view/WindowManager$LayoutParams.smali'
@@ -1780,6 +1977,7 @@ fn self_test() ! {
  window_animations_self_test()!
  layout_alignment_self_test()!
  user_restrictions_self_test()!
+ bundle_cross_profile_self_test()!
  query_profile := service_query_profile()
  narrow_method_self_test(query_profile.methods['android/content/pm/PackageManager.smali']!, 1, 0)!
  boot_profile := direct_boot_profile()
@@ -2055,6 +2253,10 @@ fn build_narrow(profile NarrowProfile, baseline string, manifest_pin string, jar
   if profile.name == 'window-animations' { window_animations_abi(target, os.read_file(root + '/smali/' + target)!)! }
   if profile.name == 'layout-alignment' { layout_alignment_abi(os.read_file(root + '/smali/' + target)!)! }
   if profile.name == 'user-restrictions' { user_restrictions_abi(os.read_file(root + '/smali/' + target)!)! }
+  if profile.name == 'bundle-cross-profile' {
+   if target == 'android/os/BaseBundle.smali' { bundle_boolean_members(os.read_file(root + '/old-dex/' + target)!, os.read_file(root + '/smali/' + target)!)! }
+   else { cross_profile_members(os.read_file(root + '/old-dex/' + target)!, os.read_file(root + '/smali/' + target)!)! }
+  }
  }
  if profile.name == 'platform-fragments' {
   for target in profile.extra_classes { platform_fragments_abi(os.read_file(root + '/smali/' + target)!, target)! }
@@ -2062,6 +2264,7 @@ fn build_narrow(profile NarrowProfile, baseline string, manifest_pin string, jar
  if profile.name == 'persistent-data-block' {
   for target in profile.extra_classes { persistent_data_block_abi(target, os.read_file(root + '/smali/' + target)!)! }
  }
+ if profile.name == 'bundle-cross-profile' { cross_profile_type_abi(os.read_file(root + '/smali/' + profile.extra_classes[0])!)! }
  command(root, 'assemble', [java, '-Xmx512m', '-XX:ActiveProcessorCount=2', '-cp', classpath.join(':'), 'org.jf.smali.Main', 'assemble', '--jobs', '2', root + '/smali', '-o', root + '/classes.dex'])!
  if !os.is_file(root + '/classes.dex') || os.file_size(root + '/classes.dex') < 112 { return error('store assembly produced no fresh DEX') }
  command(root, 'replace-dex', ['/usr/bin/zip', '-q', '-j', root + '/api-impl.jar', root + '/classes.dex'])!
@@ -2085,6 +2288,10 @@ fn build_narrow(profile NarrowProfile, baseline string, manifest_pin string, jar
   if profile.name == 'window-animations' { window_animations_abi(target, os.read_file(root + '/new-dex/' + target)!)! }
   if profile.name == 'layout-alignment' { layout_alignment_abi(os.read_file(root + '/new-dex/' + target)!)! }
   if profile.name == 'user-restrictions' { user_restrictions_abi(os.read_file(root + '/new-dex/' + target)!)! }
+  if profile.name == 'bundle-cross-profile' {
+   if target == 'android/os/BaseBundle.smali' { bundle_boolean_members(os.read_file(root + '/old-dex/' + target)!, os.read_file(root + '/new-dex/' + target)!)! }
+   else { cross_profile_members(os.read_file(root + '/old-dex/' + target)!, os.read_file(root + '/new-dex/' + target)!)! }
+  }
  }
  if profile.name == 'platform-fragments' {
   for target in profile.extra_classes { platform_fragments_abi(os.read_file(root + '/new-dex/' + target)!, target)! }
@@ -2092,6 +2299,7 @@ fn build_narrow(profile NarrowProfile, baseline string, manifest_pin string, jar
  if profile.name == 'persistent-data-block' {
   for target in profile.extra_classes { persistent_data_block_abi(target, os.read_file(root + '/new-dex/' + target)!)! }
  }
+ if profile.name == 'bundle-cross-profile' { cross_profile_type_abi(os.read_file(root + '/new-dex/' + profile.extra_classes[0])!)! }
  write_json(root + '/framework-dex-before.json', old)!
  write_json(root + '/framework-dex-after.json', new)!
  for pair in [[baseline + '/api-impl.jar', 'old'], [root + '/api-impl.jar', 'new']] {
@@ -2386,11 +2594,15 @@ fn main() {
   build_narrow(user_restrictions_profile(), os.abs_path(os.args[2]), os.args[3], os.args[4], os.abs_path(os.args[5])) or { eprintln(err); exit(1) }
   return
  }
+ if os.args.len == 6 && os.args[1] == '--bundle-cross-profile' {
+  build_narrow(bundle_cross_profile_profile(), os.abs_path(os.args[2]), os.args[3], os.args[4], os.abs_path(os.args[5])) or { eprintln(err); exit(1) }
+  return
+ }
  if os.args.len == 6 && os.args[1] in ['--store', '--auth', '--cache', '--descriptions', '--protected-storage', '--service-query', '--direct-boot', '--credential-storage', '--broadcast-result', '--onboarding', '--application-restrictions', '--auth-exception', '--binder-identity', '--service-lifecycle', '--platform-fragments', '--imageview-bounds', '--window-system-ui'] {
   profile := match os.args[1] { '--store' { storage_profile() } '--auth' { auth_profile() } '--cache' { cache_profile() } '--descriptions' { descriptions_profile() } '--protected-storage' { protected_storage_profile() } '--service-query' { service_query_profile() } '--direct-boot' { direct_boot_profile() } '--credential-storage' { credential_storage_profile() } '--broadcast-result' { broadcast_result_profile() } '--application-restrictions' { application_restrictions_profile() } '--auth-exception' { auth_exception_profile() } '--binder-identity' { binder_identity_profile() } '--service-lifecycle' { service_lifecycle_profile() } '--platform-fragments' { platform_fragments_profile() } '--imageview-bounds' { imageview_bounds_profile() } '--window-system-ui' { window_system_ui_profile() } else { onboarding_profile() } }
   build_narrow(profile, os.abs_path(os.args[2]), os.args[3], os.args[4], os.abs_path(os.args[5])) or { eprintln(err); exit(1) }
   return
  }
- if os.args.len != 5 { eprintln('usage: combined-account-webview-build [--store|--auth|--cache|--descriptions|--protected-storage|--service-query|--direct-boot|--credential-storage|--broadcast-result|--onboarding|--application-restrictions|--auth-exception|--binder-identity|--service-lifecycle|--platform-fragments|--imageview-bounds|--window-system-ui|--bitmap-tiles|--window-animations|--layout-alignment|--user-restrictions] BASELINE BASELINE_MANIFEST_SHA256 BASELINE_JAR_SHA256 FRESH_OUTPUT | --self-test'); exit(2) }
+ if os.args.len != 5 { eprintln('usage: combined-account-webview-build [--store|--auth|--cache|--descriptions|--protected-storage|--service-query|--direct-boot|--credential-storage|--broadcast-result|--onboarding|--application-restrictions|--auth-exception|--binder-identity|--service-lifecycle|--platform-fragments|--imageview-bounds|--window-system-ui|--bitmap-tiles|--window-animations|--layout-alignment|--user-restrictions|--bundle-cross-profile] BASELINE BASELINE_MANIFEST_SHA256 BASELINE_JAR_SHA256 FRESH_OUTPUT | --self-test'); exit(2) }
  build(os.abs_path(os.args[1]), os.args[2], os.args[3], os.abs_path(os.args[4])) or { eprintln(err); exit(1) }
 }
