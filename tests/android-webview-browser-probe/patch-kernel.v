@@ -459,6 +459,28 @@ const user_restrictions_provider_helper = '4b03ae35a674b2f21b2702ba042e6a477582f
 const user_restrictions_before = '87747ad9ac9a8da5693ca362251e2b4d18d3f87987a4350ec66daee6e818961a'
 const user_restrictions_raw = '4dc720bf4798b75e39607a809a3e5035f22362b9b1844955a2ca25758587ceb3'
 const user_restrictions_canonical = 'c0588f8048098b995956a4210dba8a69f4b71ba015eb3fe54924d66a32d37815'
+const bundle_cross_profile_base = '/Users/alex/.local/state/vinix/android/maps-user-restrictions-r1'
+const bundle_cross_profile_base_seal = 'be3d6e5dcb7e8097f9fcf25290d9f6446d77b2aa9b80e649cc3c8d97195f461d'
+const bundle_cross_profile_boot = '30157af6a2c83dfe48c2d5e6609a6a6478cae758ff82da01e491ed738bd6efda'
+const bundle_cross_profile_base_overlay = '7255fe4b732b68ae5df7a8456e267b3387d4d87d16dee64f0b39eff65d5f5a26'
+const bundle_cross_profile_old_deployment = '29104d65acb613a9db7d79507db60ee5310c0d8a495a99994f6356534865d6a9'
+const bundle_cross_profile_old_headless = 'ed40c77fe7ac7d74973caa52812c6a3634ed4cf548e1348a8fbba0fa5451fd58'
+const bundle_cross_profile_framework = '/Users/alex/.local/state/vinix/android/combined-account-webview-bundle-cross-profile-framework-2026-10-31-r1'
+const bundle_cross_profile_seal = 'e9b9093ee1b8546bca93732cab02a4b58e8ddb25f8c4aae216e40c6602e542aa'
+const bundle_cross_profile_build = '950471d3707f930aba1b6ca3d98c73f460bc8c4c05c517b8005045f72ba45d6b'
+const bundle_cross_profile_jar = '3ebf88615dcb87ec103b098a0baf397f5a4428623f809fd139b23e9f60978235'
+const bundle_cross_profile_dex = 'd54fe422ae88367ca89e9f766114ad60b2bdaa767dc2200b72227617b9b370b1'
+const bundle_cross_profile_framework_helper = 'c187b02b755737a5b7817402a6f400343508c1bb0b8613d60f00f9b561ebbd9d'
+const bundle_cross_profile_boolean_helper = '0e36b7dd764181f1ff1fd6f1532e5452688a1e6fb525bb155d936bcbfde59ac4'
+const bundle_cross_profile_cross_helper = '1485810b2b55da0e405d1518037c33891b07ecd1cf84e1643b6b69fe9633633d'
+const bundle_cross_profile_bundle_raw = '7c155e70eb97d0a74913ac53994e063e473f388ca1e9e6965d6d2d40045b1e15'
+const bundle_cross_profile_bundle_canonical = '7c155e70eb97d0a74913ac53994e063e473f388ca1e9e6965d6d2d40045b1e15'
+const bundle_cross_profile_context_raw = '9a8caab9790fe65193584431866047d06bf27c0af9e8f183468d4af3db8d8042'
+const bundle_cross_profile_context_canonical = 'edf5c845d1260a0e6e60744bbb40c2e79e6d73cf0003a59d2001ec285fbe480d'
+const bundle_cross_profile_class_raw = 'aca7652cf589433b1db13c412fe8a3fe400b2d2a999135017d962f81dfe8fda0'
+const bundle_cross_profile_class_canonical = 'aca7652cf589433b1db13c412fe8a3fe400b2d2a999135017d962f81dfe8fda0'
+const bundle_cross_profile_bundle_before = 'd12c21681d20a535a12e17685b0b5a5b5a82b61e191936b4dcee34b8de150888'
+const bundle_cross_profile_context_before = 'bb3370f9aac0630357dfced4d361a358f990b982441fe78cc046f7e938540eac'
 const source = $embed_file(@FILE).to_string()
 
 struct Profile {
@@ -3846,6 +3868,128 @@ fn user_restrictions_baseline(receipt map[string]json2.Any, stage Stage) !string
 	return user_restrictions_base + '/boot.img'
 }
 
+fn bundle_cross_profile_profile() Profile {
+	mut modules := user_restrictions_profile().modules.clone()
+	modules << 'maps-user-restrictions.tar'
+	return Profile{'maps-bundle-cross-profile', bundle_cross_profile_boot, 'maps-bundle-cross-profile.tar', modules}
+}
+fn bundle_cross_profile_modules() map[string]string {
+	mut modules := user_restrictions_modules()
+	modules['maps-user-restrictions.tar'] = bundle_cross_profile_base_overlay
+	return modules
+}
+fn bundle_cross_profile_fields() map[string]string {
+	mut fields := user_restrictions_fields()
+	fields['kind'] = 'vinix-maps-bundle-cross-profile-v1'
+	fields['base_root'] = bundle_cross_profile_base
+	fields['base_manifest_sha256'] = bundle_cross_profile_base_seal
+	fields['framework_build_root'] = bundle_cross_profile_framework
+	fields['framework_manifest_sha256'] = bundle_cross_profile_seal
+	fields['framework_jar_sha256'] = bundle_cross_profile_jar
+	fields['framework_dex_sha256'] = bundle_cross_profile_dex
+	fields['retained_framework_manifest_sha256'] = user_restrictions_seal
+	fields['native_compatibility_framework_manifest_sha256'] = layout_alignment_seal
+	fields['native_framework_manifest_sha256'] = layout_alignment_seal
+	return fields
+}
+fn bundle_cross_profile_inputs() map[string]string {
+	mut inputs := user_restrictions_inputs()
+	inputs[bundle_cross_profile_base + '/sha256.json'] = bundle_cross_profile_base_seal
+	inputs[bundle_cross_profile_framework + '/sha256.json'] = bundle_cross_profile_seal
+	return inputs
+}
+fn bundle_cross_profile_known_delta() map[string]string {
+	return {'/' + service_query_jar_path: bundle_cross_profile_jar,
+		'/' + service_query_dex_path: bundle_cross_profile_dex,
+		'/' + service_query_headless + '/framework-build.json': bundle_cross_profile_build,
+		'/' + service_query_headless + '/framework-sha256.json': bundle_cross_profile_seal}
+}
+fn bundle_cross_profile_source_delta() map[string]string {
+	return {'smali/android/os/BaseBundle.smali': bundle_cross_profile_bundle_raw,
+		'smali/android/app/ContextImpl.smali': bundle_cross_profile_context_raw,
+		'smali/android/content/pm/CrossProfileApps.smali': bundle_cross_profile_class_raw}
+}
+fn bundle_cross_profile_canonical_delta() map[string]string {
+	return {'new-dex/android/os/BaseBundle.smali': bundle_cross_profile_bundle_canonical,
+		'new-dex/android/app/ContextImpl.smali': bundle_cross_profile_context_canonical,
+		'new-dex/android/content/pm/CrossProfileApps.smali': bundle_cross_profile_class_canonical}
+}
+fn bundle_cross_profile_helper_delta() map[string]string {
+	return {'tests/native-android-tools/androidtools/framework.v': bundle_cross_profile_framework_helper,
+		'tests/native-android-tools/androidtools/framework_bundle_boolean.v': bundle_cross_profile_boolean_helper,
+		'tests/native-android-tools/androidtools/framework_cross_profile_apps.v': bundle_cross_profile_cross_helper}
+}
+fn bundle_cross_profile_proofs() map[string]string {
+	mut proofs := user_restrictions_proofs()
+	proofs['headless_input_delta'] = json2.encode({'/' + service_query_jar_path: bundle_cross_profile_jar})
+	proofs['framework_class_count'] = json2.encode(2107)
+	proofs['framework_source_delta'] = json2.encode(bundle_cross_profile_source_delta())
+	proofs['framework_canonical_delta'] = json2.encode(bundle_cross_profile_canonical_delta())
+	proofs['framework_builder_helper_delta'] = json2.encode(bundle_cross_profile_helper_delta())
+	return proofs
+}
+fn bundle_cross_profile_overlay_paths() []string {
+	return user_restrictions_overlay_paths()
+}
+fn verify_bundle_cross_profile_overlay(receipt map[string]json2.Any) ! {
+	if 'deployment_input_additions' in receipt || 'deployment_top_level_additions' in receipt || 'native_relink_proof' in receipt { return error('bundle cross-profile changes existing framework inputs only') }
+	delta := json2.decode[map[string]string](json2.encode(receipt['deployment_input_delta'] or { return error('bundle cross-profile deployment delta absent') }))!
+	mut expected := bundle_cross_profile_known_delta()
+	guest := '/' + service_query_headless + '/guest-inputs.json'
+	guest_pin := delta[guest] or { return error('bundle cross-profile headless pin absent') }
+	if !digest_valid(guest_pin) || guest_pin == bundle_cross_profile_old_headless { return error('new bundle cross-profile headless receipt required') }
+	expected[guest] = guest_pin
+	if delta != expected { return error('bundle cross-profile exact deployment input changes differ') }
+	entries := json2.decode[[]ServiceQueryEntry](json2.encode(receipt['overlay_inventory'] or { return error('bundle cross-profile overlay inventory absent') }))!
+	paths := bundle_cross_profile_overlay_paths()
+	mut regulars := map[string]string{}
+	mut seen := map[string]bool{}
+	for entry in entries {
+		if entry.name in seen || !relative(entry.name) || entry.mode & 0o7022 != 0 { return error('unsafe bundle cross-profile overlay inode') }
+		seen[entry.name] = true
+		if entry.kind == 'regular' {
+			if entry.name !in paths || !digest_valid(entry.sha256) || entry.mode != 0o644 { return error('bundle cross-profile regular allowlist or mode differs') }
+			regulars[entry.name] = entry.sha256
+		} else if entry.kind != 'directory' || entry.mode != 0o755 || !paths.any(it.starts_with(entry.name + '/')) { return error('unexpected bundle cross-profile overlay inode') }
+	}
+	if regulars.len != 6 || regulars[service_query_deployment] or { '' } == bundle_cross_profile_old_deployment { return error('exact six bundle cross-profile files required') }
+	for path, pin in expected { if regulars[path.trim_left('/')] or { '' } != pin { return error('bundle cross-profile input differs from inventory') } }
+}
+fn verify_bundle_cross_profile_receipt(receipt map[string]json2.Any, stage Stage) ! {
+	for pin in [bundle_cross_profile_base_seal, bundle_cross_profile_boot, bundle_cross_profile_base_overlay,
+		bundle_cross_profile_old_deployment, bundle_cross_profile_old_headless, bundle_cross_profile_seal,
+		bundle_cross_profile_build, bundle_cross_profile_jar, bundle_cross_profile_dex,
+		bundle_cross_profile_bundle_before, bundle_cross_profile_context_before] {
+		if !digest_valid(pin) { return error('completed bundle cross-profile producer required') }
+	}
+	for values in [bundle_cross_profile_source_delta(), bundle_cross_profile_canonical_delta(), bundle_cross_profile_helper_delta()] {
+		for _, pin in values { if !digest_valid(pin) { return error('completed bundle cross-profile class/helper pins required') } }
+	}
+	if bundle_cross_profile_seal == user_restrictions_seal || bundle_cross_profile_jar == user_restrictions_jar
+		|| bundle_cross_profile_dex == user_restrictions_dex
+		|| bundle_cross_profile_bundle_canonical == bundle_cross_profile_bundle_before
+		|| bundle_cross_profile_context_canonical == bundle_cross_profile_context_before { return error('new bundle cross-profile framework required') }
+	for name, expected in bundle_cross_profile_fields() { if receipt[name] or { json2.Any('absent') } != json2.Any(expected) { return error('bundle cross-profile receipt differs: ' + name) } }
+	for name, expected in bundle_cross_profile_proofs() { if receipt[name] or { json2.Any('absent') } != json2.decode[json2.Any](expected)! { return error('bundle cross-profile proof differs: ' + name) } }
+	mut seals := map[string]string{}
+	for path, pin in stage.inputs_sha256 { if path.ends_with('/sha256.json') { seals[path] = pin } }
+	if seals.len != 86 || seals != bundle_cross_profile_inputs() { return error('bundle cross-profile exact eighty-six dependency seals differ') }
+	for path in stage.inputs_sha256.keys() {
+		if path.starts_with(layout_alignment_relink_root() + '/') || path.starts_with(window_animations_relink_root() + '/') { return error('old relink proof leaves are not new direct inputs') }
+	}
+	if stage.format != 1 || stage.original_modules_sha256 != bundle_cross_profile_modules() || stage.preserved_modules_sha256 != bundle_cross_profile_modules() { return error('bundle cross-profile original thirty-six modules differ') }
+	verify_bundle_cross_profile_overlay(receipt)!
+}
+fn bundle_cross_profile_baseline(receipt map[string]json2.Any, stage Stage) !string {
+	verify_bundle_cross_profile_receipt(receipt, stage)!
+	path := bundle_cross_profile_base + '/sha256.json'
+	regular(path)!
+	if os.lstat(path)!.size > 8 * 1024 * 1024 || hash(path)! != bundle_cross_profile_base_seal { return error('bundle cross-profile original UserManager manifest differs') }
+	pins := json2.decode[map[string]string](os.read_file(path)!)!
+	if pins['boot.img'] or { '' } != bundle_cross_profile_boot || pins['maps-user-restrictions.tar'] or { '' } != bundle_cross_profile_base_overlay { return error('bundle cross-profile original boot or UserManager overlay differs') }
+	return bundle_cross_profile_base + '/boot.img'
+}
+
 fn service_query_modules() map[string]string {
 	mut modules := controller_modules()
 	modules['maps-controller-diagnostic.tar'] = 'bef5f25859e77a9671a6a144ccb56891da5ed2f7b4324a93a96da7fdcab1987a'
@@ -4470,6 +4614,8 @@ fn patch(root string, build_root string, receipt_sha string, profile Profile) ! 
 		baseline = layout_alignment_baseline(stage_map, stage)!
 	} else if profile.name == 'maps-user-restrictions' {
 		baseline = user_restrictions_baseline(stage_map, stage)!
+	} else if profile.name == 'maps-bundle-cross-profile' {
+		baseline = bundle_cross_profile_baseline(stage_map, stage)!
 	} else {
 		for path, expected in stage.inputs_sha256 {
 			if os.file_name(path) == 'boot.img' && expected == baseline_pin {
@@ -8488,6 +8634,163 @@ fn user_restrictions_profile_self_test() ! {
 	println('MAPS-USER-RESTRICTIONS KERNEL-PROFILE-SELF-TEST PASS six framework files eighty-four seals thirty-five inherited modules reused native bundle one consumed raw formatting delta no canonical delta and historical rejection')
 }
 
+fn bundle_cross_profile_entries_fixture() []ServiceQueryEntry {
+	mut entries := user_restrictions_entries_fixture()
+	mut pins := bundle_cross_profile_known_delta()
+	pins['/' + service_query_headless + '/guest-inputs.json'] = 'e'.repeat(64)
+	pins['/' + service_query_deployment] = 'f'.repeat(64)
+	for index, entry in entries {
+		if entry.kind == 'regular' { entries[index] = ServiceQueryEntry{...entry, sha256: pins['/' + entry.name]!} }
+	}
+	return entries
+}
+fn bundle_cross_profile_receipt_fixture() !map[string]json2.Any {
+	mut receipt := map[string]json2.Any{}
+	for name, value in bundle_cross_profile_fields() { receipt[name] = json2.Any(value) }
+	for name, value in bundle_cross_profile_proofs() { receipt[name] = json2.decode[json2.Any](value)! }
+	mut delta := bundle_cross_profile_known_delta()
+	delta['/' + service_query_headless + '/guest-inputs.json'] = 'e'.repeat(64)
+	receipt['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(delta))!
+	receipt['overlay_inventory'] = json2.decode[json2.Any](json2.encode(bundle_cross_profile_entries_fixture()))!
+	return receipt
+}
+fn bundle_cross_profile_self_test() ! {
+	profile := bundle_cross_profile_profile()
+	if profile.baseline_sha != bundle_cross_profile_boot || profile.modules.len != 36 || profile.modules.last() != 'maps-user-restrictions.tar'
+		|| bundle_cross_profile_inputs().len != 86 { return error('bundle cross-profile strict profile differs') }
+	mut modules := profile.modules.clone()
+	modules << profile.overlay
+	if modules.len != 37 || bundle_cross_profile_overlay_paths().len != 6 || bundle_cross_profile_known_delta().len != 4 { return error('bundle cross-profile exact modules, files or actual changes differ') }
+	verify_modules(profile, Config{'vinix', profile.modules}, Config{'vinix', modules})!
+	for bad in [Config{'vinix', profile.modules}, Config{'vinix', modules.reverse()}, Config{'other', modules}] {
+		if _ := verify_modules(profile, Config{'vinix', profile.modules}, bad) { return error('wrong bundle cross-profile module order accepted') }
+	}
+	stage := Stage{format: 1, inputs_sha256: bundle_cross_profile_inputs(), original_modules_sha256: bundle_cross_profile_modules(), preserved_modules_sha256: bundle_cross_profile_modules()}
+	receipt := bundle_cross_profile_receipt_fixture()!
+	verify_bundle_cross_profile_receipt(receipt, stage)!
+	mut fields := bundle_cross_profile_fields().keys()
+	fields << bundle_cross_profile_proofs().keys()
+	fields << ['deployment_input_delta', 'overlay_inventory']
+	for field in fields {
+		mut bad := bundle_cross_profile_receipt_fixture()!
+		bad[field] = json2.Any('changed')
+		if _ := verify_bundle_cross_profile_receipt(bad, stage) { return error('changed bundle cross-profile field/proof accepted') }
+		bad.delete(field)
+		if _ := verify_bundle_cross_profile_receipt(bad, stage) { return error('missing bundle cross-profile field/proof accepted') }
+	}
+	for proof in ['framework_builder_helper_delta', 'native_builder_helper_delta', 'framework_source_delta', 'framework_canonical_delta', 'native_source_delta',
+		'native_bindings_delta', 'native_generated_jni_delta', 'native_consumed_raw_delta', 'native_consumed_canonical_delta',
+		'native_consumed_raw_additions', 'native_consumed_canonical_additions', 'headless_input_delta'] {
+		original := json2.decode[map[string]json2.Any](json2.encode(receipt[proof]!))!
+		for path in original.keys() {
+			mut changed := json2.decode[map[string]json2.Any](json2.encode(original))!
+			changed[path] = json2.Any('0'.repeat(64))
+			mut bad := bundle_cross_profile_receipt_fixture()!
+			bad[proof] = json2.Any(changed)
+			if _ := verify_bundle_cross_profile_receipt(bad, stage) { return error('changed bundle cross-profile proof member accepted') }
+			changed.delete(path)
+			bad[proof] = json2.Any(changed)
+			if _ := verify_bundle_cross_profile_receipt(bad, stage) { return error('missing bundle cross-profile proof member accepted') }
+		}
+		mut extra := json2.decode[map[string]json2.Any](json2.encode(original))!
+		extra['unreviewed'] = json2.Any('a'.repeat(64))
+		mut bad := bundle_cross_profile_receipt_fixture()!
+		bad[proof] = json2.Any(extra)
+		if _ := verify_bundle_cross_profile_receipt(bad, stage) { return error('extra bundle cross-profile proof member accepted') }
+	}
+	for field in ['native_framework_manifest_sha256', 'native_compatibility_framework_manifest_sha256'] {
+		mut bad := bundle_cross_profile_receipt_fixture()!
+		bad[field] = json2.Any(user_restrictions_seal)
+		if _ := verify_bundle_cross_profile_receipt(bad, stage) { return error('immediate SDK parent substituted for original native SDK') }
+	}
+	for index in 0 .. 2 {
+		mut changed := [layout_alignment_raw, layout_alignment_canonical]
+		changed[index] = '0'.repeat(64)
+		mut bad := bundle_cross_profile_receipt_fixture()!
+		bad['native_consumed_raw_delta'] = json2.decode[json2.Any](json2.encode({'smali/android/text/Layout.smali': changed}))!
+		if _ := verify_bundle_cross_profile_receipt(bad, stage) { return error('changed bundle cross-profile consumed before/after proof accepted') }
+	}
+	for path in stage.inputs_sha256.keys() {
+		mut pins := bundle_cross_profile_inputs()
+		pins[path] = '0'.repeat(64)
+		if _ := verify_bundle_cross_profile_receipt(receipt, Stage{...stage, inputs_sha256: pins}) { return error('changed bundle cross-profile input accepted') }
+		pins.delete(path)
+		if _ := verify_bundle_cross_profile_receipt(receipt, Stage{...stage, inputs_sha256: pins}) { return error('missing bundle cross-profile input accepted') }
+	}
+	for path in ['/unreviewed/sha256.json', layout_alignment_relink_root() + '/out/canonical.so', window_animations_relink_root() + '/compile.log'] {
+		mut extra := bundle_cross_profile_inputs()
+		extra[path] = 'a'.repeat(64)
+		if _ := verify_bundle_cross_profile_receipt(receipt, Stage{...stage, inputs_sha256: extra}) { return error('extra bundle cross-profile seal or old proof input accepted') }
+	}
+	for bad in [Stage{...stage, format: 0}, Stage{...stage, original_modules_sha256: user_restrictions_modules()}, Stage{...stage, preserved_modules_sha256: user_restrictions_modules()}] {
+		if _ := verify_bundle_cross_profile_receipt(receipt, bad) { return error('wrong bundle cross-profile module inventory accepted') }
+	}
+	for addition in ['deployment_input_additions', 'deployment_top_level_additions', 'native_relink_proof'] {
+		mut bad := bundle_cross_profile_receipt_fixture()!
+		bad[addition] = json2.Any(map[string]json2.Any{})
+		if _ := verify_bundle_cross_profile_receipt(bad, stage) { return error('bundle cross-profile addition or relink proof accepted') }
+	}
+	delta := json2.decode[map[string]string](json2.encode(receipt['deployment_input_delta']!))!
+	for path in delta.keys() {
+		mut changed := delta.clone()
+		changed.delete(path)
+		mut bad := bundle_cross_profile_receipt_fixture()!
+		bad['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(changed))!
+		if _ := verify_bundle_cross_profile_receipt(bad, stage) { return error('missing bundle cross-profile actual input change accepted') }
+	}
+	for path, pin in {'/opt/vinix-maps-account/bin/maps-account-guest': seed_companion_controller_pin, '/' + native_onboarding_trace_path: layout_alignment_native_pin} {
+		mut changed := delta.clone()
+		changed[path] = pin
+		mut bad := bundle_cross_profile_receipt_fixture()!
+		bad['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(changed))!
+		if _ := verify_bundle_cross_profile_receipt(bad, stage) { return error('unrelated bundle cross-profile input change accepted') }
+	}
+	entries := bundle_cross_profile_entries_fixture()
+	for index, entry in entries {
+		for changed in [ServiceQueryEntry{...entry, name: '../escape'}, ServiceQueryEntry{...entry, kind: 'symlink'}, ServiceQueryEntry{...entry, mode: 0o777}, ServiceQueryEntry{...entry, mode: 0o4755}] {
+			mut bad_entries := entries.clone()
+			bad_entries[index] = changed
+			mut bad := bundle_cross_profile_receipt_fixture()!
+			bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(bad_entries))!
+			if _ := verify_bundle_cross_profile_receipt(bad, stage) { return error('unsafe bundle cross-profile overlay inode accepted') }
+		}
+		if entry.kind == 'regular' {
+			mut bad_entries := entries.clone()
+			bad_entries.delete(index)
+			mut bad := bundle_cross_profile_receipt_fixture()!
+			bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(bad_entries))!
+			if _ := verify_bundle_cross_profile_receipt(bad, stage) { return error('missing bundle cross-profile overlay file accepted') }
+			if entry.name != service_query_deployment {
+				mut changed := entries.clone()
+				changed[index] = ServiceQueryEntry{...entry, sha256: '0'.repeat(64)}
+				bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(changed))!
+				if _ := verify_bundle_cross_profile_receipt(bad, stage) { return error('changed bundle cross-profile overlay pin accepted') }
+			}
+		}
+	}
+	for extra in [entries.last(), ServiceQueryEntry{name: native_onboarding_trace_path, kind: 'regular', mode: 0o755, sha256: layout_alignment_native_pin}] {
+		mut changed := entries.clone()
+		changed << extra
+		mut bad := bundle_cross_profile_receipt_fixture()!
+		bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(changed))!
+		if _ := verify_bundle_cross_profile_receipt(bad, stage) { return error('duplicate or native bundle cross-profile overlay file accepted') }
+	}
+	mut stale_delta := delta.clone()
+	stale_delta['/' + service_query_headless + '/guest-inputs.json'] = bundle_cross_profile_old_headless
+	mut stale_entries := entries.clone()
+	for index, entry in stale_entries { if entry.name == service_query_headless + '/guest-inputs.json' { stale_entries[index] = ServiceQueryEntry{...entry, sha256: bundle_cross_profile_old_headless} } }
+	mut stale := bundle_cross_profile_receipt_fixture()!
+	stale['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(stale_delta))!
+	stale['overlay_inventory'] = json2.decode[json2.Any](json2.encode(stale_entries))!
+	if _ := verify_bundle_cross_profile_receipt(stale, stage) { return error('stale bundle cross-profile headless pin accepted') }
+	for old in [user_restrictions_receipt_fixture()!, layout_alignment_receipt_fixture()!, window_animations_receipt_fixture()!] {
+		if _ := verify_bundle_cross_profile_receipt(old, stage) { return error('historical receipt accepted by bundle cross-profile profile') }
+	}
+	if _ := verify_user_restrictions_receipt(receipt, stage) { return error('bundle cross-profile receipt accepted by UserManager profile') }
+	if _ := verify_layout_alignment_receipt(receipt, stage) { return error('bundle cross-profile receipt accepted by Layout profile') }
+	println('MAPS-BUNDLE-CROSS-PROFILE KERNEL-PROFILE-SELF-TEST PASS six files eighty-six seals thirty-six inherited modules two method fixes one memberless class reused native with original Layout provenance and historical rejection')
+}
+
 fn self_test() ! {
 	protected_profile_self_test()!
 	controller_profile_self_test()!
@@ -8518,6 +8821,7 @@ fn self_test() ! {
 	window_animations_profile_self_test()!
 	layout_alignment_profile_self_test()!
 	user_restrictions_profile_self_test()!
+	bundle_cross_profile_self_test()!
 	maps := maps_profile()
 	before := Config{'vinix', maps.modules}
 	mut modules := maps.modules.clone()
@@ -8592,6 +8896,7 @@ fn self_test() ! {
 	fat_self_test(root + '/window-animations', 'maps-window-animations.tar', window_animations_profile().modules)!
 	fat_self_test(root + '/layout-alignment', 'maps-layout-alignment.tar', layout_alignment_profile().modules)!
 	fat_self_test(root + '/user-restrictions', 'maps-user-restrictions.tar', user_restrictions_profile().modules)!
+	fat_self_test(root + '/bundle-cross-profile', 'maps-bundle-cross-profile.tar', bundle_cross_profile_profile().modules)!
 	println('BROWSER-KERNEL-PATCH SELF-TEST PASS configuration inventory digest symlink launched-stage guards')
 }
 
@@ -8633,9 +8938,10 @@ fn main() {
 	is_window_animations := os.args.len == 5 && os.args[1] == '--maps-window-animations'
 	is_layout_alignment := os.args.len == 5 && os.args[1] == '--maps-layout-alignment'
 	is_user_restrictions := os.args.len == 5 && os.args[1] == '--maps-user-restrictions'
-	is_selected := is_maps || is_protected || is_controller || is_service_query || is_controller_memory || is_direct_boot || is_context_storage || is_broadcast_result || is_onboarding_trace || is_native_onboarding_trace || is_onboarding_framework || is_native_heartbeat || is_browser_poll || is_account_pump || is_application_restrictions || is_account_handoff || is_auth_exception || is_auth_worker || is_binder_identity || is_service_lifecycle || is_platform_fragments || is_imageview_bounds || is_window_system_ui || is_broker_tail || is_seed_companion || is_persistent_data_block || is_bitmap_tiles || is_window_animations || is_layout_alignment || is_user_restrictions
+	is_bundle_cross_profile := os.args.len == 5 && os.args[1] == '--maps-bundle-cross-profile'
+	is_selected := is_maps || is_protected || is_controller || is_service_query || is_controller_memory || is_direct_boot || is_context_storage || is_broadcast_result || is_onboarding_trace || is_native_onboarding_trace || is_onboarding_framework || is_native_heartbeat || is_browser_poll || is_account_pump || is_application_restrictions || is_account_handoff || is_auth_exception || is_auth_worker || is_binder_identity || is_service_lifecycle || is_platform_fragments || is_imageview_bounds || is_window_system_ui || is_broker_tail || is_seed_companion || is_persistent_data_block || is_bitmap_tiles || is_window_animations || is_layout_alignment || is_user_restrictions || is_bundle_cross_profile
 	if os.args.len != 4 && !is_selected {
-		eprintln('usage: patch-kernel [--maps-account|--protected-storage-maps|--maps-controller|--maps-service-query|--maps-controller-memory|--maps-direct-boot|--maps-context-storage|--maps-broadcast-result|--maps-onboarding-trace|--maps-native-onboarding-trace|--maps-onboarding-framework|--maps-native-heartbeat|--maps-browser-poll|--maps-account-pump|--maps-application-restrictions|--maps-account-handoff|--maps-auth-exception|--maps-auth-worker|--maps-binder-identity|--maps-service-lifecycle|--maps-platform-fragments|--maps-imageview-bounds|--maps-window-system-ui|--maps-broker-tail|--maps-seed-account-companion|--maps-persistent-data-block|--maps-bitmap-tiles|--maps-window-animations|--maps-layout-alignment|--maps-user-restrictions] FRESH_STAGE FROZEN_KERNEL_BUILD BUILD_JSON_SHA256')
+		eprintln('usage: patch-kernel [--maps-account|--protected-storage-maps|--maps-controller|--maps-service-query|--maps-controller-memory|--maps-direct-boot|--maps-context-storage|--maps-broadcast-result|--maps-onboarding-trace|--maps-native-onboarding-trace|--maps-onboarding-framework|--maps-native-heartbeat|--maps-browser-poll|--maps-account-pump|--maps-application-restrictions|--maps-account-handoff|--maps-auth-exception|--maps-auth-worker|--maps-binder-identity|--maps-service-lifecycle|--maps-platform-fragments|--maps-imageview-bounds|--maps-window-system-ui|--maps-broker-tail|--maps-seed-account-companion|--maps-persistent-data-block|--maps-bitmap-tiles|--maps-window-animations|--maps-layout-alignment|--maps-user-restrictions|--maps-bundle-cross-profile] FRESH_STAGE FROZEN_KERNEL_BUILD BUILD_JSON_SHA256')
 		exit(2)
 	}
 	offset := if is_selected { 1 } else { 0 }
@@ -8648,7 +8954,7 @@ fn main() {
 		exit(1)
 	}
 	profile := if is_seed_companion { seed_companion_profile() } else if is_broker_tail { broker_tail_profile() } else if is_window_system_ui { window_system_ui_profile() } else if is_imageview_bounds { imageview_bounds_profile() } else if is_platform_fragments { platform_fragments_profile() } else if is_service_lifecycle { service_lifecycle_profile() } else if is_binder_identity { binder_identity_profile() } else if is_auth_worker { auth_worker_profile() } else if is_auth_exception { auth_exception_profile() } else if is_account_handoff { account_handoff_profile() } else if is_application_restrictions { application_restrictions_profile() } else if is_account_pump { account_pump_profile() } else if is_browser_poll { browser_poll_profile() } else if is_native_heartbeat { native_heartbeat_profile() } else if is_onboarding_framework { onboarding_framework_profile() } else if is_native_onboarding_trace { native_onboarding_trace_profile() } else if is_onboarding_trace { onboarding_trace_profile() } else if is_broadcast_result { broadcast_result_profile() } else if is_context_storage { context_storage_profile() } else if is_direct_boot { direct_boot_profile() } else if is_controller_memory { controller_memory_profile() } else if is_service_query { service_query_profile() } else if is_controller { controller_profile() } else if is_protected { protected_maps_profile() } else if is_maps { maps_profile() } else { browser_profile() }
-	selected_profile := if is_user_restrictions { user_restrictions_profile() } else if is_layout_alignment { layout_alignment_profile() } else if is_window_animations { window_animations_profile() } else if is_bitmap_tiles { bitmap_tiles_profile() } else if is_persistent_data_block { persistent_data_block_profile() } else { profile }
+	selected_profile := if is_bundle_cross_profile { bundle_cross_profile_profile() } else if is_user_restrictions { user_restrictions_profile() } else if is_layout_alignment { layout_alignment_profile() } else if is_window_animations { window_animations_profile() } else if is_bitmap_tiles { bitmap_tiles_profile() } else if is_persistent_data_block { persistent_data_block_profile() } else { profile }
 	patch(root, build_root, os.args[3 + offset], selected_profile) or {
 		eprintln(err)
 		exit(1)
