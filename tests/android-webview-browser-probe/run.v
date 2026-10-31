@@ -13,9 +13,11 @@ import time
 #include <signal.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <libproc.h>
 #include <CommonCrypto/CommonDigest.h>
 
 fn C.kill(int, int) int
+fn C.proc_pidpath(int, voidptr, u32) int
 @[typedef]
 struct C.CC_SHA256_CTX {}
 fn C.CC_SHA256_Init(voidptr) i32
@@ -66,6 +68,259 @@ struct StopReceipt {
 	pid           int
 	signal        string
 	requested_utc string
+}
+
+struct ForeignResourceIdentity {
+	path string
+	dev u64
+	inode u64
+	mode u32
+	nlink u64
+}
+
+struct ForeignAdmission {
+	owner Ownership
+	executable string
+	executable_sha256 string
+	memory_mib u64
+	cpus u64
+	inventory string
+	host_memory string
+	host_cpus string
+	host_pressure string
+	disk_available u64
+	disk_report string
+	sampled_utc string
+	referenced_paths map[string]ForeignResourceIdentity
+}
+
+fn positive_decimal(value string) !u64 {
+	if value.len == 0 || value.len > 20 || value[0] == `0`
+		|| !value.bytes().all(it >= `0` && it <= `9`) {
+		return error('plain positive decimal resource value required')
+	}
+	return strconv.parse_uint(value, 10, 64)
+}
+
+fn available_disk_bytes(output string) !u64 {
+	rows := output.trim_space().split_into_lines()
+	if output.len > 8192 || rows.len != 2 || rows[0].fields() != ['Filesystem', '1024-blocks', 'Used', 'Available', 'Capacity', 'Mounted', 'on'] {
+		return error('bounded canonical df -kP report required')
+	}
+	columns := rows[1].fields()
+	if columns.len < 6 || !columns[0].starts_with('/') || !columns[5].starts_with('/') || !columns[4].ends_with('%') {
+		return error('invalid df filesystem report')
+	}
+	mut counts := []u64{}
+	for value in columns[1..4] {
+		count := if value == '0' { u64(0) } else { positive_decimal(value)! }
+		if count > u64(0xffffffffffffffff) / 1024 { return error('df block count overflow') }
+		counts << count
+	}
+	capacity := columns[4][..columns[4].len - 1]
+	percent := if capacity == '0' { u64(0) } else { positive_decimal(capacity)! }
+	if counts[0] == 0 || counts[1] > counts[0] || counts[2] > counts[0] || percent > 100 { return error('inconsistent df counts') }
+	return counts[2] * 1024
+}
+
+fn foreign_drive(value string) ! {
+	mut fields := map[string]string{}
+	for item in value.split(',') {
+		key, data := item.all_before('='), item.all_after('=')
+		if key == item || key in fields || key !in ['if', 'format', 'file', 'readonly'] {
+			return error('unsupported foreign drive configuration')
+		}
+		fields[key] = data
+	}
+	if fields['if'] or { '' } !in ['pflash', 'virtio'] || fields['format'] or { '' } !in ['raw', 'qcow2']
+		|| !(fields['file'] or { '' }).starts_with('/') || fields['readonly'] or { 'on' } != 'on' {
+		return error('simple foreign disk/firmware configuration required')
+	}
+}
+
+// This opt-in deliberately accepts only simple, unquoted argv forms. Unknown
+// options and alternate memory/CPU configurations are not inferred from ps.
+fn foreign_resources(command string) !(u64, u64) {
+	if command.contains_any('\t\r\n\x00\'"\\') { return error('unsupported quoted foreign argv') }
+	args := command.fields()
+	if args.len < 2 || args.join(' ') != command { return error('canonical foreign argv required') }
+	mut memory := u64(0)
+	mut cpus := u64(0)
+	mut machine := 0
+	mut daemon := 0
+	mut counts := map[string]int{}
+	mut at := 1
+	for at < args.len {
+		flag := args[at]
+		at++
+		if flag == '-daemonize' {
+			daemon++
+			if daemon > 1 { return error('duplicate foreign daemon option') }
+			continue
+		}
+		if flag !in ['-machine', '-cpu', '-m', '-smp', '-drive', '-device', '-netdev',
+			'-display', '-serial', '-monitor', '-pidfile', '-D'] || at >= args.len
+			|| args[at].starts_with('-') { return error('unsupported foreign QEMU option: ' + flag) }
+		value := args[at]
+		at++
+		counts[flag]++
+		if counts[flag] > (if flag == '-drive' { 4 } else { 1 }) {
+			return error('duplicate or excessive foreign option: ' + flag)
+		}
+		if value.contains('memory-backend=') || value.contains('pc-dimm') || value.contains('virtio-mem') {
+			return error('unsupported foreign memory device')
+		}
+		match flag {
+			'-m' { if memory != 0 { return error('duplicate foreign memory') }; memory = positive_decimal(value)! }
+			'-smp' { if cpus != 0 { return error('duplicate foreign CPU count') }; cpus = positive_decimal(value)! }
+			'-machine' {
+				machine++
+				if machine != 1 || value !in ['virt', 'virt,accel=hvf,highmem=on'] {
+					return error('unsupported foreign machine configuration')
+				}
+			}
+			'-monitor' { if value != 'none' { return error('foreign monitor must be disabled') } }
+			'-display' { if value != 'none' { return error('foreign display must be disabled') } }
+			'-cpu' { if value != 'host' { return error('foreign CPU must be host') } }
+			'-device' { if value != 'virtio-net-pci,netdev=net0' { return error('unsupported foreign device') } }
+			'-drive' { foreign_drive(value)! }
+			'-netdev' {
+				parts := value.split(',')
+				if parts.len !in [2, 3] || parts[0] != 'user' || parts[1] != 'id=net0'
+					|| (parts.len == 3 && !parts[2].starts_with('hostfwd=tcp:127.0.0.1:')) {
+					return error('unsupported foreign user network')
+				}
+			}
+			else {}
+		}
+	}
+	if memory == 0 || cpus == 0 || machine != 1 { return error('explicit foreign memory/CPU/machine required') }
+	return memory, cpus
+}
+
+fn foreign_path(path string, root string, readonly bool) !ForeignResourceIdentity {
+	if !os.is_abs_path(path) { return error('absolute foreign resource path required') }
+	resolved := os.real_path(path)
+	if !os.is_file(resolved) || resolved == root || resolved.starts_with(root + '/')
+		|| resolved == repo || resolved.starts_with(repo + '/') {
+		return error('foreign resource must remain outside audited roots')
+	}
+	info := os.lstat(resolved)!
+	if info.nlink != 1 || (!readonly && resolved != path) {
+		return error('single-linked canonical writable foreign resources required')
+	}
+	for name in ['boot.img', 'efivars.fd'] {
+		if !os.exists(root + '/' + name) { continue }
+		owned_info := os.lstat(root + '/' + name)!
+		if info.dev == owned_info.dev && info.inode == owned_info.inode { return error('foreign resource aliases owned media') }
+	}
+	return ForeignResourceIdentity{resolved, info.dev, info.inode, info.mode, info.nlink}
+}
+
+fn foreign_paths(command string, root string) !map[string]ForeignResourceIdentity {
+	args := command.fields()
+	mut paths := map[string]ForeignResourceIdentity{}
+	mut at := 1
+	for at < args.len {
+		flag := args[at]
+		at++
+		if flag == '-daemonize' { continue }
+		value := args[at]
+		at++
+		mut path := ''
+		mut readonly := false
+		if flag == '-drive' {
+			for item in value.split(',') {
+				if item.starts_with('file=') { path = item[5..] }
+				if item == 'readonly=on' { readonly = true }
+			}
+		} else if flag in ['-pidfile', '-D'] { path = value }
+		else if flag == '-serial' {
+			if !value.starts_with('file:/') { return error('foreign serial must be an absolute file') }
+			path = value[5..]
+		}
+		if path != '' { paths[path] = foreign_path(path, root, readonly)! }
+	}
+	return paths
+}
+
+fn qemu_inventory(output string) ![]int {
+	mut pids := []int{}
+	for row in output.split_into_lines() {
+		line := row.trim_space()
+		if line == '' { continue }
+		columns := line.fields()
+		if columns.len < 2 { return error('invalid process inventory row') }
+		name := os.file_name(line.all_after(columns[0]).trim_space())
+		if name.starts_with('qemu-system-') || name in ['qemu', 'qemu-kvm'] {
+			pid := positive_decimal(columns[0])!
+			if pid > 2147483647 || int(pid) in pids { return error('invalid duplicate QEMU PID') }
+			pids << int(pid)
+		}
+	}
+	return pids
+}
+
+fn admit_resources(memory u64, cpus u64, physical u64, logical u64, pressure u64, available u64) ! {
+	if memory > 32768 - 12288 || cpus > 1024 - 4 || logical > 1024
+		|| memory == 0 || cpus == 0 || logical == 0 {
+		return error('coexisting guest resource bounds exceeded')
+	}
+	if (memory + 12288) * 1024 * 1024 > physical / 4 || cpus + 4 > logical
+		|| pressure != 1 || available < u64(1024) * 1024 * 1024 {
+		return error('coexisting guest host admission refused')
+	}
+}
+
+fn foreign_admission(root string, pid int) !ForeignAdmission {
+	if pid <= 1 { return error('explicit foreign PID required') }
+	inventory := checked(['/bin/ps', '-ww', '-axo', 'pid=,comm='])!
+	if qemu_inventory(inventory)! != [pid] { return error('exactly the selected foreign QEMU required') }
+	owner := identity(pid)!
+	if process_gone(owner)! || owner.command.contains(repo) || owner.command.contains(root) {
+		return error('foreign guest must be live and separate from audited roots')
+	}
+	mut bytes := []u8{len: 4096}
+	if C.proc_pidpath(pid, bytes.data, u32(bytes.len)) <= 0 { return error('cannot inspect foreign executable') }
+	mut end := 0
+	for end < bytes.len && bytes[end] != 0 { end++ }
+	if end == bytes.len { return error('unterminated foreign executable') }
+	executable := bytes[..end].bytestr()
+	if os.file_name(executable) != 'qemu-system-aarch64' || os.real_path(executable) != executable
+		|| executable == os.real_path(qemu) || os.real_path(owner.command.all_before(' ')) != executable {
+		return error('separate actual aarch64 QEMU executable required')
+	}
+	foreign_exe := os.lstat(executable)!
+	owned_exe := os.lstat(os.real_path(qemu))!
+	if foreign_exe.dev == owned_exe.dev && foreign_exe.inode == owned_exe.inode {
+		return error('foreign executable aliases audited QEMU')
+	}
+	memory, cpus := foreign_resources(owner.command)!
+	paths := foreign_paths(owner.command, root)!
+	physical := checked(['/usr/sbin/sysctl', '-n', 'hw.memsize'])!
+	logical := checked(['/usr/sbin/sysctl', '-n', 'hw.logicalcpu'])!
+	pressure := checked(['/usr/sbin/sysctl', '-n', 'kern.memorystatus_vm_pressure_level'])!
+	disk := checked(['/usr/bin/env', 'LC_ALL=C', '/bin/df', '-kP', root])!
+	available := available_disk_bytes(disk)!
+	admit_resources(memory, cpus, positive_decimal(physical)!, positive_decimal(logical)!, positive_decimal(pressure)!, available)!
+	return ForeignAdmission{owner, executable, hash(executable)!, memory, cpus, inventory,
+		physical, logical, pressure, available, disk, time.utc().str(), paths}
+}
+
+fn same_foreign(before ForeignAdmission, after ForeignAdmission) ! {
+	if before.owner != after.owner || before.executable != after.executable
+		|| before.executable_sha256 != after.executable_sha256 || before.memory_mib != after.memory_mib
+		|| before.cpus != after.cpus || before.referenced_paths != after.referenced_paths {
+		return error('foreign guest identity or resources changed during admission')
+	}
+}
+
+fn strict_guest_check(output string) ! {
+	for line in output.split_into_lines() {
+		if line.contains('qemu-system-aarch64 ') && line.contains(' -machine ') {
+			return error('another aarch64 QEMU guest is live')
+		}
+	}
 }
 
 fn hash(path string) !string {
@@ -277,37 +532,60 @@ fn network_launch_args(root string, mode NetworkMode) []string {
 }
 
 fn start(root string, mode NetworkMode) ! {
+	start_admitted(root, mode, 0)!
+}
+
+fn start_admitted(root string, mode NetworkMode, foreign_pid int) ! {
 	qmp_check(root)!
 	fresh_launch(root)!
-	for line in checked(['/bin/ps', '-axo', 'pid=,command='])!.split_into_lines() {
-		if line.contains('qemu-system-aarch64 ') && line.contains(' -machine ') {
-			return error('another aarch64 QEMU guest is live')
-		}
+	mut initial := ForeignAdmission{}
+	if foreign_pid != 0 {
+		if mode != .user_default { return error('coexistence requires the unchanged default network') }
+		initial = foreign_admission(root, foreign_pid)!
+	} else {
+		strict_guest_check(checked(['/bin/ps', '-axo', 'pid=,command='])!)!
 	}
 	stage := json2.decode[Stage](os.read_file(root + '/stage.json')!)!
 	if stage.format != 1 || hash(root + '/boot.img')! != stage.staged_boot_sha256
 		|| hash(root + '/efivars.fd')! != stage.staged_efivars_sha256 {
 		return error('staged media changed')
 	}
-	log_before := create_daemon_log(root)!
 	mut argv := [qemu]
 	argv << network_launch_args(root, mode)
+	qemu_sha := hash(qemu)!
+	firmware_sha := hash(firmware)!
+	runner_sha := hash(os.executable())!
+	mut final := ForeignAdmission{}
+	if foreign_pid != 0 {
+		final = foreign_admission(root, foreign_pid)!
+		same_foreign(initial, final)!
+	}
+	log_before := create_daemon_log(root)!
 	os.write_file(root + '/run-source.v', source)!
 	os.cp(os.executable(), root + '/runner')!
-	write_json(root + '/launch.json', json2.decode[json2.Any](json2.encode({
+	mut launch := {
 		'argv':                 json2.Any(argv)
 		'network':              mode.evidence()
 		'started_utc':          json2.Any(time.utc().str())
 		'stage_sha256':         json2.Any(hash(root + '/stage.json')!)
-		'qemu_sha256':          json2.Any(hash(qemu)!)
-		'firmware_sha256':      json2.Any(hash(firmware)!)
-		'runner_sha256':        json2.Any(hash(os.executable())!)
+		'qemu_sha256':          json2.Any(qemu_sha)
+		'firmware_sha256':      json2.Any(firmware_sha)
+		'runner_sha256':        json2.Any(runner_sha)
 		'runner_source_sha256': json2.Any(sha256.sum(source.bytes()).hex())
 		'daemon_stderr_path':   json2.Any(root + '/qemu.log')
 		'daemon_stderr_before': json2.decode[json2.Any](json2.encode(log_before))!
 		'daemon_stderr_scope':  json2.Any('QEMU -D retains normal daemon stderr; no -d tracing; exit cause requires observed evidence.')
 		'scope':                json2.Any('Separate credential-free real-engine diagnostic; no Google authentication proof.')
-	}))!)!
+	}
+	if foreign_pid != 0 {
+		launch['coexistence'] = json2.decode[json2.Any](json2.encode({
+			'initial': json2.decode[json2.Any](json2.encode(initial))!
+			'final': json2.decode[json2.Any](json2.encode(final))!
+			'scope': json2.Any('Read-only admission snapshots; foreign guest is never signalled or modified. Not continuous resource monitoring.')
+			'limits': json2.Any('one foreign QEMU; aggregate RAM <=32GiB and host/4; aggregate CPU <=host logical; sysctl pressure1; disk reserve1GiB; own12GiB/fourCPU unchanged')
+		}))!
+	}
+	write_json(root + '/launch.json', json2.Any(launch))!
 	result := execute(argv)!
 	write_json(root + '/launch-result.json', json2.decode[json2.Any](json2.encode(result))!)!
 	if result.code != 0 { return error('QEMU launch failed: ' + result.stderr) }
@@ -673,6 +951,100 @@ fn network_self_test() ! {
 	println('NETWORK-PROFILE SELF-TEST PASS unchanged-default exact-ipv4-only-argv explicit-network-provenance')
 }
 
+fn coexist_self_test(temporary_root string) ! {
+	root := os.real_path(temporary_root)
+	defer {
+		os.rmdir_all(root + '/owned-media') or {}
+		for name in ['foreign-disk', 'readonly-firmware', 'foreign-alias', 'foreign-hardlink'] { os.rm(root + '/' + name) or {} }
+	}
+	command := '/foreign/qemu-system-aarch64 -machine virt,accel=hvf,highmem=on -cpu host -m 16384 -smp 4 -drive if=virtio,file=/foreign/disk,format=qcow2 -device virtio-net-pci,netdev=net0 -display none -monitor none -daemonize'
+	memory, cpus := foreign_resources(command)!
+	assert memory == 16384 && cpus == 4
+	strict_guest_check('12 /bin/true')!
+	if _ := strict_guest_check('99 ' + command) { return error('legacy strict guest check weakened') }
+	assert qemu_inventory('12 /bin/true\n99 /foreign/qemu-system-aarch64')! == [99]
+	assert qemu_inventory('99 /foreign/qemu-system-aarch64\n100 /foreign/qemu-system-x86_64')! == [99, 100]
+	if _ := qemu_inventory('99 /foreign/qemu-system-aarch64\n99 /foreign/qemu-system-aarch64') { return error('duplicate inventory PID accepted') }
+	mut refusals := 1
+	for suffix in [' -m 1', ' -smp 1', ' -m1', ' -smp1', ' -object memory-backend-ram,id=m,size=64G',
+		' -numa node,memdev=m', ' -mem-path /tmp/m', ' -mem-prealloc', ' -readconfig /tmp/c',
+		' -qmp unix:/foreign/qmp', ' -device pc-dimm,memdev=m', ' -device virtio-mem-pci,memdev=m',
+		' -machine virt', ' -daemonize', ' disk.img', ' -device virtio-gpu,hostmem=128G',
+		' -device unknown', ' -drive if=virtio,file=/foreign/disk,format=qcow2,l2-cache-size=512G',
+		' -drive if=virtio,file=/foreign/disk,format=qcow2,cache-size=512G',
+		' -drive if=virtio,file=/foreign/disk,file=/other,format=qcow2',
+		' -drive if=virtio,file=relative,format=qcow2', ' -display cocoa', ' -cpu max'] {
+		if _, _ := foreign_resources(command + suffix) { return error('unsafe foreign option accepted: ' + suffix) }
+		refusals++
+	}
+	for value in ['', '0', '01', '-1', '+1', '1G', '1.5', 'size=16384', '16384,slots=2,maxmem=64G', '18446744073709551616'] {
+		if _, _ := foreign_resources(command.replace('-m 16384', '-m ' + value)) { return error('unsafe foreign memory accepted: ' + value) }
+		if _, _ := foreign_resources(command.replace('-smp 4', '-smp ' + value)) { return error('unsafe foreign CPU count accepted: ' + value) }
+		refusals += 2
+	}
+	for value in [command.replace(' -m 16384', ''), command.replace(' -smp 4', ''),
+		command.replace(' -machine virt,accel=hvf,highmem=on', ''), command.replace(' -monitor none', ' -monitor stdio'),
+		command.replace(' -machine virt,accel=hvf,highmem=on', ' -machine virt,memory-backend=m'),
+		command.replace(' -cpu host', ' -cpu "host"'), command.replace(' -cpu host', '  -cpu host')] {
+		if _, _ := foreign_resources(value) { return error('unsupported foreign grammar accepted') }
+		refusals++
+	}
+	gi := u64(1024) * 1024 * 1024
+	admit_resources(16384, 4, 128 * gi, 18, 1, gi)!
+	admit_resources(20480, 14, 128 * gi, 18, 1, gi)!
+	for values in [[u64(20481), 4, 128 * gi, 18, 1, gi], [u64(16384), 4, 112 * gi - 1, 18, 1, gi],
+		[u64(16384), 15, 128 * gi, 18, 1, gi], [u64(16384), 4, 128 * gi, 18, 0, gi],
+		[u64(16384), 4, 128 * gi, 18, 2, gi], [u64(16384), 4, 128 * gi, 18, 4, gi],
+		[u64(16384), 4, 128 * gi, 18, 1, gi - 1], [u64(0), 4, 128 * gi, 18, 1, gi],
+		[u64(16384), 0, 128 * gi, 18, 1, gi], [u64(16384), 4, 128 * gi, 0, 1, gi]] {
+		admit_resources(values[0], values[1], values[2], values[3], values[4], values[5]) or { refusals++; continue }
+		return error('unsafe host resource boundary accepted')
+	}
+	before := ForeignAdmission{owner: Ownership{pid: 99, command: command, started: 'fixed'}, executable: '/foreign/qemu-system-aarch64', executable_sha256: 'fixed', memory_mib: memory, cpus: cpus}
+	same_foreign(before, before)!
+	for changed in [ForeignAdmission{...before, owner: Ownership{...before.owner, pid: 100}},
+		ForeignAdmission{...before, owner: Ownership{...before.owner, started: 'changed'}},
+		ForeignAdmission{...before, owner: Ownership{...before.owner, command: command + ' changed'}},
+		ForeignAdmission{...before, executable: '/changed'}, ForeignAdmission{...before, executable_sha256: 'changed'},
+		ForeignAdmission{...before, memory_mib: memory + 1}, ForeignAdmission{...before, cpus: cpus + 1},
+		ForeignAdmission{...before, referenced_paths: {'/foreign/disk': ForeignResourceIdentity{path: '/changed'}}}] {
+		if _ := same_foreign(before, changed) { return error('foreign identity mutation accepted') }
+		refusals++
+	}
+	os.mkdir(root + '/owned-media')!
+	os.write_file(root + '/owned-media/boot.img', 'owned')!
+	os.write_file(root + '/foreign-disk', 'foreign')!
+	reference := foreign_path(root + '/foreign-disk', root + '/owned-media', false)!
+	assert reference.path == root + '/foreign-disk'
+	os.write_file(root + '/foreign-disk', 'ordinary mutable foreign contents changed')!
+	assert foreign_path(root + '/foreign-disk', root + '/owned-media', false)! == reference
+	resource_before := ForeignAdmission{...before, referenced_paths: {'disk': reference}}
+	for changed in [ForeignResourceIdentity{...reference, path: '/changed'}, ForeignResourceIdentity{...reference, dev: reference.dev + 1},
+		ForeignResourceIdentity{...reference, inode: reference.inode + 1}, ForeignResourceIdentity{...reference, mode: reference.mode ^ 0o002},
+		ForeignResourceIdentity{...reference, nlink: reference.nlink + 1}] {
+		if _ := same_foreign(resource_before, ForeignAdmission{...resource_before, referenced_paths: {'disk': changed}}) { return error('foreign resource identity mutation accepted') }
+		refusals++
+	}
+	os.symlink(root + '/foreign-disk', root + '/readonly-firmware')!
+	assert foreign_path(root + '/readonly-firmware', root + '/owned-media', true)!.path == root + '/foreign-disk'
+	os.symlink(root + '/owned-media/boot.img', root + '/foreign-alias')!
+	os.link(root + '/owned-media/boot.img', root + '/foreign-hardlink')!
+	for path in ['relative', root + '/foreign-alias', root + '/foreign-hardlink', root + '/owned-media/boot.img', root + '/absent', root + '/readonly-firmware'] {
+		if _ := foreign_path(path, root + '/owned-media', false) { return error('unsafe foreign resource path accepted') }
+		refusals++
+	}
+	if _ := foreign_path(root + '/foreign-hardlink', root + '/owned-media', true) { return error('readonly hardlink alias accepted') }
+	df := 'Filesystem 1024-blocks Used Available Capacity Mounted on\n/dev/disk1 4000000 2000000 1048576 66% /System/Volumes/Data\n'
+	assert available_disk_bytes(df)! == gi
+	assert available_disk_bytes(df.replace('1048576', '0'))! == 0
+	for changed in [df.replace('1048576', '18446744073709551615'), df.replace('1048576', '-1'), df.replace('1048576', '4000001'),
+		df.replace('66%', '101%'), df.replace('1024-blocks', 'unexpected'), df + '/dev/disk2 1 1 0 100% /tmp\n'] {
+		if _ := available_disk_bytes(changed) { return error('malformed disk report accepted') }
+		refusals++
+	}
+	println('COEXISTENCE SELF-TEST PASS refusals=' + refusals.str() + ' unchanged-default explicit-single-foreign canonical-argv bounded-host-resources identity-recheck')
+}
+
 fn self_test() ! {
 	network_self_test()!
 	qmp_check('/tmp/browser-probe')!
@@ -690,6 +1062,7 @@ fn self_test() ! {
 	if os.exists(root) || os.is_link(root) { return error('selftest output exists') }
 	os.mkdir(root)!
 	defer { os.rmdir_all(root) or {} }
+	coexist_self_test(root)!
 	daemon_log_self_test(root)!
 	hash_self_test(root)!
 	os.write_file(root + '/qemu.pid', os.getpid().str())!
@@ -773,8 +1146,21 @@ fn main() {
 		}
 		return
 	}
+	if os.args.len == 4 && os.args[1] in ['start-coexisting', 'admit-coexisting'] {
+		root := canonical_root(os.args[2]) or { eprintln(err.msg()); exit(1) }
+		value := positive_decimal(os.args[3]) or { eprintln(err.msg()); exit(1) }
+		if value <= 1 || value > 2147483647 { eprintln('explicit safe foreign PID required'); exit(1) }
+		if os.args[1] == 'admit-coexisting' {
+			admission := foreign_admission(root, int(value)) or { eprintln(err.msg()); exit(1) }
+			println(json2.encode(admission, prettify: true))
+		} else {
+			start_admitted(root, .user_default, int(value)) or { eprintln(err.msg()); exit(1) }
+		}
+		return
+	}
 	if os.args.len != 3 || os.args[1] !in ['start', 'start-ipv4', 'status', 'stop', 'reconcile-stop', 'observe-gone', 'cleanup-gone'] {
 		eprintln('usage: run start|start-ipv4|status|stop|reconcile-stop|observe-gone|cleanup-gone STAGED_EXTERNAL_DIRECTORY')
+		eprintln('       run start-coexisting|admit-coexisting STAGED_EXTERNAL_DIRECTORY FOREIGN_PID')
 		exit(2)
 	}
 	root := canonical_root(os.args[2]) or {
