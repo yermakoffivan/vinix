@@ -443,6 +443,22 @@ const layout_alignment_relink_guard = 'b995efee87c7d6fc67670ae4e68bd82392e165c70
 const layout_alignment_relink_log = '0d83533012340bdfeeb24e97a4f539e93b9993f37a9620855230f84f7c4d09cb'
 const layout_alignment_relink_command = '09ba09428ffabf7e2c005dfb7fb4188e08be71f388b90659354a031f08ce8289'
 const layout_alignment_relink_pins = '216b7943a97eaf8075b775e42c2aa7791ac764d8b7c6e2d601f838e55af14e39'
+const user_restrictions_base = '/Users/alex/.local/state/vinix/android/maps-layout-alignment-r1'
+const user_restrictions_base_seal = '5e359cb61a16c70d08916e7b422c2729243871d42e747c8b30d13f34f76826e1'
+const user_restrictions_boot = '4fb6657b672a663945bd52704e97a8c0c9319f2d404ea83b0b15ce9f60604eb2'
+const user_restrictions_base_overlay = 'd51e5c5b3a6108d627761b6df10b998e14f9aa052ec09d6202ec0db6a5b5afae'
+const user_restrictions_old_deployment = '1727fac407181c34a440007fd4836e93005924384fc949030430347c94bd13d5'
+const user_restrictions_old_headless = 'be9d66faf899c627d201d8082187255a1df38f729fa358f4af9a44a10d84ea7b'
+const user_restrictions_framework = '/Users/alex/.local/state/vinix/android/combined-account-webview-user-restrictions-framework-2026-10-31-r3'
+const user_restrictions_seal = '2e3b4a212238fc14a47b6cc72d1abde24c95a26e379ecd79f99f54527314040c'
+const user_restrictions_build = '9fbaa2abd500a9a922d7ff7674604a5d73067a18c09a4db8e6072928d7d5a157'
+const user_restrictions_jar = '646a83ea74795fb29b4db8811fc3249add3693b6e2de03e043c52e4e13b09bdc'
+const user_restrictions_dex = 'c2b14de4404b9ded7489b2a168d14618baafd65190d8008c55b40f44c1b72950'
+const user_restrictions_framework_helper = 'ded3eab5880d0082d9fe98ce1c74d7530fcf0bb5aaec1286407c765e8ff8ec72'
+const user_restrictions_provider_helper = '4b03ae35a674b2f21b2702ba042e6a477582fe7cdf32d1436d0836256f5e8821'
+const user_restrictions_before = '87747ad9ac9a8da5693ca362251e2b4d18d3f87987a4350ec66daee6e818961a'
+const user_restrictions_raw = '4dc720bf4798b75e39607a809a3e5035f22362b9b1844955a2ca25758587ceb3'
+const user_restrictions_canonical = 'c0588f8048098b995956a4210dba8a69f4b71ba015eb3fe54924d66a32d37815'
 const source = $embed_file(@FILE).to_string()
 
 struct Profile {
@@ -3712,6 +3728,124 @@ fn layout_alignment_baseline(receipt map[string]json2.Any, stage Stage) !string 
 	return layout_alignment_base + '/boot.img'
 }
 
+fn user_restrictions_profile() Profile {
+	mut modules := layout_alignment_profile().modules.clone()
+	modules << 'maps-layout-alignment.tar'
+	return Profile{'maps-user-restrictions', user_restrictions_boot, 'maps-user-restrictions.tar', modules}
+}
+fn user_restrictions_modules() map[string]string {
+	mut modules := layout_alignment_modules()
+	modules['maps-layout-alignment.tar'] = user_restrictions_base_overlay
+	return modules
+}
+fn user_restrictions_fields() map[string]string {
+	mut fields := layout_alignment_fields()
+	fields['kind'] = 'vinix-maps-user-restrictions-v1'
+	fields['base_root'] = user_restrictions_base
+	fields['base_manifest_sha256'] = user_restrictions_base_seal
+	fields['framework_build_root'] = user_restrictions_framework
+	fields['framework_manifest_sha256'] = user_restrictions_seal
+	fields['framework_jar_sha256'] = user_restrictions_jar
+	fields['framework_dex_sha256'] = user_restrictions_dex
+	fields['retained_framework_manifest_sha256'] = layout_alignment_seal
+	fields['native_compatibility_framework_manifest_sha256'] = layout_alignment_seal
+	fields['retained_native_manifest_sha256'] = layout_alignment_native_seal
+	fields['native_framework_manifest_sha256'] = layout_alignment_seal
+	return fields
+}
+fn user_restrictions_inputs() map[string]string {
+	mut inputs := map[string]string{}
+	for path, pin in layout_alignment_inputs() { if path.ends_with('/sha256.json') { inputs[path] = pin } }
+	inputs[user_restrictions_base + '/sha256.json'] = user_restrictions_base_seal
+	inputs[user_restrictions_framework + '/sha256.json'] = user_restrictions_seal
+	return inputs
+}
+fn user_restrictions_known_delta() map[string]string {
+	return {'/' + service_query_jar_path: user_restrictions_jar,
+		'/' + service_query_dex_path: user_restrictions_dex,
+		'/' + service_query_headless + '/framework-build.json': user_restrictions_build,
+		'/' + service_query_headless + '/framework-sha256.json': user_restrictions_seal}
+}
+fn user_restrictions_proofs() map[string]string {
+	return {
+		'headless_input_delta': json2.encode({'/' + service_query_jar_path: user_restrictions_jar})
+		'headless_top_level_delta': json2.encode(['inputs_sha256'])
+		'deployment_top_level_delta': json2.encode(['inputs_sha256', 'framework_manifest_sha256'])
+		'framework_class_count': json2.encode(2106)
+		'framework_source_delta': json2.encode({'smali/android/os/UserManager.smali': user_restrictions_raw})
+		'framework_canonical_delta': json2.encode({'new-dex/android/os/UserManager.smali': user_restrictions_canonical})
+		'framework_builder_helper_delta': json2.encode({'tests/native-android-tools/androidtools/framework.v': user_restrictions_framework_helper,
+			'tests/native-android-tools/androidtools/framework_user_restrictions.v': user_restrictions_provider_helper})
+		'native_source_delta': json2.encode(map[string]string{})
+		'native_builder_helper_delta': json2.encode(map[string]string{})
+		'native_bindings_delta': json2.encode(map[string][]string{})
+		'native_generated_jni_delta': json2.encode(map[string][]string{})
+		'native_consumed_class_count': json2.encode(69)
+		'native_consumed_raw_delta': json2.encode({'smali/android/text/Layout.smali': [layout_alignment_raw, layout_alignment_canonical]})
+		'native_consumed_canonical_delta': json2.encode(map[string][]string{})
+		'native_consumed_raw_additions': json2.encode(map[string]string{})
+		'native_consumed_canonical_additions': json2.encode(map[string]string{})
+	}
+}
+fn user_restrictions_overlay_paths() []string {
+	return [service_query_jar_path, service_query_dex_path, service_query_headless + '/framework-build.json',
+		service_query_headless + '/framework-sha256.json', service_query_headless + '/guest-inputs.json', service_query_deployment]
+}
+fn verify_user_restrictions_overlay(receipt map[string]json2.Any) ! {
+	if 'deployment_input_additions' in receipt || 'deployment_top_level_additions' in receipt || 'native_relink_proof' in receipt { return error('user restrictions changes existing framework inputs only') }
+	delta := json2.decode[map[string]string](json2.encode(receipt['deployment_input_delta'] or { return error('user restrictions deployment delta absent') }))!
+	mut expected := user_restrictions_known_delta()
+	guest := '/' + service_query_headless + '/guest-inputs.json'
+	guest_pin := delta[guest] or { return error('user restrictions headless pin absent') }
+	if !digest_valid(guest_pin) || guest_pin == user_restrictions_old_headless { return error('new user restrictions headless receipt required') }
+	expected[guest] = guest_pin
+	if delta != expected { return error('user restrictions exact deployment input changes differ') }
+	entries := json2.decode[[]ServiceQueryEntry](json2.encode(receipt['overlay_inventory'] or { return error('user restrictions overlay inventory absent') }))!
+	paths := user_restrictions_overlay_paths()
+	mut regulars := map[string]string{}
+	mut seen := map[string]bool{}
+	for entry in entries {
+		if entry.name in seen || !relative(entry.name) || entry.mode & 0o7022 != 0 { return error('unsafe user restrictions overlay inode') }
+		seen[entry.name] = true
+		if entry.kind == 'regular' {
+			if entry.name !in paths || !digest_valid(entry.sha256) || entry.mode != 0o644 { return error('user restrictions regular allowlist or mode differs') }
+			regulars[entry.name] = entry.sha256
+		} else if entry.kind != 'directory' || entry.mode != 0o755 || !paths.any(it.starts_with(entry.name + '/')) { return error('unexpected user restrictions overlay inode') }
+	}
+	if regulars.len != 6 || regulars[service_query_deployment] or { '' } == user_restrictions_old_deployment { return error('exact six user restrictions files required') }
+	for path, pin in expected { if regulars[path.trim_left('/')] or { '' } != pin { return error('user restrictions input differs from inventory') } }
+}
+fn verify_user_restrictions_receipt(receipt map[string]json2.Any, stage Stage) ! {
+	for pin in [user_restrictions_base_seal, user_restrictions_boot, user_restrictions_base_overlay,
+		user_restrictions_old_deployment, user_restrictions_old_headless, user_restrictions_seal,
+		user_restrictions_build, user_restrictions_jar, user_restrictions_dex,
+		user_restrictions_framework_helper, user_restrictions_provider_helper,
+		user_restrictions_before, user_restrictions_raw, user_restrictions_canonical] {
+		if !digest_valid(pin) { return error('completed user restrictions producer required') }
+	}
+	if user_restrictions_seal == layout_alignment_seal || user_restrictions_jar == layout_alignment_jar
+		|| user_restrictions_dex == layout_alignment_dex || user_restrictions_canonical == user_restrictions_before { return error('new user restrictions framework required') }
+	for name, expected in user_restrictions_fields() { if receipt[name] or { json2.Any('absent') } != json2.Any(expected) { return error('user restrictions receipt differs: ' + name) } }
+	for name, expected in user_restrictions_proofs() { if receipt[name] or { json2.Any('absent') } != json2.decode[json2.Any](expected)! { return error('user restrictions proof differs: ' + name) } }
+	mut seals := map[string]string{}
+	for path, pin in stage.inputs_sha256 { if path.ends_with('/sha256.json') { seals[path] = pin } }
+	if seals.len != 84 || seals != user_restrictions_inputs() { return error('user restrictions exact eighty-four dependency seals differ') }
+	for path in stage.inputs_sha256.keys() {
+		if path.starts_with(layout_alignment_relink_root() + '/') || path.starts_with(window_animations_relink_root() + '/') { return error('old relink proof leaves are not new direct inputs') }
+	}
+	if stage.format != 1 || stage.original_modules_sha256 != user_restrictions_modules() || stage.preserved_modules_sha256 != user_restrictions_modules() { return error('user restrictions original thirty-five modules differ') }
+	verify_user_restrictions_overlay(receipt)!
+}
+fn user_restrictions_baseline(receipt map[string]json2.Any, stage Stage) !string {
+	verify_user_restrictions_receipt(receipt, stage)!
+	path := user_restrictions_base + '/sha256.json'
+	regular(path)!
+	if os.lstat(path)!.size > 8 * 1024 * 1024 || hash(path)! != user_restrictions_base_seal { return error('user restrictions original Layout manifest differs') }
+	pins := json2.decode[map[string]string](os.read_file(path)!)!
+	if pins['boot.img'] or { '' } != user_restrictions_boot || pins['maps-layout-alignment.tar'] or { '' } != user_restrictions_base_overlay { return error('user restrictions original boot or Layout overlay differs') }
+	return user_restrictions_base + '/boot.img'
+}
+
 fn service_query_modules() map[string]string {
 	mut modules := controller_modules()
 	modules['maps-controller-diagnostic.tar'] = 'bef5f25859e77a9671a6a144ccb56891da5ed2f7b4324a93a96da7fdcab1987a'
@@ -4334,6 +4468,8 @@ fn patch(root string, build_root string, receipt_sha string, profile Profile) ! 
 		baseline = window_animations_baseline(stage_map, stage)!
 	} else if profile.name == 'maps-layout-alignment' {
 		baseline = layout_alignment_baseline(stage_map, stage)!
+	} else if profile.name == 'maps-user-restrictions' {
+		baseline = user_restrictions_baseline(stage_map, stage)!
 	} else {
 		for path, expected in stage.inputs_sha256 {
 			if os.file_name(path) == 'boot.img' && expected == baseline_pin {
@@ -8195,6 +8331,163 @@ fn layout_alignment_profile_self_test() ! {
 	println('MAPS-LAYOUT-ALIGNMENT KERNEL-PROFILE-SELF-TEST PASS seven files eighty-two seals thirty-four inherited modules getter-only framework change four consumed raw deltas one canonical delta and historical rejection')
 }
 
+fn user_restrictions_entries_fixture() []ServiceQueryEntry {
+	paths := user_restrictions_overlay_paths()
+	mut parents := map[string]bool{}
+	for path in paths {
+		mut parent := os.dir(path)
+		for parent !in ['', '.'] { parents[parent] = true; parent = os.dir(parent) }
+	}
+	mut entries := []ServiceQueryEntry{}
+	for parent in parents.keys().sorted() { entries << ServiceQueryEntry{name: parent, kind: 'directory', mode: 0o755} }
+	mut pins := user_restrictions_known_delta()
+	pins['/' + service_query_headless + '/guest-inputs.json'] = 'c'.repeat(64)
+	pins['/' + service_query_deployment] = 'd'.repeat(64)
+	for path in paths { entries << ServiceQueryEntry{name: path, kind: 'regular', sha256: pins['/' + path]!, mode: 0o644} }
+	return entries
+}
+fn user_restrictions_receipt_fixture() !map[string]json2.Any {
+	mut receipt := map[string]json2.Any{}
+	for name, value in user_restrictions_fields() { receipt[name] = json2.Any(value) }
+	for name, value in user_restrictions_proofs() { receipt[name] = json2.decode[json2.Any](value)! }
+	mut delta := user_restrictions_known_delta()
+	delta['/' + service_query_headless + '/guest-inputs.json'] = 'c'.repeat(64)
+	receipt['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(delta))!
+	receipt['overlay_inventory'] = json2.decode[json2.Any](json2.encode(user_restrictions_entries_fixture()))!
+	return receipt
+}
+fn user_restrictions_profile_self_test() ! {
+	profile := user_restrictions_profile()
+	if profile.baseline_sha != user_restrictions_boot || profile.modules.len != 35 || profile.modules.last() != 'maps-layout-alignment.tar'
+		|| user_restrictions_inputs().len != 84 { return error('user restrictions strict profile differs') }
+	mut modules := profile.modules.clone()
+	modules << profile.overlay
+	if modules.len != 36 || user_restrictions_overlay_paths().len != 6 || user_restrictions_known_delta().len != 4 { return error('user restrictions exact modules, files or actual changes differ') }
+	verify_modules(profile, Config{'vinix', profile.modules}, Config{'vinix', modules})!
+	for bad in [Config{'vinix', profile.modules}, Config{'vinix', modules.reverse()}, Config{'other', modules}] {
+		if _ := verify_modules(profile, Config{'vinix', profile.modules}, bad) { return error('wrong user restrictions module order accepted') }
+	}
+	stage := Stage{format: 1, inputs_sha256: user_restrictions_inputs(), original_modules_sha256: user_restrictions_modules(), preserved_modules_sha256: user_restrictions_modules()}
+	receipt := user_restrictions_receipt_fixture()!
+	verify_user_restrictions_receipt(receipt, stage)!
+	mut fields := user_restrictions_fields().keys()
+	fields << user_restrictions_proofs().keys()
+	fields << ['deployment_input_delta', 'overlay_inventory']
+	for field in fields {
+		mut bad := user_restrictions_receipt_fixture()!
+		bad[field] = json2.Any('changed')
+		if _ := verify_user_restrictions_receipt(bad, stage) { return error('changed user restrictions field/proof accepted') }
+		bad.delete(field)
+		if _ := verify_user_restrictions_receipt(bad, stage) { return error('missing user restrictions field/proof accepted') }
+	}
+	for proof in ['framework_builder_helper_delta', 'native_builder_helper_delta', 'framework_source_delta', 'framework_canonical_delta', 'native_source_delta',
+		'native_bindings_delta', 'native_generated_jni_delta', 'native_consumed_raw_delta', 'native_consumed_canonical_delta',
+		'native_consumed_raw_additions', 'native_consumed_canonical_additions', 'headless_input_delta'] {
+		original := json2.decode[map[string]json2.Any](json2.encode(receipt[proof]!))!
+		for path in original.keys() {
+			mut changed := json2.decode[map[string]json2.Any](json2.encode(original))!
+			changed[path] = json2.Any('0'.repeat(64))
+			mut bad := user_restrictions_receipt_fixture()!
+			bad[proof] = json2.Any(changed)
+			if _ := verify_user_restrictions_receipt(bad, stage) { return error('changed user restrictions proof member accepted') }
+			changed.delete(path)
+			bad[proof] = json2.Any(changed)
+			if _ := verify_user_restrictions_receipt(bad, stage) { return error('missing user restrictions proof member accepted') }
+		}
+		mut extra := json2.decode[map[string]json2.Any](json2.encode(original))!
+		extra['unreviewed'] = json2.Any('a'.repeat(64))
+		mut bad := user_restrictions_receipt_fixture()!
+		bad[proof] = json2.Any(extra)
+		if _ := verify_user_restrictions_receipt(bad, stage) { return error('extra user restrictions proof member accepted') }
+	}
+	for index in 0 .. 2 {
+		mut changed := [layout_alignment_raw, layout_alignment_canonical]
+		changed[index] = '0'.repeat(64)
+		mut bad := user_restrictions_receipt_fixture()!
+		bad['native_consumed_raw_delta'] = json2.decode[json2.Any](json2.encode({'smali/android/text/Layout.smali': changed}))!
+		if _ := verify_user_restrictions_receipt(bad, stage) { return error('changed user restrictions consumed before/after proof accepted') }
+	}
+	for path in stage.inputs_sha256.keys() {
+		mut pins := user_restrictions_inputs()
+		pins[path] = '0'.repeat(64)
+		if _ := verify_user_restrictions_receipt(receipt, Stage{...stage, inputs_sha256: pins}) { return error('changed user restrictions input accepted') }
+		pins.delete(path)
+		if _ := verify_user_restrictions_receipt(receipt, Stage{...stage, inputs_sha256: pins}) { return error('missing user restrictions input accepted') }
+	}
+	for path in ['/unreviewed/sha256.json', layout_alignment_relink_root() + '/out/canonical.so', window_animations_relink_root() + '/compile.log'] {
+		mut extra := user_restrictions_inputs()
+		extra[path] = 'a'.repeat(64)
+		if _ := verify_user_restrictions_receipt(receipt, Stage{...stage, inputs_sha256: extra}) { return error('extra user restrictions seal or old proof input accepted') }
+	}
+	for bad in [Stage{...stage, format: 0}, Stage{...stage, original_modules_sha256: layout_alignment_modules()}, Stage{...stage, preserved_modules_sha256: layout_alignment_modules()}] {
+		if _ := verify_user_restrictions_receipt(receipt, bad) { return error('wrong user restrictions module inventory accepted') }
+	}
+	for addition in ['deployment_input_additions', 'deployment_top_level_additions', 'native_relink_proof'] {
+		mut bad := user_restrictions_receipt_fixture()!
+		bad[addition] = json2.Any(map[string]json2.Any{})
+		if _ := verify_user_restrictions_receipt(bad, stage) { return error('user restrictions addition or relink proof accepted') }
+	}
+	delta := json2.decode[map[string]string](json2.encode(receipt['deployment_input_delta']!))!
+	for path in delta.keys() {
+		mut changed := delta.clone()
+		changed.delete(path)
+		mut bad := user_restrictions_receipt_fixture()!
+		bad['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(changed))!
+		if _ := verify_user_restrictions_receipt(bad, stage) { return error('missing user restrictions actual input change accepted') }
+	}
+	for path, pin in {'/opt/vinix-maps-account/bin/maps-account-guest': seed_companion_controller_pin, '/' + native_onboarding_trace_path: layout_alignment_native_pin} {
+		mut changed := delta.clone()
+		changed[path] = pin
+		mut bad := user_restrictions_receipt_fixture()!
+		bad['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(changed))!
+		if _ := verify_user_restrictions_receipt(bad, stage) { return error('unrelated user restrictions input change accepted') }
+	}
+	entries := user_restrictions_entries_fixture()
+	for index, entry in entries {
+		for changed in [ServiceQueryEntry{...entry, name: '../escape'}, ServiceQueryEntry{...entry, kind: 'symlink'}, ServiceQueryEntry{...entry, mode: 0o777}, ServiceQueryEntry{...entry, mode: 0o4755}] {
+			mut bad_entries := entries.clone()
+			bad_entries[index] = changed
+			mut bad := user_restrictions_receipt_fixture()!
+			bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(bad_entries))!
+			if _ := verify_user_restrictions_receipt(bad, stage) { return error('unsafe user restrictions overlay inode accepted') }
+		}
+		if entry.kind == 'regular' {
+			mut bad_entries := entries.clone()
+			bad_entries.delete(index)
+			mut bad := user_restrictions_receipt_fixture()!
+			bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(bad_entries))!
+			if _ := verify_user_restrictions_receipt(bad, stage) { return error('missing user restrictions overlay file accepted') }
+			if entry.name != service_query_deployment {
+				mut changed := entries.clone()
+				changed[index] = ServiceQueryEntry{...entry, sha256: '0'.repeat(64)}
+				bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(changed))!
+				if _ := verify_user_restrictions_receipt(bad, stage) { return error('changed user restrictions overlay pin accepted') }
+			}
+		}
+	}
+	for extra in [entries.last(), ServiceQueryEntry{name: native_onboarding_trace_path, kind: 'regular', mode: 0o755, sha256: layout_alignment_native_pin}] {
+		mut changed := entries.clone()
+		changed << extra
+		mut bad := user_restrictions_receipt_fixture()!
+		bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(changed))!
+		if _ := verify_user_restrictions_receipt(bad, stage) { return error('duplicate or native user restrictions overlay file accepted') }
+	}
+	mut stale_delta := delta.clone()
+	stale_delta['/' + service_query_headless + '/guest-inputs.json'] = user_restrictions_old_headless
+	mut stale_entries := entries.clone()
+	for index, entry in stale_entries { if entry.name == service_query_headless + '/guest-inputs.json' { stale_entries[index] = ServiceQueryEntry{...entry, sha256: user_restrictions_old_headless} } }
+	mut stale := user_restrictions_receipt_fixture()!
+	stale['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(stale_delta))!
+	stale['overlay_inventory'] = json2.decode[json2.Any](json2.encode(stale_entries))!
+	if _ := verify_user_restrictions_receipt(stale, stage) { return error('stale user restrictions headless pin accepted') }
+	for old in [layout_alignment_receipt_fixture()!, window_animations_receipt_fixture()!, bitmap_tiles_receipt_fixture()!] {
+		if _ := verify_user_restrictions_receipt(old, stage) { return error('historical receipt accepted by user restrictions profile') }
+	}
+	if _ := verify_layout_alignment_receipt(receipt, stage) { return error('user restrictions receipt accepted by Layout profile') }
+	if _ := verify_window_animations_receipt(receipt, stage) { return error('user restrictions receipt accepted by Window profile') }
+	println('MAPS-USER-RESTRICTIONS KERNEL-PROFILE-SELF-TEST PASS six framework files eighty-four seals thirty-five inherited modules reused native bundle one consumed raw formatting delta no canonical delta and historical rejection')
+}
+
 fn self_test() ! {
 	protected_profile_self_test()!
 	controller_profile_self_test()!
@@ -8224,6 +8517,7 @@ fn self_test() ! {
 	bitmap_tiles_profile_self_test()!
 	window_animations_profile_self_test()!
 	layout_alignment_profile_self_test()!
+	user_restrictions_profile_self_test()!
 	maps := maps_profile()
 	before := Config{'vinix', maps.modules}
 	mut modules := maps.modules.clone()
@@ -8297,6 +8591,7 @@ fn self_test() ! {
 	fat_self_test(root + '/bitmap-tiles', 'maps-bitmap-tiles.tar', bitmap_tiles_profile().modules)!
 	fat_self_test(root + '/window-animations', 'maps-window-animations.tar', window_animations_profile().modules)!
 	fat_self_test(root + '/layout-alignment', 'maps-layout-alignment.tar', layout_alignment_profile().modules)!
+	fat_self_test(root + '/user-restrictions', 'maps-user-restrictions.tar', user_restrictions_profile().modules)!
 	println('BROWSER-KERNEL-PATCH SELF-TEST PASS configuration inventory digest symlink launched-stage guards')
 }
 
@@ -8337,9 +8632,10 @@ fn main() {
 	is_bitmap_tiles := os.args.len == 5 && os.args[1] == '--maps-bitmap-tiles'
 	is_window_animations := os.args.len == 5 && os.args[1] == '--maps-window-animations'
 	is_layout_alignment := os.args.len == 5 && os.args[1] == '--maps-layout-alignment'
-	is_selected := is_maps || is_protected || is_controller || is_service_query || is_controller_memory || is_direct_boot || is_context_storage || is_broadcast_result || is_onboarding_trace || is_native_onboarding_trace || is_onboarding_framework || is_native_heartbeat || is_browser_poll || is_account_pump || is_application_restrictions || is_account_handoff || is_auth_exception || is_auth_worker || is_binder_identity || is_service_lifecycle || is_platform_fragments || is_imageview_bounds || is_window_system_ui || is_broker_tail || is_seed_companion || is_persistent_data_block || is_bitmap_tiles || is_window_animations || is_layout_alignment
+	is_user_restrictions := os.args.len == 5 && os.args[1] == '--maps-user-restrictions'
+	is_selected := is_maps || is_protected || is_controller || is_service_query || is_controller_memory || is_direct_boot || is_context_storage || is_broadcast_result || is_onboarding_trace || is_native_onboarding_trace || is_onboarding_framework || is_native_heartbeat || is_browser_poll || is_account_pump || is_application_restrictions || is_account_handoff || is_auth_exception || is_auth_worker || is_binder_identity || is_service_lifecycle || is_platform_fragments || is_imageview_bounds || is_window_system_ui || is_broker_tail || is_seed_companion || is_persistent_data_block || is_bitmap_tiles || is_window_animations || is_layout_alignment || is_user_restrictions
 	if os.args.len != 4 && !is_selected {
-		eprintln('usage: patch-kernel [--maps-account|--protected-storage-maps|--maps-controller|--maps-service-query|--maps-controller-memory|--maps-direct-boot|--maps-context-storage|--maps-broadcast-result|--maps-onboarding-trace|--maps-native-onboarding-trace|--maps-onboarding-framework|--maps-native-heartbeat|--maps-browser-poll|--maps-account-pump|--maps-application-restrictions|--maps-account-handoff|--maps-auth-exception|--maps-auth-worker|--maps-binder-identity|--maps-service-lifecycle|--maps-platform-fragments|--maps-imageview-bounds|--maps-window-system-ui|--maps-broker-tail|--maps-seed-account-companion|--maps-persistent-data-block|--maps-bitmap-tiles|--maps-window-animations|--maps-layout-alignment] FRESH_STAGE FROZEN_KERNEL_BUILD BUILD_JSON_SHA256')
+		eprintln('usage: patch-kernel [--maps-account|--protected-storage-maps|--maps-controller|--maps-service-query|--maps-controller-memory|--maps-direct-boot|--maps-context-storage|--maps-broadcast-result|--maps-onboarding-trace|--maps-native-onboarding-trace|--maps-onboarding-framework|--maps-native-heartbeat|--maps-browser-poll|--maps-account-pump|--maps-application-restrictions|--maps-account-handoff|--maps-auth-exception|--maps-auth-worker|--maps-binder-identity|--maps-service-lifecycle|--maps-platform-fragments|--maps-imageview-bounds|--maps-window-system-ui|--maps-broker-tail|--maps-seed-account-companion|--maps-persistent-data-block|--maps-bitmap-tiles|--maps-window-animations|--maps-layout-alignment|--maps-user-restrictions] FRESH_STAGE FROZEN_KERNEL_BUILD BUILD_JSON_SHA256')
 		exit(2)
 	}
 	offset := if is_selected { 1 } else { 0 }
@@ -8352,7 +8648,7 @@ fn main() {
 		exit(1)
 	}
 	profile := if is_seed_companion { seed_companion_profile() } else if is_broker_tail { broker_tail_profile() } else if is_window_system_ui { window_system_ui_profile() } else if is_imageview_bounds { imageview_bounds_profile() } else if is_platform_fragments { platform_fragments_profile() } else if is_service_lifecycle { service_lifecycle_profile() } else if is_binder_identity { binder_identity_profile() } else if is_auth_worker { auth_worker_profile() } else if is_auth_exception { auth_exception_profile() } else if is_account_handoff { account_handoff_profile() } else if is_application_restrictions { application_restrictions_profile() } else if is_account_pump { account_pump_profile() } else if is_browser_poll { browser_poll_profile() } else if is_native_heartbeat { native_heartbeat_profile() } else if is_onboarding_framework { onboarding_framework_profile() } else if is_native_onboarding_trace { native_onboarding_trace_profile() } else if is_onboarding_trace { onboarding_trace_profile() } else if is_broadcast_result { broadcast_result_profile() } else if is_context_storage { context_storage_profile() } else if is_direct_boot { direct_boot_profile() } else if is_controller_memory { controller_memory_profile() } else if is_service_query { service_query_profile() } else if is_controller { controller_profile() } else if is_protected { protected_maps_profile() } else if is_maps { maps_profile() } else { browser_profile() }
-	selected_profile := if is_layout_alignment { layout_alignment_profile() } else if is_window_animations { window_animations_profile() } else if is_bitmap_tiles { bitmap_tiles_profile() } else if is_persistent_data_block { persistent_data_block_profile() } else { profile }
+	selected_profile := if is_user_restrictions { user_restrictions_profile() } else if is_layout_alignment { layout_alignment_profile() } else if is_window_animations { window_animations_profile() } else if is_bitmap_tiles { bitmap_tiles_profile() } else if is_persistent_data_block { persistent_data_block_profile() } else { profile }
 	patch(root, build_root, os.args[3 + offset], selected_profile) or {
 		eprintln(err)
 		exit(1)
