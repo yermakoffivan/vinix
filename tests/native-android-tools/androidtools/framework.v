@@ -175,6 +175,7 @@ pub fn extend_framework(input string, output string, work string, tools string, 
  framework_user_restrictions(smali)!
  framework_bundle_boolean(smali)!
  framework_cross_profile_apps(smali)!
+ framework_resources_float(smali)!
  framework_assemble(smali, work + '/classes.dex', tools, java)!
  next := work + '/api-impl.jar'
  os.cp(input, next)!
