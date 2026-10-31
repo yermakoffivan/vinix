@@ -1202,6 +1202,119 @@ fn bundle_cross_profile_self_test() ! {
  }
 }
 
+fn resources_float_profile() NarrowProfile {
+ resources := 'android/content/res/Resources.smali'
+ return NarrowProfile{
+  name: 'resources-float'
+  baseline_name: 'combined-account-webview-bundle-cross-profile-framework-2026-10-31-r1'
+  manifest_pin: 'e9b9093ee1b8546bca93732cab02a4b58e8ddb25f8c4aae216e40c6602e542aa'
+  jar_pin: '3ebf88615dcb87ec103b098a0baf397f5a4428623f809fd139b23e9f60978235'
+  baseline_classes: 2107
+  providers: ['framework_resources_float.v']
+  calls: {resources: 'framework_resources_float_source'}
+  methods: {resources: ['getFloat(I)F']}
+  changed: {resources: 0}
+  added: {resources: 1}
+ }
+}
+
+fn resources_float_expected_method() string {
+ return '.method public getFloat(I)F
+.locals 4
+new-instance v0, Landroid/util/TypedValue;
+invoke-direct {v0}, Landroid/util/TypedValue;-><init>()V
+const/4 v1, 0x1
+invoke-virtual {p0, p1, v0, v1}, Landroid/content/res/Resources;->getValue(ILandroid/util/TypedValue;Z)V
+iget v1, v0, Landroid/util/TypedValue;->type:I
+const/4 v2, 0x4
+if-ne v1, v2, :not_float
+invoke-virtual {v0}, Landroid/util/TypedValue;->getFloat()F
+move-result v0
+return v0
+:not_float
+new-instance v2, Landroid/content/res/Resources$NotFoundException;
+new-instance v3, Ljava/lang/StringBuilder;
+invoke-direct {v3}, Ljava/lang/StringBuilder;-><init>()V
+const-string v0, "Resource ID #0x"
+invoke-virtual {v3, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+invoke-static {p1}, Ljava/lang/Integer;->toHexString(I)Ljava/lang/String;
+move-result-object v0
+invoke-virtual {v3, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+const-string v0, " type #0x"
+invoke-virtual {v3, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+invoke-static {v1}, Ljava/lang/Integer;->toHexString(I)Ljava/lang/String;
+move-result-object v0
+invoke-virtual {v3, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+const-string v0, " is not valid"
+invoke-virtual {v3, v0}, Ljava/lang/StringBuilder;->append(Ljava/lang/String;)Ljava/lang/StringBuilder;
+invoke-virtual {v3}, Ljava/lang/StringBuilder;->toString()Ljava/lang/String;
+move-result-object v0
+invoke-direct {v2, v0}, Landroid/content/res/Resources$NotFoundException;-><init>(Ljava/lang/String;)V
+throw v2
+.end method'
+}
+
+fn resources_float_abi(source string) ! {
+ method := store_parts(source)!.methods['getFloat(I)F'] or { return error('missing Resources float getter') }
+ // The literal resource diagnostic contains '#'; only whole comments may go.
+ actual := method.split_into_lines().map(it.trim_space()).filter(it != '' && !it.starts_with('#')).join('\n')
+ expected := resources_float_expected_method()
+ canonical := expected.replace('.locals 4', '.registers 6').replace(':not_float', ':cond_13')
+ if actual != expected && actual != canonical {
+  return error('Resources float getter must retain exact typed lookup, strict float test and NotFoundException body')
+ }
+}
+
+fn resources_float_self_test() ! {
+ profile := resources_float_profile()
+ resources := 'android/content/res/Resources.smali'
+ signature := 'getFloat(I)F'
+ if profile.baseline_classes != 2107 || profile.methods != {resources: [signature]}
+  || profile.calls != {resources: 'framework_resources_float_source'}
+  || profile.changed != {resources: 0} || profile.added != {resources: 1}
+  || profile.providers != ['framework_resources_float.v'] || profile.fields.len != 0
+  || profile.extra_classes.len != 0 || profile.class_provider != '' || profile.directory_provider != '' {
+  return error('Resources float scope requires one added getter without other member or class changes')
+ }
+ narrow_method_self_test([signature], 0, 1)!
+ expected := resources_float_expected_method()
+ resources_float_abi(expected)!
+ resources_float_abi(expected.replace('.locals 4', '.registers 6').replace(':not_float', ':cond_13'))!
+ for flags in ['private', 'public final', 'public static', 'public native', 'public synthetic'] {
+  resources_float_abi(expected.replace('.method public ' + signature, '.method ' + flags + ' ' + signature)) or { continue }
+  return error('changed Resources float getter flags accepted')
+ }
+ for bad in [expected.replace('const/4 v1, 0x1', 'const/4 v1, 0x0'),
+  expected.replace('const/4 v2, 0x4', 'const/4 v2, 0x5'),
+  expected.replace('if-ne v1, v2', 'if-eq v1, v2'),
+  expected.replace('invoke-virtual {p0, p1, v0, v1}', 'invoke-direct {p0, p1, v0, v1}'),
+  expected.replace('Resource ID #0x', 'Resource ID 0x'),
+  expected.replace('type #0x', 'type 0x'),
+  expected.replace('invoke-static {p1}, Ljava/lang/Integer;', 'invoke-static {v1}, Ljava/lang/Integer;'),
+  expected.replace('Resources$NotFoundException;', 'RuntimeException;'),
+  expected.replace('throw v2', 'return v0'), expected.replace('.locals 4', '.locals 5')] {
+  resources_float_abi(bad) or { continue }
+  return error('changed Resources typed-float lookup or failure contract accepted')
+ }
+ mut old := {resources: 'old'}
+ for i in 0 .. 2106 { old['other/' + i.str() + '.smali'] = 'same' }
+ mut good := old.clone()
+ good[resources] = 'new'
+ narrow_profile_class_delta(old, good, [resources], []string{}, 2107)!
+ for case in 0 .. 5 {
+  mut bad := good.clone()
+  match case {
+   0 { bad[resources] = 'old' }
+   1 { bad['other/0.smali'] = 'changed' }
+   2 { bad.delete(resources) }
+   3 { bad['unrelated.smali'] = 'new' }
+   else { bad.delete(resources); bad['substituted.smali'] = 'new' }
+  }
+  narrow_profile_class_delta(old, bad, [resources], []string{}, 2107) or { continue }
+  return error('invalid Resources-only class scope accepted')
+ }
+}
+
 fn window_system_ui_self_test() ! {
  profile := window_system_ui_profile()
  layout := 'android/view/WindowManager$LayoutParams.smali'
@@ -1978,6 +2091,7 @@ fn self_test() ! {
  layout_alignment_self_test()!
  user_restrictions_self_test()!
  bundle_cross_profile_self_test()!
+ resources_float_self_test()!
  query_profile := service_query_profile()
  narrow_method_self_test(query_profile.methods['android/content/pm/PackageManager.smali']!, 1, 0)!
  boot_profile := direct_boot_profile()
@@ -2257,6 +2371,7 @@ fn build_narrow(profile NarrowProfile, baseline string, manifest_pin string, jar
    if target == 'android/os/BaseBundle.smali' { bundle_boolean_members(os.read_file(root + '/old-dex/' + target)!, os.read_file(root + '/smali/' + target)!)! }
    else { cross_profile_members(os.read_file(root + '/old-dex/' + target)!, os.read_file(root + '/smali/' + target)!)! }
   }
+  if profile.name == 'resources-float' { resources_float_abi(os.read_file(root + '/smali/' + target)!)! }
  }
  if profile.name == 'platform-fragments' {
   for target in profile.extra_classes { platform_fragments_abi(os.read_file(root + '/smali/' + target)!, target)! }
@@ -2292,6 +2407,7 @@ fn build_narrow(profile NarrowProfile, baseline string, manifest_pin string, jar
    if target == 'android/os/BaseBundle.smali' { bundle_boolean_members(os.read_file(root + '/old-dex/' + target)!, os.read_file(root + '/new-dex/' + target)!)! }
    else { cross_profile_members(os.read_file(root + '/old-dex/' + target)!, os.read_file(root + '/new-dex/' + target)!)! }
   }
+  if profile.name == 'resources-float' { resources_float_abi(os.read_file(root + '/new-dex/' + target)!)! }
  }
  if profile.name == 'platform-fragments' {
   for target in profile.extra_classes { platform_fragments_abi(os.read_file(root + '/new-dex/' + target)!, target)! }
@@ -2598,11 +2714,15 @@ fn main() {
   build_narrow(bundle_cross_profile_profile(), os.abs_path(os.args[2]), os.args[3], os.args[4], os.abs_path(os.args[5])) or { eprintln(err); exit(1) }
   return
  }
+ if os.args.len == 6 && os.args[1] == '--resources-float' {
+  build_narrow(resources_float_profile(), os.abs_path(os.args[2]), os.args[3], os.args[4], os.abs_path(os.args[5])) or { eprintln(err); exit(1) }
+  return
+ }
  if os.args.len == 6 && os.args[1] in ['--store', '--auth', '--cache', '--descriptions', '--protected-storage', '--service-query', '--direct-boot', '--credential-storage', '--broadcast-result', '--onboarding', '--application-restrictions', '--auth-exception', '--binder-identity', '--service-lifecycle', '--platform-fragments', '--imageview-bounds', '--window-system-ui'] {
   profile := match os.args[1] { '--store' { storage_profile() } '--auth' { auth_profile() } '--cache' { cache_profile() } '--descriptions' { descriptions_profile() } '--protected-storage' { protected_storage_profile() } '--service-query' { service_query_profile() } '--direct-boot' { direct_boot_profile() } '--credential-storage' { credential_storage_profile() } '--broadcast-result' { broadcast_result_profile() } '--application-restrictions' { application_restrictions_profile() } '--auth-exception' { auth_exception_profile() } '--binder-identity' { binder_identity_profile() } '--service-lifecycle' { service_lifecycle_profile() } '--platform-fragments' { platform_fragments_profile() } '--imageview-bounds' { imageview_bounds_profile() } '--window-system-ui' { window_system_ui_profile() } else { onboarding_profile() } }
   build_narrow(profile, os.abs_path(os.args[2]), os.args[3], os.args[4], os.abs_path(os.args[5])) or { eprintln(err); exit(1) }
   return
  }
- if os.args.len != 5 { eprintln('usage: combined-account-webview-build [--store|--auth|--cache|--descriptions|--protected-storage|--service-query|--direct-boot|--credential-storage|--broadcast-result|--onboarding|--application-restrictions|--auth-exception|--binder-identity|--service-lifecycle|--platform-fragments|--imageview-bounds|--window-system-ui|--bitmap-tiles|--window-animations|--layout-alignment|--user-restrictions|--bundle-cross-profile] BASELINE BASELINE_MANIFEST_SHA256 BASELINE_JAR_SHA256 FRESH_OUTPUT | --self-test'); exit(2) }
+ if os.args.len != 5 { eprintln('usage: combined-account-webview-build [--store|--auth|--cache|--descriptions|--protected-storage|--service-query|--direct-boot|--credential-storage|--broadcast-result|--onboarding|--application-restrictions|--auth-exception|--binder-identity|--service-lifecycle|--platform-fragments|--imageview-bounds|--window-system-ui|--bitmap-tiles|--window-animations|--layout-alignment|--user-restrictions|--bundle-cross-profile|--resources-float] BASELINE BASELINE_MANIFEST_SHA256 BASELINE_JAR_SHA256 FRESH_OUTPUT | --self-test'); exit(2) }
  build(os.abs_path(os.args[1]), os.args[2], os.args[3], os.abs_path(os.args[4])) or { eprintln(err); exit(1) }
 }
