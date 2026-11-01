@@ -506,6 +506,21 @@ const resources_float_relink_guard = '615f1370abda04cb7a57b98236b5eae91c1d8f497a
 const resources_float_relink_log = '3080e57daf624d0b8b78bfe2209ae2328448787fcbb5d84fbaa6b2233cf40a5a'
 const resources_float_relink_command = '498825b7e9a08dc2acbbbdc2ff95e9fa6eac4186e02849722970010617676d49'
 const resources_float_relink_pins = '56f127e2f0d4d662d9f547132cc445910a145fb115d11cd698e51b6f91560644'
+const paint_drawable_base = '/Users/alex/.local/state/vinix/android/maps-resources-float-r1'
+const paint_drawable_base_seal = '76984d82922315563f88d46e72a77bc4995466ed2581a5df0b62000ac2c4d888'
+const paint_drawable_boot = '54b372eb6e75b8d91b6da877e04cc1ff34c89241071461df3b6a97eeb3745bd0'
+const paint_drawable_base_overlay = '6428e65adc24f2cf74498fe6365c3329feea2a39747ecc6e30e31a0050314bb7'
+const paint_drawable_old_deployment = '864d334077f5554dc8d1d7cfa87bf70a49729f84d394a11b59f75679d6683153'
+const paint_drawable_old_headless = '3236b4d9aaa128d15a85d9ee31db5c44e683677d7a3983d87d06468489cd799b'
+const paint_drawable_framework = '/Users/alex/.local/state/vinix/android/combined-account-webview-paint-drawable-framework-2026-11-01-r1'
+const paint_drawable_seal = '15a60de7b8196aaca79d869cec972b0382da1be7327ee8f10c56b7e1db37cbb2'
+const paint_drawable_build = '59405264d739d2d7e2243f5316f58597df2388efbbfa19ff7e7e744d34c99170'
+const paint_drawable_jar = 'b3fed7d846a23d9e8afc1256e5bfa7d9ebcd1ba5330705d40fd14131291d516c'
+const paint_drawable_dex = '4a981204badeaf801718457aa88c7442aa62ef1a92db3438220d6b546f235238'
+const paint_drawable_framework_helper = 'ea6d13f481d389e4d1c7a0504c5827bbe82be92a6cbf0f44298c955f8542318c'
+const paint_drawable_provider_helper = '8ee20f2354c2a3cdad1c3b5ce94aa423ed93ac6bb26b6eedb39b42d97f0a971d'
+const paint_drawable_raw = 'eba47a450e64ba9c72b2032e3bb79782b084347c01915a79e2acb9816b3ac461'
+const paint_drawable_canonical = '55140f465a9b885ff13764060f451540850875f575fbc78f5e4e40ab06e4a9eb'
 const source = $embed_file(@FILE).to_string()
 
 struct Profile {
@@ -4172,6 +4187,133 @@ fn resources_float_baseline(receipt map[string]json2.Any, stage Stage) !string {
 	return resources_float_base + '/boot.img'
 }
 
+fn paint_drawable_profile() Profile {
+	mut modules := resources_float_profile().modules.clone()
+	modules << 'maps-resources-float.tar'
+	return Profile{'maps-paint-drawable', paint_drawable_boot, 'maps-paint-drawable.tar', modules}
+}
+fn paint_drawable_modules() map[string]string {
+	mut modules := resources_float_modules()
+	modules['maps-resources-float.tar'] = paint_drawable_base_overlay
+	return modules
+}
+fn paint_drawable_fields() map[string]string {
+	mut fields := resources_float_fields()
+	fields['kind'] = 'vinix-maps-paint-drawable-v1'
+	fields['base_root'] = paint_drawable_base
+	fields['base_manifest_sha256'] = paint_drawable_base_seal
+	fields['framework_build_root'] = paint_drawable_framework
+	fields['framework_manifest_sha256'] = paint_drawable_seal
+	fields['framework_jar_sha256'] = paint_drawable_jar
+	fields['framework_dex_sha256'] = paint_drawable_dex
+	fields['retained_framework_manifest_sha256'] = resources_float_seal
+	fields['native_compatibility_framework_manifest_sha256'] = resources_float_seal
+	fields['retained_native_manifest_sha256'] = resources_float_native_seal
+	fields['native_framework_manifest_sha256'] = resources_float_seal
+	return fields
+}
+fn paint_drawable_inputs() map[string]string {
+	mut inputs := map[string]string{}
+	for path, pin in resources_float_inputs() {
+		if path.ends_with('/sha256.json') { inputs[path] = pin }
+	}
+	inputs[paint_drawable_base + '/sha256.json'] = paint_drawable_base_seal
+	inputs[paint_drawable_framework + '/sha256.json'] = paint_drawable_seal
+	return inputs
+}
+fn paint_drawable_known_delta() map[string]string {
+	return {'/' + service_query_jar_path: paint_drawable_jar,
+		'/' + service_query_dex_path: paint_drawable_dex,
+		'/' + service_query_headless + '/framework-build.json': paint_drawable_build,
+		'/' + service_query_headless + '/framework-sha256.json': paint_drawable_seal}
+}
+fn paint_drawable_source_delta() map[string]string {
+	return {'smali/android/graphics/drawable/PaintDrawable.smali': paint_drawable_raw}
+}
+fn paint_drawable_canonical_delta() map[string]string {
+	return {'new-dex/android/graphics/drawable/PaintDrawable.smali': paint_drawable_canonical}
+}
+fn paint_drawable_helper_delta() map[string]string {
+	return {'tests/native-android-tools/androidtools/framework.v': paint_drawable_framework_helper,
+		'tests/native-android-tools/androidtools/framework_paint_drawable.v': paint_drawable_provider_helper}
+}
+fn paint_drawable_proofs() map[string]string {
+	mut proofs := resources_float_proofs()
+	proofs.delete('native_relink_proof')
+	proofs['headless_input_delta'] = json2.encode({'/' + service_query_jar_path: paint_drawable_jar})
+	proofs['deployment_top_level_delta'] = json2.encode(['inputs_sha256', 'framework_manifest_sha256'])
+	proofs['framework_class_count'] = json2.encode(2108)
+	proofs['framework_source_delta'] = json2.encode(paint_drawable_source_delta())
+	proofs['framework_canonical_delta'] = json2.encode(paint_drawable_canonical_delta())
+	proofs['framework_builder_helper_delta'] = json2.encode(paint_drawable_helper_delta())
+	proofs['native_builder_helper_delta'] = json2.encode(map[string]string{})
+	proofs['native_consumed_raw_delta'] = json2.encode({'smali/android/content/res/Resources.smali': [resources_float_raw, resources_float_canonical]})
+	proofs['native_consumed_canonical_delta'] = json2.encode(map[string][]string{})
+	return proofs
+}
+fn paint_drawable_overlay_paths() []string {
+	return bundle_cross_profile_overlay_paths()
+}
+fn verify_paint_drawable_overlay(receipt map[string]json2.Any) ! {
+	if 'deployment_input_additions' in receipt || 'deployment_top_level_additions' in receipt || 'native_relink_proof' in receipt { return error('PaintDrawable changes existing framework inputs only') }
+	delta := json2.decode[map[string]string](json2.encode(receipt['deployment_input_delta'] or { return error('PaintDrawable deployment delta absent') }))!
+	mut expected := paint_drawable_known_delta()
+	guest := '/' + service_query_headless + '/guest-inputs.json'
+	guest_pin := delta[guest] or { return error('PaintDrawable headless pin absent') }
+	if !digest_valid(guest_pin) || guest_pin == paint_drawable_old_headless { return error('new PaintDrawable headless receipt required') }
+	expected[guest] = guest_pin
+	if delta != expected { return error('PaintDrawable exact deployment input changes differ') }
+	entries := json2.decode[[]ServiceQueryEntry](json2.encode(receipt['overlay_inventory'] or { return error('PaintDrawable overlay inventory absent') }))!
+	paths := paint_drawable_overlay_paths()
+	mut regulars := map[string]string{}
+	mut seen := map[string]bool{}
+	for entry in entries {
+		if entry.name in seen || !relative(entry.name) || entry.mode & 0o7022 != 0 { return error('unsafe PaintDrawable overlay inode') }
+		seen[entry.name] = true
+		if entry.kind == 'regular' {
+			if entry.name !in paths || !digest_valid(entry.sha256) || entry.mode != 0o644 { return error('PaintDrawable regular allowlist or mode differs') }
+			regulars[entry.name] = entry.sha256
+		} else if entry.kind != 'directory' || entry.mode != 0o755 || !paths.any(it.starts_with(entry.name + '/')) { return error('unexpected PaintDrawable overlay inode') }
+	}
+	if regulars.len != 6 || regulars[service_query_deployment] or { '' } == paint_drawable_old_deployment { return error('exact six PaintDrawable files required') }
+	for path, pin in expected { if regulars[path.trim_left('/')] or { '' } != pin { return error('PaintDrawable input differs from inventory') } }
+}
+fn verify_paint_drawable_receipt(receipt map[string]json2.Any, stage Stage) ! {
+	for pin in [paint_drawable_base_seal, paint_drawable_boot, paint_drawable_base_overlay,
+		paint_drawable_old_deployment, paint_drawable_old_headless, paint_drawable_seal,
+		paint_drawable_build, paint_drawable_jar, paint_drawable_dex,
+		resources_float_seal, resources_float_native_seal, resources_float_native_build,
+		resources_float_native_pin, resources_float_raw, resources_float_canonical] {
+		if !digest_valid(pin) { return error('completed PaintDrawable producer required') }
+	}
+	for values in [paint_drawable_source_delta(), paint_drawable_canonical_delta(), paint_drawable_helper_delta()] {
+		for _, pin in values { if !digest_valid(pin) { return error('completed PaintDrawable class/helper pins required') } }
+	}
+	if paint_drawable_seal == resources_float_seal || paint_drawable_jar == resources_float_jar
+		|| paint_drawable_dex == resources_float_dex { return error('new PaintDrawable framework required') }
+	for name, expected in paint_drawable_fields() { if receipt[name] or { json2.Any('absent') } != json2.Any(expected) { return error('PaintDrawable receipt differs: ' + name) } }
+	for name, expected in paint_drawable_proofs() { if receipt[name] or { json2.Any('absent') } != json2.decode[json2.Any](expected)! { return error('PaintDrawable proof differs: ' + name) } }
+	mut seals := map[string]string{}
+	for path, pin in stage.inputs_sha256 { if path.ends_with('/sha256.json') { seals[path] = pin } }
+	if seals.len != 91 || seals != paint_drawable_inputs() { return error('PaintDrawable exact ninety-one dependency seals differ') }
+	for path in stage.inputs_sha256.keys() {
+		for root in [resources_float_relink_root(), layout_alignment_relink_root(), window_animations_relink_root()] {
+			if path == root || path.starts_with(root + '/') { return error('historical relink proof leaves are not new PaintDrawable direct inputs') }
+		}
+	}
+	if stage.format != 1 || stage.original_modules_sha256 != paint_drawable_modules() || stage.preserved_modules_sha256 != paint_drawable_modules() { return error('PaintDrawable original thirty-eight modules differ') }
+	verify_paint_drawable_overlay(receipt)!
+}
+fn paint_drawable_baseline(receipt map[string]json2.Any, stage Stage) !string {
+	verify_paint_drawable_receipt(receipt, stage)!
+	path := paint_drawable_base + '/sha256.json'
+	regular(path)!
+	if os.lstat(path)!.size > 8 * 1024 * 1024 || hash(path)! != paint_drawable_base_seal { return error('PaintDrawable original Resources manifest differs') }
+	pins := json2.decode[map[string]string](os.read_file(path)!)!
+	if pins['boot.img'] or { '' } != paint_drawable_boot || pins['maps-resources-float.tar'] or { '' } != paint_drawable_base_overlay { return error('PaintDrawable original boot or Resources overlay differs') }
+	return paint_drawable_base + '/boot.img'
+}
+
 fn service_query_modules() map[string]string {
 	mut modules := controller_modules()
 	modules['maps-controller-diagnostic.tar'] = 'bef5f25859e77a9671a6a144ccb56891da5ed2f7b4324a93a96da7fdcab1987a'
@@ -4800,6 +4942,8 @@ fn patch(root string, build_root string, receipt_sha string, profile Profile) ! 
 		baseline = bundle_cross_profile_baseline(stage_map, stage)!
 	} else if profile.name == 'maps-resources-float' {
 		baseline = resources_float_baseline(stage_map, stage)!
+	} else if profile.name == 'maps-paint-drawable' {
+		baseline = paint_drawable_baseline(stage_map, stage)!
 	} else {
 		for path, expected in stage.inputs_sha256 {
 			if os.file_name(path) == 'boot.img' && expected == baseline_pin {
@@ -9173,6 +9317,178 @@ fn resources_float_profile_self_test() ! {
 	println('MAPS-RESOURCES-FLOAT KERNEL-PROFILE-SELF-TEST PASS seven files eighty-nine seals thirty-seven inherited modules one Resources getter coupled native original Layout provenance exact path-only proof and historical rejection')
 }
 
+fn paint_drawable_entries_fixture() []ServiceQueryEntry {
+	paths := paint_drawable_overlay_paths()
+	mut parents := map[string]bool{}
+	for path in paths {
+		mut parent := os.dir(path)
+		for parent !in ['', '.'] { parents[parent] = true; parent = os.dir(parent) }
+	}
+	mut entries := []ServiceQueryEntry{}
+	for name in parents.keys().sorted() { entries << ServiceQueryEntry{name: name, kind: 'directory', mode: 0o755} }
+	mut pins := paint_drawable_known_delta()
+	pins['/' + service_query_headless + '/guest-inputs.json'] = 'a'.repeat(64)
+	pins['/' + service_query_deployment] = 'b'.repeat(64)
+	for path in paths { entries << ServiceQueryEntry{name: path, kind: 'regular', mode: 0o644, sha256: pins['/' + path]!} }
+	return entries
+}
+fn paint_drawable_receipt_fixture() !map[string]json2.Any {
+	mut receipt := map[string]json2.Any{}
+	for name, value in paint_drawable_fields() { receipt[name] = json2.Any(value) }
+	for name, value in paint_drawable_proofs() { receipt[name] = json2.decode[json2.Any](value)! }
+	mut delta := paint_drawable_known_delta()
+	delta['/' + service_query_headless + '/guest-inputs.json'] = 'a'.repeat(64)
+	receipt['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(delta))!
+	receipt['overlay_inventory'] = json2.decode[json2.Any](json2.encode(paint_drawable_entries_fixture()))!
+	return receipt
+}
+fn paint_drawable_profile_self_test() ! {
+	profile := paint_drawable_profile()
+	if profile.baseline_sha != paint_drawable_boot || profile.modules.len != 38 || profile.modules.last() != 'maps-resources-float.tar'
+		|| paint_drawable_inputs().len != 91 || paint_drawable_inputs().keys().filter(it.ends_with('/sha256.json')).len != 91 { return error('PaintDrawable strict profile differs') }
+	mut modules := profile.modules.clone()
+	modules << profile.overlay
+	if modules.len != 39 || paint_drawable_overlay_paths().len != 6 || paint_drawable_known_delta().len != 4 { return error('PaintDrawable exact modules, files or actual changes differ') }
+	verify_modules(profile, Config{'vinix', profile.modules}, Config{'vinix', modules})!
+	for bad in [Config{'vinix', modules.reverse()}, Config{'vinix', profile.modules}, Config{'other', modules}] {
+		if _ := verify_modules(profile, Config{'vinix', profile.modules}, bad) { return error('wrong PaintDrawable module order accepted') }
+	}
+	stage := Stage{format: 1, inputs_sha256: paint_drawable_inputs(), original_modules_sha256: paint_drawable_modules(), preserved_modules_sha256: paint_drawable_modules()}
+	receipt := paint_drawable_receipt_fixture()!
+	verify_paint_drawable_receipt(receipt, stage)!
+	mut fields := paint_drawable_fields().keys()
+	fields << paint_drawable_proofs().keys()
+	fields << ['deployment_input_delta', 'overlay_inventory']
+	for name in fields {
+		mut bad := paint_drawable_receipt_fixture()!
+		bad[name] = json2.Any('changed')
+		if _ := verify_paint_drawable_receipt(bad, stage) { return error('changed PaintDrawable field/proof accepted') }
+		bad.delete(name)
+		if _ := verify_paint_drawable_receipt(bad, stage) { return error('missing PaintDrawable field/proof accepted') }
+	}
+	for proof in ['framework_builder_helper_delta', 'native_builder_helper_delta', 'framework_source_delta', 'framework_canonical_delta', 'native_source_delta',
+		'native_bindings_delta', 'native_generated_jni_delta', 'native_consumed_raw_delta', 'native_consumed_canonical_delta',
+		'native_consumed_raw_additions', 'native_consumed_canonical_additions', 'headless_input_delta'] {
+		original := json2.decode[map[string]json2.Any](json2.encode(receipt[proof]!))!
+		for name in original.keys() {
+			mut changed := json2.decode[map[string]json2.Any](json2.encode(original))!
+			changed[name] = json2.Any('changed')
+			mut bad := paint_drawable_receipt_fixture()!
+			bad[proof] = json2.Any(changed)
+			if _ := verify_paint_drawable_receipt(bad, stage) { return error('changed PaintDrawable proof member accepted') }
+			changed.delete(name)
+			bad[proof] = json2.Any(changed)
+			if _ := verify_paint_drawable_receipt(bad, stage) { return error('missing PaintDrawable proof member accepted') }
+		}
+		mut extra := json2.decode[map[string]json2.Any](json2.encode(original))!
+		extra['unreviewed'] = json2.Any('a'.repeat(64))
+		mut bad := paint_drawable_receipt_fixture()!
+		bad[proof] = json2.Any(extra)
+		if _ := verify_paint_drawable_receipt(bad, stage) { return error('extra PaintDrawable proof member accepted') }
+	}
+	for field in ['native_framework_manifest_sha256', 'native_compatibility_framework_manifest_sha256'] {
+		for wrong in [paint_drawable_seal, bundle_cross_profile_seal, layout_alignment_seal] {
+			mut bad := paint_drawable_receipt_fixture()!
+			bad[field] = json2.Any(wrong)
+			if _ := verify_paint_drawable_receipt(bad, stage) { return error('PaintDrawable original Resources native provenance replaced') }
+		}
+	}
+	for index in 0 .. 2 {
+		mut changed := [resources_float_raw, resources_float_canonical]
+		changed[index] = '0'.repeat(64)
+		mut bad := paint_drawable_receipt_fixture()!
+		bad['native_consumed_raw_delta'] = json2.decode[json2.Any](json2.encode({'smali/android/content/res/Resources.smali': changed}))!
+		if _ := verify_paint_drawable_receipt(bad, stage) { return error('changed PaintDrawable consumed before/after proof accepted') }
+	}
+	for path in stage.inputs_sha256.keys() {
+		mut pins := paint_drawable_inputs()
+		pins[path] = '0'.repeat(64)
+		if _ := verify_paint_drawable_receipt(receipt, Stage{...stage, inputs_sha256: pins}) { return error('changed PaintDrawable input accepted') }
+		pins.delete(path)
+		if _ := verify_paint_drawable_receipt(receipt, Stage{...stage, inputs_sha256: pins}) { return error('missing PaintDrawable input accepted') }
+	}
+	mut forbidden_inputs := ['/unreviewed/sha256.json', resources_float_relink_root(), layout_alignment_relink_root(), window_animations_relink_root()]
+	for path in resources_float_relink_inputs().keys() { forbidden_inputs << path }
+	for path in [layout_alignment_relink_root() + '/out/canonical.so', window_animations_relink_root() + '/compile.log'] { forbidden_inputs << path }
+	for path in forbidden_inputs {
+		mut extra := paint_drawable_inputs()
+		extra[path] = 'a'.repeat(64)
+		if _ := verify_paint_drawable_receipt(receipt, Stage{...stage, inputs_sha256: extra}) { return error('extra PaintDrawable seal or historical proof input accepted') }
+	}
+	for bad in [Stage{...stage, format: 0}, Stage{...stage, original_modules_sha256: resources_float_modules()}, Stage{...stage, preserved_modules_sha256: resources_float_modules()}] {
+		if _ := verify_paint_drawable_receipt(receipt, bad) { return error('wrong PaintDrawable module inventory accepted') }
+	}
+	for addition in ['deployment_input_additions', 'deployment_top_level_additions', 'native_relink_proof'] {
+		mut bad := paint_drawable_receipt_fixture()!
+		bad[addition] = json2.Any(map[string]json2.Any{})
+		if _ := verify_paint_drawable_receipt(bad, stage) { return error('PaintDrawable addition or relink proof accepted') }
+	}
+	delta := json2.decode[map[string]string](json2.encode(receipt['deployment_input_delta']!))!
+	for path in delta.keys() {
+		mut changed := delta.clone()
+		changed.delete(path)
+		mut bad := paint_drawable_receipt_fixture()!
+		bad['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(changed))!
+		if _ := verify_paint_drawable_receipt(bad, stage) { return error('missing PaintDrawable actual input change accepted') }
+	}
+	for path, pin in {'/opt/vinix-maps-account/bin/maps-account-guest': seed_companion_controller_pin, '/' + native_onboarding_trace_path: resources_float_native_pin} {
+		mut changed := delta.clone()
+		changed[path] = pin
+		mut bad := paint_drawable_receipt_fixture()!
+		bad['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(changed))!
+		if _ := verify_paint_drawable_receipt(bad, stage) { return error('unrelated or native PaintDrawable input change accepted') }
+	}
+	entries := paint_drawable_entries_fixture()
+	for index, entry in entries {
+		for changed in [ServiceQueryEntry{...entry, name: '../escape'}, ServiceQueryEntry{...entry, kind: 'symlink'}, ServiceQueryEntry{...entry, mode: 0o777}, ServiceQueryEntry{...entry, mode: 0o4755}] {
+			mut bad_entries := entries.clone()
+			bad_entries[index] = changed
+			mut bad := paint_drawable_receipt_fixture()!
+			bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(bad_entries))!
+			if _ := verify_paint_drawable_receipt(bad, stage) { return error('unsafe PaintDrawable overlay inode accepted') }
+		}
+		if entry.kind == 'regular' {
+			mut bad_entries := entries.clone()
+			bad_entries.delete(index)
+			mut bad := paint_drawable_receipt_fixture()!
+			bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(bad_entries))!
+			if _ := verify_paint_drawable_receipt(bad, stage) { return error('missing PaintDrawable overlay file accepted') }
+			if entry.name != service_query_deployment {
+				mut changed := entries.clone()
+				changed[index] = ServiceQueryEntry{...entry, sha256: '0'.repeat(64)}
+				bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(changed))!
+				if _ := verify_paint_drawable_receipt(bad, stage) { return error('changed PaintDrawable overlay pin accepted') }
+			}
+		}
+	}
+	for extra in [entries.last(), ServiceQueryEntry{name: native_onboarding_trace_path, kind: 'regular', mode: 0o755, sha256: resources_float_native_pin}] {
+		mut changed := entries.clone()
+		changed << extra
+		mut bad := paint_drawable_receipt_fixture()!
+		bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(changed))!
+		if _ := verify_paint_drawable_receipt(bad, stage) { return error('duplicate or native PaintDrawable overlay file accepted') }
+	}
+	mut stale_delta := delta.clone()
+	stale_delta['/' + service_query_headless + '/guest-inputs.json'] = paint_drawable_old_headless
+	mut stale_entries := entries.clone()
+	for index, entry in stale_entries { if entry.name == service_query_headless + '/guest-inputs.json' { stale_entries[index] = ServiceQueryEntry{...entry, sha256: paint_drawable_old_headless} } }
+	mut stale := paint_drawable_receipt_fixture()!
+	stale['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(stale_delta))!
+	stale['overlay_inventory'] = json2.decode[json2.Any](json2.encode(stale_entries))!
+	if _ := verify_paint_drawable_receipt(stale, stage) { return error('stale PaintDrawable headless pin accepted') }
+	mut stale_deployment := entries.clone()
+	for index, entry in stale_deployment { if entry.name == service_query_deployment { stale_deployment[index] = ServiceQueryEntry{...entry, sha256: paint_drawable_old_deployment} } }
+	mut stale_receipt := paint_drawable_receipt_fixture()!
+	stale_receipt['overlay_inventory'] = json2.decode[json2.Any](json2.encode(stale_deployment))!
+	if _ := verify_paint_drawable_receipt(stale_receipt, stage) { return error('stale PaintDrawable deployment accepted') }
+	for old in [resources_float_receipt_fixture()!, bundle_cross_profile_receipt_fixture()!, user_restrictions_receipt_fixture()!, layout_alignment_receipt_fixture()!] {
+		if _ := verify_paint_drawable_receipt(old, stage) { return error('historical receipt accepted by PaintDrawable profile') }
+	}
+	if _ := verify_resources_float_receipt(receipt, stage) { return error('PaintDrawable receipt accepted by Resources profile') }
+	if _ := verify_bundle_cross_profile_receipt(receipt, stage) { return error('PaintDrawable receipt accepted by Bundle profile') }
+	println('MAPS-PAINT-DRAWABLE KERNEL-PROFILE-SELF-TEST PASS six files ninety-one seals thirty-eight inherited modules one added class reused native with original Resources provenance and historical rejection')
+}
+
 fn self_test() ! {
 	protected_profile_self_test()!
 	controller_profile_self_test()!
@@ -9205,6 +9521,7 @@ fn self_test() ! {
 	user_restrictions_profile_self_test()!
 	bundle_cross_profile_self_test()!
 	resources_float_profile_self_test()!
+	paint_drawable_profile_self_test()!
 	maps := maps_profile()
 	before := Config{'vinix', maps.modules}
 	mut modules := maps.modules.clone()
@@ -9281,6 +9598,7 @@ fn self_test() ! {
 	fat_self_test(root + '/user-restrictions', 'maps-user-restrictions.tar', user_restrictions_profile().modules)!
 	fat_self_test(root + '/bundle-cross-profile', 'maps-bundle-cross-profile.tar', bundle_cross_profile_profile().modules)!
 	fat_self_test(root + '/resources-float', 'maps-resources-float.tar', resources_float_profile().modules)!
+	fat_self_test(root + '/paint-drawable', 'maps-paint-drawable.tar', paint_drawable_profile().modules)!
 	println('BROWSER-KERNEL-PATCH SELF-TEST PASS configuration inventory digest symlink launched-stage guards')
 }
 
@@ -9324,9 +9642,10 @@ fn main() {
 	is_user_restrictions := os.args.len == 5 && os.args[1] == '--maps-user-restrictions'
 	is_bundle_cross_profile := os.args.len == 5 && os.args[1] == '--maps-bundle-cross-profile'
 	is_resources_float := os.args.len == 5 && os.args[1] == '--maps-resources-float'
-	is_selected := is_maps || is_protected || is_controller || is_service_query || is_controller_memory || is_direct_boot || is_context_storage || is_broadcast_result || is_onboarding_trace || is_native_onboarding_trace || is_onboarding_framework || is_native_heartbeat || is_browser_poll || is_account_pump || is_application_restrictions || is_account_handoff || is_auth_exception || is_auth_worker || is_binder_identity || is_service_lifecycle || is_platform_fragments || is_imageview_bounds || is_window_system_ui || is_broker_tail || is_seed_companion || is_persistent_data_block || is_bitmap_tiles || is_window_animations || is_layout_alignment || is_user_restrictions || is_bundle_cross_profile || is_resources_float
+	is_paint_drawable := os.args.len == 5 && os.args[1] == '--maps-paint-drawable'
+	is_selected := is_maps || is_protected || is_controller || is_service_query || is_controller_memory || is_direct_boot || is_context_storage || is_broadcast_result || is_onboarding_trace || is_native_onboarding_trace || is_onboarding_framework || is_native_heartbeat || is_browser_poll || is_account_pump || is_application_restrictions || is_account_handoff || is_auth_exception || is_auth_worker || is_binder_identity || is_service_lifecycle || is_platform_fragments || is_imageview_bounds || is_window_system_ui || is_broker_tail || is_seed_companion || is_persistent_data_block || is_bitmap_tiles || is_window_animations || is_layout_alignment || is_user_restrictions || is_bundle_cross_profile || is_resources_float || is_paint_drawable
 	if os.args.len != 4 && !is_selected {
-		eprintln('usage: patch-kernel [--maps-account|--protected-storage-maps|--maps-controller|--maps-service-query|--maps-controller-memory|--maps-direct-boot|--maps-context-storage|--maps-broadcast-result|--maps-onboarding-trace|--maps-native-onboarding-trace|--maps-onboarding-framework|--maps-native-heartbeat|--maps-browser-poll|--maps-account-pump|--maps-application-restrictions|--maps-account-handoff|--maps-auth-exception|--maps-auth-worker|--maps-binder-identity|--maps-service-lifecycle|--maps-platform-fragments|--maps-imageview-bounds|--maps-window-system-ui|--maps-broker-tail|--maps-seed-account-companion|--maps-persistent-data-block|--maps-bitmap-tiles|--maps-window-animations|--maps-layout-alignment|--maps-user-restrictions|--maps-bundle-cross-profile|--maps-resources-float] FRESH_STAGE FROZEN_KERNEL_BUILD BUILD_JSON_SHA256')
+		eprintln('usage: patch-kernel [--maps-account|--protected-storage-maps|--maps-controller|--maps-service-query|--maps-controller-memory|--maps-direct-boot|--maps-context-storage|--maps-broadcast-result|--maps-onboarding-trace|--maps-native-onboarding-trace|--maps-onboarding-framework|--maps-native-heartbeat|--maps-browser-poll|--maps-account-pump|--maps-application-restrictions|--maps-account-handoff|--maps-auth-exception|--maps-auth-worker|--maps-binder-identity|--maps-service-lifecycle|--maps-platform-fragments|--maps-imageview-bounds|--maps-window-system-ui|--maps-broker-tail|--maps-seed-account-companion|--maps-persistent-data-block|--maps-bitmap-tiles|--maps-window-animations|--maps-layout-alignment|--maps-user-restrictions|--maps-bundle-cross-profile|--maps-resources-float|--maps-paint-drawable] FRESH_STAGE FROZEN_KERNEL_BUILD BUILD_JSON_SHA256')
 		exit(2)
 	}
 	offset := if is_selected { 1 } else { 0 }
@@ -9339,7 +9658,7 @@ fn main() {
 		exit(1)
 	}
 	profile := if is_seed_companion { seed_companion_profile() } else if is_broker_tail { broker_tail_profile() } else if is_window_system_ui { window_system_ui_profile() } else if is_imageview_bounds { imageview_bounds_profile() } else if is_platform_fragments { platform_fragments_profile() } else if is_service_lifecycle { service_lifecycle_profile() } else if is_binder_identity { binder_identity_profile() } else if is_auth_worker { auth_worker_profile() } else if is_auth_exception { auth_exception_profile() } else if is_account_handoff { account_handoff_profile() } else if is_application_restrictions { application_restrictions_profile() } else if is_account_pump { account_pump_profile() } else if is_browser_poll { browser_poll_profile() } else if is_native_heartbeat { native_heartbeat_profile() } else if is_onboarding_framework { onboarding_framework_profile() } else if is_native_onboarding_trace { native_onboarding_trace_profile() } else if is_onboarding_trace { onboarding_trace_profile() } else if is_broadcast_result { broadcast_result_profile() } else if is_context_storage { context_storage_profile() } else if is_direct_boot { direct_boot_profile() } else if is_controller_memory { controller_memory_profile() } else if is_service_query { service_query_profile() } else if is_controller { controller_profile() } else if is_protected { protected_maps_profile() } else if is_maps { maps_profile() } else { browser_profile() }
-	selected_profile := if is_resources_float { resources_float_profile() } else if is_bundle_cross_profile { bundle_cross_profile_profile() } else if is_user_restrictions { user_restrictions_profile() } else if is_layout_alignment { layout_alignment_profile() } else if is_window_animations { window_animations_profile() } else if is_bitmap_tiles { bitmap_tiles_profile() } else if is_persistent_data_block { persistent_data_block_profile() } else { profile }
+	selected_profile := if is_paint_drawable { paint_drawable_profile() } else if is_resources_float { resources_float_profile() } else if is_bundle_cross_profile { bundle_cross_profile_profile() } else if is_user_restrictions { user_restrictions_profile() } else if is_layout_alignment { layout_alignment_profile() } else if is_window_animations { window_animations_profile() } else if is_bitmap_tiles { bitmap_tiles_profile() } else if is_persistent_data_block { persistent_data_block_profile() } else { profile }
 	patch(root, build_root, os.args[3 + offset], selected_profile) or {
 		eprintln(err)
 		exit(1)
