@@ -339,23 +339,84 @@ fn helper_objects(output string) ![]string {
 	return paths
 }
 
+// Consume the compiler's emitted command as argv, never as a shell program.
+// Only its compiler spelling and output destination are replaced.
+fn split_c_command(text string, project string, source string, output string, cc string) ![]string {
+	if text.len > 65536 || !text.ends_with('\n') || !source.ends_with('.v')
+		|| !os.is_abs_path(project) || !os.is_abs_path(source)
+		|| !os.is_abs_path(output) || !os.is_abs_path(cc) {
+		return error('canonical emitted host C command required')
+	}
+	line := text.trim_space()
+	if text != line + '\n' || line.contains_any("'\"`\\\n\r\t$;|&<>()") {
+		return error('quoted, escaped or shell host C command refused')
+	}
+	mut args := line.fields()
+	c_source := project + '/' + os.file_name(source).all_before_last('.v') + '.c'
+	if args.len < 10 || args[0] != 'cc' || args.filter(it == '-o').len != 1
+		|| args.filter(it.starts_with('-o') && it != '-o').len != 0
+		|| args.filter(it == c_source).len != 1 {
+		return error('exact emitted host compiler, source and output required')
+	}
+	where := args.index('-o')
+	if where < 1 || where + 1 >= args.len || args[where + 1] != c_source.all_before_last('.c') {
+		return error('unexpected emitted host C output')
+	}
+	for index, arg in args {
+		if arg.starts_with('@') || ((arg.ends_with('.c') || arg.ends_with('.o')) && !os.is_abs_path(arg)) {
+			return error('absolute emitted native input required')
+		}
+		if index == 0 || index == where + 1 || arg.starts_with('-') { continue }
+		if arg.ends_with('.c') || arg.ends_with('.o') { continue }
+		if args[index - 1] == '-x' && arg in ['c', 'objective-c', 'none'] { continue }
+		if args[index - 1] in ['-I', '-L'] && os.is_abs_path(arg) { continue }
+		return error('unclassified emitted host C operand: ' + arg)
+	}
+	args[0] = cc
+	args[where + 1] = output
+	return args
+}
+
 fn compile_host(root string, label string, argv []string, sources map[string]string) ! {
 	unchanged(sources)!
-	objects := helper_objects(command(root, label + '-discovery', argv)!)!
-	unchanged(sources)!
-	mut pins := map[string]string{}
-	for path in objects {
-		pins[path] = hash(path)!
-		copy_pin(path, root + '/closure/' + label + '-objects/' + path.trim_left('/'), pins[path]!)!
+	if argv.len < 5 || argv.filter(it == '-o').len != 1 || '-generate-c-project' in argv
+		|| '-no-parallel' in argv {
+		return error('literal host compile invocation required')
 	}
+	where := argv.index('-o')
+	if where + 1 >= argv.len || !os.is_abs_path(argv[where + 1]) {
+		return error('absolute host compiler output required')
+	}
+	project := root + '/host-projects/' + label
+	if os.exists(project) || os.is_link(project) { return error('fresh host C project required') }
+	mut generate := [argv[0], '-no-parallel', '-generate-c-project', project]
+	generate << argv[1..]
+	command(root, label + '-generate', generate)!
+	unchanged(sources)!
 	cc := os.find_abs_path_of_executable('cc')!
-	pins[cc] = hash(cc)!
-	copy_pin(cc, root + '/closure/' + label + '-objects/' + cc.trim_left('/'), pins[cc]!)!
+	compile := split_c_command(os.read_file(project + '/build_command.txt')!, project,
+		argv[argv.len - 1], argv[where + 1], cc)!
+	mut project_pins := map[string]string{}
+	inventory(project, '', mut project_pins)!
+	if project_pins.keys().sorted() != ['Makefile', 'build.bat', 'build.sh', 'build_command.txt',
+		os.file_name(argv[argv.len - 1]).all_before_last('.v') + '.c'].sorted() {
+		return error('exact emitted host C project artifacts required')
+	}
+	mut pins := {cc: hash(cc)!}
+	for relative, pin in project_pins { pins[project + '/' + relative] = pin }
+	for path in compile.filter(it.ends_with('.c') || it.ends_with('.o')) {
+		if os.real_path(path) != path || os.lstat(path)!.get_filetype() != .regular
+			|| (path !in pins && path !in sources) {
+			return error('emitted native input outside frozen sources: ' + path)
+		}
+		pins[path] = hash(path)!
+	}
+	for path, pin in pins {
+		copy_pin(path, root + '/closure/' + label + '-native/' + path.trim_left('/'), pin)!
+	}
 	write_json(root + '/' + label + '-native-inputs.json', pins)!
 	unchanged(pins)!
-	if helper_objects(command(root, label, argv)!)! != objects {
-		return error('native helper object set changed during ' + label)
-	}
+	command(root, label, compile)!
 	unchanged(pins)!
 	unchanged(sources)!
 }
@@ -419,6 +480,28 @@ fn check_dependencies(root string, reused map[string]string) ! {
 }
 
 fn self_test() ! {
+	project := '/retained/project'
+	source := '/retained/input.v'
+	emitted := 'cc -std=gnu11 -w -o /retained/project/input -x objective-c /retained/project/input.c -x none /retained/helper.c -lm\n'
+	assert split_c_command(emitted, project, source, '/retained/tool', '/usr/bin/cc')! ==
+		['/usr/bin/cc', '-std=gnu11', '-w', '-o', '/retained/tool', '-x', 'objective-c',
+		'/retained/project/input.c', '-x', 'none', '/retained/helper.c', '-lm']
+	for malformed in ['', emitted.trim_space(), '\n' + emitted, emitted + '\n',
+		emitted.replace('cc ', 'clang '), emitted.replace('-o ', '-oevil -o '),
+		emitted.replace('-o ', '-o /other -o '), emitted.replace('/project/input ', '/project/other '),
+		emitted.replace('/project/input.c', '/project/other.c'),
+		emitted.replace('/retained/helper.c', 'relative.c'),
+		emitted.replace('/retained/helper.c', 'relative.o'),
+		emitted.replace('-lm', '-lm;touch'), emitted.replace('-lm', '-lm\ncc'),
+		emitted.replace('-lm', '"-lm"'), emitted.replace('-lm', '`command`'),
+		emitted.replace('-lm', '\\-lm'), emitted.replace('-lm', '$VARIABLE'),
+		emitted.replace('-lm', '-lm | command'), emitted.replace('-lm', '@/hidden/arguments'),
+		emitted.replace('/retained/helper.c', '/hidden/extensionless'),
+		emitted.replace('/retained/helper.c', 'extensionless')] {
+		mut refused := false
+		split_c_command(malformed, project, source, '/retained/tool', '/usr/bin/cc') or { refused = true }
+		assert refused, 'ambiguous emitted host C command accepted'
+	}
 	assert dependency_paths('android-native: /a/one.h /a/two\\ words.h \\\n /a/three.h\n')! ==
 		['/a/one.h', '/a/two words.h', '/a/three.h']
 	for malformed in ['missing target', 'target:', 'target: /a/b\\'] {
