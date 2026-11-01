@@ -105,7 +105,17 @@ it on observed shared-volume growth of 121,888,768 bytes against 64 MiB after
 3.679 seconds, sampled RSS 13,221,888 bytes. Guard/child exits were 125/137 with
 cleanup complete; `seal.guard.json` SHA-256 is
 `31dc2a94c1217c6cca77bc406465e0c15f0d34e89055abee8633391afa8ecc14`.
-It produced partial inventories but no manifest; no fresh readback was run.
-Final sealing remains pending. Retain all originals, this failed control and
-unchanged 600 MiB/900-second/64 MiB-growth/1 GiB-reserve/file-size limits and
-auditors. No complete current runtime seal is claimed.
+It produced partial inventories but no manifest; no fresh readback was run for
+that attempt. The failed control remains preserved.
+
+A later coordinated retry passed complete sealing and separate fresh-process
+full readback for ten roots: the nine closed originals and complete failed
+control, 639 typed entries. Manifest
+`S/maps-paint-drawable-runtime-sealed-2026-11-01-r2/sealed/manifest.json` has
+SHA-256 `916d8f06dc6bfe0b0549a26ddf7e82d7bc1d2c9f3ff4c8072eb08ef24b64bd59`.
+Seal/readback took 8.473/3.352 seconds at sampled RSS 28,229,632/13,385,728 bytes;
+observed growth was 23,785,472/204,800 bytes. Both guard/child exits were zero,
+cleanup complete and process swaps zero. The unchanged qualified sealer and
+original 600 MiB/900-second/64 MiB-growth/1 GiB-reserve/file-size limits were
+used. This recovers evidence completeness; the runtime outcomes above remain
+unchanged. Retain all originals, both controls and unchanged auditors.
