@@ -6,8 +6,8 @@ Both `Intent.putExtras` overloads replaced and aliased the incoming Bundle.
 They now follow the [Android 10 contract](https://raw.githubusercontent.com/aosp-mirror/platform_frameworks_base/android-10.0.0_r47/core/java/android/content/Intent.java):
 the Bundle overload allocates an empty destination when needed and merges;
 the Intent overload ignores absent source extras, copies them for an empty
-destination, and otherwise merges. Incoming duplicate keys win. The ordinary
-null-argument behavior is retained, including allocation before Bundle.putAll.
+destination, and otherwise merges. Incoming duplicate keys win. Null-argument
+behavior matches Android 10, including allocation before Bundle.putAll.
 Only these two existing method bodies change; getExtras, replaceExtras, fields,
 native declarations and all other methods remain unchanged.
 
