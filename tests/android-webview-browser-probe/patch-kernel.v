@@ -560,6 +560,25 @@ const intent_extras_framework_helper = 'f4756de6c6d4cd9fa3cbb1bc4a9350d45e3fba27
 const intent_extras_provider_helper = '830ae79f3a8ff97ec03fa61aae13a52282d65647cfe423dc9eb6077956e04f6b'
 const intent_extras_raw = 'f3db222897beb3e6dd99bb2da605a5ee34cc2172bbdfc79019c4d82659d50de9'
 const intent_extras_canonical = '6400c9934837225aceef5285b5732d4ca09219f5c0c4692b2870f91b922de380'
+const resource_lock_base = '/Users/alex/.local/state/vinix/android/maps-intent-extras-r2'
+const resource_lock_base_seal = '0a06846c3bc25825ba7b1b6508078523a4a0de789450a7ae57b52ae64b3fcd8e'
+const resource_lock_boot = '58195f3f1596e7f30abbf632b0711d1af257cd1ac5b4ac8942e65e98b5aaa395'
+const resource_lock_base_overlay = 'aaa1479888b2f113397ef0fcc05ffda6cfd894c46eb3d12a1897bd8dd473dedf'
+const resource_lock_old_deployment = '66fea710ae628091cdd715067a7e2faf9ac28a150a09dc9ceeef35ebead7d785'
+const resource_lock_native = '/Users/alex/.local/state/vinix/android/current-native-build-2026-11-01-resource-lock-r2'
+const resource_lock_native_seal = 'ffe69aca16f77cacac1021b94f4825d1a23a574904614bdca57610c39fa42197'
+const resource_lock_native_build = 'fcca57adaa9baae43cda13b1baec9da27fe2412c8307f7155d296e62d2174698'
+const resource_lock_native_pin = 'aeb5ccd643020cbb20ad5630dabff4bfd0ff8b04a5b0fbcfd1b657b3bcd91dd7'
+const resource_lock_native_framework = 'bef486d060754858d51612b9c4bb8a24f7c2fdf8f37cc3565101e24a049bf52f'
+const resource_lock_resources = 'a94e1d8fc8187b13603f8db205653e307b9c5fac82b6c524780c8ceec1820b5d'
+const resource_lock_asset_directories = 'ce5c9358406e79293f462b2e536ee18d1c327490f429c215ef36e903b78587de'
+const resource_lock_ndk_assets = '072f3f6dc3920d4b6f995d6679ce84cef869fb8acb0aeb79d68647557245d3a4'
+const resource_lock_old_bindings = '094e136e5847cf6f9207e4c031bbf25db959014dcb5ed92fcef7f08ac58d9571'
+const resource_lock_bindings = '6fcfb9aff1f73a308f3c7b68f8982243179805ca488f35fba6e2b0db54c6b2b4'
+const resource_lock_old_generated = '256807c4a8ff63a2e86cd726bf9782ac93ffa1a6b22ca3edcff6bcc4b6b118c7'
+const resource_lock_generated = '399511deb701154341664fda6927ee3935df8df599f65d794b463514f998b123'
+const resource_lock_old_c = 'b6f64efd407923433f2a0591f3a0cd6147a3da4372b93c3c9b091d3d912e3154'
+const resource_lock_c = 'e942097c854a4a1799c3c5abbd0889afce063f92e1c7008c0a3011ec3de0087c'
 const source = $embed_file(@FILE).to_string()
 
 struct Profile {
@@ -4635,6 +4654,131 @@ fn intent_extras_baseline(receipt map[string]json2.Any, stage Stage) !string {
 	return intent_extras_base + '/boot.img'
 }
 
+fn resource_lock_profile() Profile {
+	mut modules := intent_extras_profile().modules.clone()
+	modules << 'maps-intent-extras.tar'
+	return Profile{'maps-resource-lock', resource_lock_boot, 'maps-resource-lock.tar', modules}
+}
+fn resource_lock_modules() map[string]string {
+	mut modules := intent_extras_modules()
+	modules['maps-intent-extras.tar'] = resource_lock_base_overlay
+	return modules
+}
+fn resource_lock_fields() map[string]string {
+	mut fields := intent_extras_fields()
+	fields['kind'] = 'vinix-maps-resource-lock-v1'
+	fields['base_root'] = resource_lock_base
+	fields['base_manifest_sha256'] = resource_lock_base_seal
+	fields['native_build_root'] = resource_lock_native
+	fields['native_manifest_sha256'] = resource_lock_native_seal
+	fields['native_build_sha256'] = resource_lock_native_build
+	fields['native_sha256'] = resource_lock_native_pin
+	fields['retained_native_manifest_sha256'] = dialog_theme_native_seal
+	fields['retained_framework_manifest_sha256'] = intent_extras_seal
+	fields['native_framework_manifest_sha256'] = resource_lock_native_framework
+	fields['native_compatibility_framework_manifest_sha256'] = intent_extras_seal
+	fields['retained_native_framework_manifest_sha256'] = dialog_theme_seal
+	fields['generated_jni_sha256'] = resource_lock_generated
+	fields['native_c_sha256'] = resource_lock_c
+	return fields
+}
+fn resource_lock_inputs() map[string]string {
+	mut inputs := intent_extras_inputs()
+	inputs[resource_lock_base + '/sha256.json'] = resource_lock_base_seal
+	inputs[resource_lock_native + '/sha256.json'] = resource_lock_native_seal
+	return inputs
+}
+fn resource_lock_source_delta() map[string]string {
+	return {'build-support/android/nativews/resources.v': resource_lock_resources,
+		'build-support/android/nativews/asset_directories.v': resource_lock_asset_directories,
+		'build-support/android/nativews/ndk_assets.v': resource_lock_ndk_assets,
+		'build-support/android/nativews/bindings.txt': resource_lock_bindings}
+}
+fn resource_lock_proofs() map[string]string {
+	return {
+		'deployment_top_level_delta': json2.encode(['inputs_sha256', 'native_manifest_sha256'])
+		'native_source_delta': json2.encode(resource_lock_source_delta())
+		'native_bindings_delta': json2.encode({'native/bindings.txt': [resource_lock_old_bindings, resource_lock_bindings]})
+		'native_generated_jni_delta': json2.encode({'native/atlframework/ws_generated.v': [resource_lock_old_generated, resource_lock_generated]})
+		'native_c_delta': json2.encode({'native/android-native.c': [resource_lock_old_c, resource_lock_c]})
+		'native_builder_helper_delta': json2.encode(intent_extras_helper_delta())
+		'framework_builder_helper_delta': json2.encode(map[string]string{})
+		'framework_source_delta': json2.encode(map[string]string{})
+		'framework_canonical_delta': json2.encode(map[string]string{})
+		'framework_class_count': json2.encode(2108)
+		'native_consumed_class_count': json2.encode(69)
+		'native_export_count': json2.encode(719)
+		'native_consumed_raw_delta': json2.encode({'smali/android/app/Dialog.smali': [dialog_theme_raw, dialog_theme_canonical]})
+		'native_consumed_canonical_delta': json2.encode(map[string][]string{})
+		'native_consumed_raw_additions': json2.encode(map[string]string{})
+		'native_consumed_canonical_additions': json2.encode(map[string]string{})
+	}
+}
+fn resource_lock_delta() map[string]string {
+	return {'/' + native_onboarding_trace_path: resource_lock_native_pin}
+}
+fn resource_lock_overlay_paths() []string {
+	return [native_onboarding_trace_path, service_query_deployment]
+}
+fn verify_resource_lock_overlay(receipt map[string]json2.Any) ! {
+	for name in ['deployment_input_additions', 'deployment_top_level_additions', 'headless_input_delta', 'headless_top_level_delta', 'native_relink_proof'] {
+		if name in receipt { return error('resource lock may only replace the existing native deployment input') }
+	}
+	if json2.decode[map[string]string](json2.encode(receipt['deployment_input_delta'] or { return error('resource lock deployment delta absent') }))! != resource_lock_delta() {
+		return error('resource lock exact one native deployment input change required')
+	}
+	entries := json2.decode[[]ServiceQueryEntry](json2.encode(receipt['overlay_inventory'] or { return error('resource lock overlay inventory absent') }))!
+	paths := resource_lock_overlay_paths()
+	mut regulars := map[string]string{}
+	mut seen := map[string]bool{}
+	for entry in entries {
+		if entry.name in seen || !relative(entry.name) || entry.mode & 0o7022 != 0 { return error('unsafe resource lock overlay inode') }
+		seen[entry.name] = true
+		if entry.kind == 'regular' {
+			mode := if entry.name == native_onboarding_trace_path { u32(0o755) } else { u32(0o644) }
+			if entry.name !in paths || !digest_valid(entry.sha256) || entry.mode != mode { return error('resource lock file allowlist or mode differs') }
+			regulars[entry.name] = entry.sha256
+		} else if entry.kind != 'directory' || entry.mode != 0o755 || !paths.any(it.starts_with(entry.name + '/')) { return error('unexpected resource lock overlay inode') }
+	}
+	if regulars.len != 2 || regulars[native_onboarding_trace_path] or { '' } != resource_lock_native_pin
+		|| regulars[service_query_deployment] or { '' } == resource_lock_old_deployment { return error('exact two new resource lock files required') }
+}
+fn verify_resource_lock_receipt(receipt map[string]json2.Any, stage Stage) ! {
+	for pin in [resource_lock_base_seal, resource_lock_boot, resource_lock_base_overlay, resource_lock_old_deployment,
+		resource_lock_native_seal, resource_lock_native_build, resource_lock_native_pin, resource_lock_native_framework,
+		resource_lock_resources, resource_lock_asset_directories, resource_lock_ndk_assets,
+		resource_lock_old_bindings, resource_lock_bindings, resource_lock_old_generated, resource_lock_generated,
+		resource_lock_old_c, resource_lock_c] {
+		if !digest_valid(pin) { return error('completed reviewed resource lock native producer required') }
+	}
+	if resource_lock_native_seal == dialog_theme_native_seal || resource_lock_native_pin == dialog_theme_native_pin
+		|| resource_lock_bindings == resource_lock_old_bindings || resource_lock_generated == resource_lock_old_generated
+		|| resource_lock_c == resource_lock_old_c { return error('new resource lock native implementation required') }
+	for name, expected in resource_lock_fields() { if receipt[name] or { json2.Any('absent') } != json2.Any(expected) { return error('resource lock receipt differs: ' + name) } }
+	for name, expected in resource_lock_proofs() { if receipt[name] or { json2.Any('absent') } != json2.decode[json2.Any](expected)! { return error('resource lock proof differs: ' + name) } }
+	mut seals := map[string]string{}
+	for path, pin in stage.inputs_sha256 { if path.ends_with('/sha256.json') { seals[path] = pin } }
+	if seals.len != 98 || seals != resource_lock_inputs() { return error('resource lock exact ninety-eight dependency seals differ') }
+	for path in stage.inputs_sha256.keys() {
+		for root in [dialog_theme_relink_root(), resources_float_relink_root(), layout_alignment_relink_root(), window_animations_relink_root()] {
+			if path == root || path.starts_with(root + '/') { return error('historical relink proof leaves are not new resource lock direct inputs') }
+		}
+	}
+	if stage.format != 1 || stage.original_modules_sha256 != resource_lock_modules() || stage.preserved_modules_sha256 != resource_lock_modules() {
+		return error('resource lock original forty-one modules differ')
+	}
+	verify_resource_lock_overlay(receipt)!
+}
+fn resource_lock_baseline(receipt map[string]json2.Any, stage Stage) !string {
+	verify_resource_lock_receipt(receipt, stage)!
+	path := resource_lock_base + '/sha256.json'
+	regular(path)!
+	if os.lstat(path)!.size > 8 * 1024 * 1024 || hash(path)! != resource_lock_base_seal { return error('resource lock original Intent stage manifest differs') }
+	pins := json2.decode[map[string]string](os.read_file(path)!)!
+	if pins['boot.img'] or { '' } != resource_lock_boot || pins['maps-intent-extras.tar'] or { '' } != resource_lock_base_overlay { return error('resource lock original boot or Intent overlay differs') }
+	return resource_lock_base + '/boot.img'
+}
+
 fn service_query_modules() map[string]string {
 	mut modules := controller_modules()
 	modules['maps-controller-diagnostic.tar'] = 'bef5f25859e77a9671a6a144ccb56891da5ed2f7b4324a93a96da7fdcab1987a'
@@ -5269,6 +5413,8 @@ fn patch(root string, build_root string, receipt_sha string, profile Profile) ! 
 		baseline = dialog_theme_baseline(stage_map, stage)!
 	} else if profile.name == 'maps-intent-extras' {
 		baseline = intent_extras_baseline(stage_map, stage)!
+	} else if profile.name == 'maps-resource-lock' {
+		baseline = resource_lock_baseline(stage_map, stage)!
 	} else {
 		for path, expected in stage.inputs_sha256 {
 			if os.file_name(path) == 'boot.img' && expected == baseline_pin {
@@ -10201,6 +10347,165 @@ fn intent_extras_profile_self_test() ! {
 	println('MAPS-INTENT-EXTRAS KERNEL-PROFILE-SELF-TEST PASS six files ninety-six seals forty inherited modules two Intent methods reused native with original Dialog provenance and historical rejection')
 }
 
+fn resource_lock_entries_fixture() []ServiceQueryEntry {
+	paths := resource_lock_overlay_paths()
+	mut parents := map[string]bool{}
+	for path in paths {
+		mut parent := os.dir(path)
+		for parent !in ['', '.'] { parents[parent] = true; parent = os.dir(parent) }
+	}
+	mut entries := []ServiceQueryEntry{}
+	for name in parents.keys().sorted() { entries << ServiceQueryEntry{name: name, kind: 'directory', mode: 0o755} }
+	entries << ServiceQueryEntry{name: native_onboarding_trace_path, kind: 'regular', mode: 0o755, sha256: resource_lock_native_pin}
+	entries << ServiceQueryEntry{name: service_query_deployment, kind: 'regular', mode: 0o644, sha256: 'b'.repeat(64)}
+	return entries
+}
+fn resource_lock_receipt_fixture() !map[string]json2.Any {
+	mut receipt := map[string]json2.Any{}
+	for name, value in resource_lock_fields() { receipt[name] = json2.Any(value) }
+	for name, value in resource_lock_proofs() { receipt[name] = json2.decode[json2.Any](value)! }
+	receipt['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(resource_lock_delta()))!
+	receipt['overlay_inventory'] = json2.decode[json2.Any](json2.encode(resource_lock_entries_fixture()))!
+	return receipt
+}
+fn resource_lock_profile_self_test() ! {
+	profile := resource_lock_profile()
+	if profile.baseline_sha != resource_lock_boot || profile.modules.len != 41 || profile.modules.last() != 'maps-intent-extras.tar'
+		|| resource_lock_inputs().len != 98 || resource_lock_inputs().keys().filter(it.ends_with('/sha256.json')).len != 98 {
+		return error('resource lock strict native-only profile differs')
+	}
+	mut modules := json2.decode[[]string](json2.encode(profile.modules))!
+	modules << profile.overlay
+	if modules.len != 42 || resource_lock_overlay_paths().len != 2 || resource_lock_delta().len != 1 { return error('resource lock exact modules, files or actual changes differ') }
+	verify_modules(profile, Config{'vinix', profile.modules}, Config{'vinix', modules})!
+	for bad in [Config{'vinix', modules.reverse()}, Config{'vinix', profile.modules}, Config{'other', modules}] {
+		if _ := verify_modules(profile, Config{'vinix', profile.modules}, bad) { return error('wrong resource lock module order accepted') }
+	}
+	stage := Stage{format: 1, inputs_sha256: resource_lock_inputs(), original_modules_sha256: resource_lock_modules(), preserved_modules_sha256: resource_lock_modules()}
+	receipt := resource_lock_receipt_fixture()!
+	verify_resource_lock_receipt(receipt, stage)!
+	mut fields := resource_lock_fields().keys()
+	fields << resource_lock_proofs().keys()
+	fields << ['deployment_input_delta', 'overlay_inventory']
+	for name in fields {
+		mut bad := json2.decode[map[string]json2.Any](json2.encode(receipt))!
+		bad[name] = json2.Any('changed')
+		if _ := verify_resource_lock_receipt(bad, stage) { return error('changed resource lock field/proof accepted') }
+		bad.delete(name)
+		if _ := verify_resource_lock_receipt(bad, stage) { return error('missing resource lock field/proof accepted') }
+	}
+	for proof in ['native_source_delta', 'native_builder_helper_delta', 'framework_builder_helper_delta', 'framework_source_delta', 'framework_canonical_delta',
+		'native_bindings_delta', 'native_generated_jni_delta', 'native_c_delta', 'native_consumed_raw_delta', 'native_consumed_canonical_delta',
+		'native_consumed_raw_additions', 'native_consumed_canonical_additions'] {
+		original := json2.decode[map[string]json2.Any](json2.encode(receipt[proof]!))!
+		for name in original.keys() {
+			mut changed := json2.decode[map[string]json2.Any](json2.encode(original))!
+			changed[name] = json2.Any('changed')
+			mut bad := json2.decode[map[string]json2.Any](json2.encode(receipt))!
+			bad[proof] = json2.decode[json2.Any](json2.encode(changed))!
+			if _ := verify_resource_lock_receipt(bad, stage) { return error('changed resource lock proof member accepted') }
+			changed.delete(name)
+			bad[proof] = json2.decode[json2.Any](json2.encode(changed))!
+			if _ := verify_resource_lock_receipt(bad, stage) { return error('missing resource lock proof member accepted') }
+		}
+		mut extra := json2.decode[map[string]json2.Any](json2.encode(original))!
+		extra['unreviewed'] = json2.Any('a'.repeat(64))
+		mut bad := json2.decode[map[string]json2.Any](json2.encode(receipt))!
+		bad[proof] = json2.decode[json2.Any](json2.encode(extra))!
+		if _ := verify_resource_lock_receipt(bad, stage) { return error('extra resource lock proof member accepted') }
+	}
+	for proof in ['native_bindings_delta', 'native_generated_jni_delta', 'native_c_delta', 'native_consumed_raw_delta'] {
+		original := json2.decode[map[string][]string](json2.encode(receipt[proof]!))!
+		for name in original.keys() {
+			for index in 0 .. 2 {
+				mut changed := json2.decode[map[string][]string](json2.encode(original))!
+				mut pair := json2.decode[[]string](json2.encode(changed[name]!))!
+				pair[index] = '0'.repeat(64)
+				changed[name] = pair
+				mut bad := json2.decode[map[string]json2.Any](json2.encode(receipt))!
+				bad[proof] = json2.decode[json2.Any](json2.encode(changed))!
+				if _ := verify_resource_lock_receipt(bad, stage) { return error('changed resource lock before/after pair accepted') }
+			}
+		}
+	}
+	for field in ['native_framework_manifest_sha256', 'native_compatibility_framework_manifest_sha256', 'retained_framework_manifest_sha256'] {
+		mut bad := json2.decode[map[string]json2.Any](json2.encode(receipt))!
+		bad[field] = json2.Any(dialog_theme_seal)
+		if _ := verify_resource_lock_receipt(bad, stage) { return error('resource lock retained Intent SDK provenance replaced') }
+	}
+	mut wrong_origin := json2.decode[map[string]json2.Any](json2.encode(receipt))!
+	wrong_origin['retained_native_framework_manifest_sha256'] = json2.Any(intent_extras_seal)
+	if _ := verify_resource_lock_receipt(wrong_origin, stage) { return error('resource lock old Dialog native provenance replaced') }
+	for path in stage.inputs_sha256.keys() {
+		mut pins := json2.decode[map[string]string](json2.encode(stage.inputs_sha256))!
+		pins[path] = '0'.repeat(64)
+		if _ := verify_resource_lock_receipt(receipt, Stage{...stage, inputs_sha256: pins}) { return error('changed resource lock input accepted') }
+		pins.delete(path)
+		if _ := verify_resource_lock_receipt(receipt, Stage{...stage, inputs_sha256: pins}) { return error('missing resource lock input accepted') }
+	}
+	mut forbidden_inputs := ['/unreviewed/sha256.json', dialog_theme_relink_root(), resources_float_relink_root(), layout_alignment_relink_root(), window_animations_relink_root()]
+	for path in dialog_theme_relink_inputs().keys() { forbidden_inputs << path }
+	for path in resources_float_relink_inputs().keys() { forbidden_inputs << path }
+	for path in [layout_alignment_relink_root() + '/out/canonical.so', window_animations_relink_root() + '/compile.log'] { forbidden_inputs << path }
+	for path in forbidden_inputs {
+		mut extra := json2.decode[map[string]string](json2.encode(stage.inputs_sha256))!
+		extra[path] = 'a'.repeat(64)
+		if _ := verify_resource_lock_receipt(receipt, Stage{...stage, inputs_sha256: extra}) { return error('extra resource lock seal or historical proof input accepted') }
+	}
+	for bad in [Stage{...stage, format: 0}, Stage{...stage, original_modules_sha256: intent_extras_modules()}, Stage{...stage, preserved_modules_sha256: intent_extras_modules()}] {
+		if _ := verify_resource_lock_receipt(receipt, bad) { return error('wrong resource lock module inventory accepted') }
+	}
+	for addition in ['deployment_input_additions', 'deployment_top_level_additions', 'headless_input_delta', 'headless_top_level_delta', 'native_relink_proof'] {
+		mut bad := json2.decode[map[string]json2.Any](json2.encode(receipt))!
+		bad[addition] = json2.Any(map[string]json2.Any{})
+		if _ := verify_resource_lock_receipt(bad, stage) { return error('resource lock addition, headless delta or relink proof accepted') }
+	}
+	for path in ['/' + service_query_jar_path, '/' + service_query_dex_path, '/' + service_query_headless + '/guest-inputs.json',
+		'/opt/vinix-maps-account/bin/maps-account-guest'] {
+		mut changed := json2.decode[map[string]string](json2.encode(resource_lock_delta()))!
+		changed[path] = 'a'.repeat(64)
+		mut bad := json2.decode[map[string]json2.Any](json2.encode(receipt))!
+		bad['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(changed))!
+		if _ := verify_resource_lock_receipt(bad, stage) { return error('unrelated resource lock deployment input change accepted') }
+	}
+	entries := resource_lock_entries_fixture()
+	for index, entry in entries {
+		for changed in [ServiceQueryEntry{...entry, name: '../escape'}, ServiceQueryEntry{...entry, kind: 'symlink'},
+			ServiceQueryEntry{...entry, mode: 0o777}, ServiceQueryEntry{...entry, mode: 0o4755}] {
+			mut bad_entries := json2.decode[[]ServiceQueryEntry](json2.encode(entries))!
+			bad_entries[index] = changed
+			mut bad := json2.decode[map[string]json2.Any](json2.encode(receipt))!
+			bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(bad_entries))!
+			if _ := verify_resource_lock_receipt(bad, stage) { return error('unsafe resource lock overlay inode accepted') }
+		}
+		if entry.kind == 'regular' {
+			mut missing := json2.decode[[]ServiceQueryEntry](json2.encode(entries))!
+			missing.delete(index)
+			mut bad := json2.decode[map[string]json2.Any](json2.encode(receipt))!
+			bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(missing))!
+			if _ := verify_resource_lock_receipt(bad, stage) { return error('missing resource lock overlay file accepted') }
+			mut changed := json2.decode[[]ServiceQueryEntry](json2.encode(entries))!
+			changed[index] = ServiceQueryEntry{...entry, sha256: if entry.name == service_query_deployment { resource_lock_old_deployment } else { dialog_theme_native_pin }}
+			bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(changed))!
+			if _ := verify_resource_lock_receipt(bad, stage) { return error('stale resource lock overlay file accepted') }
+		}
+	}
+	for extra in [entries.last(), ServiceQueryEntry{name: service_query_jar_path, kind: 'regular', mode: 0o644, sha256: intent_extras_jar}] {
+		mut changed := json2.decode[[]ServiceQueryEntry](json2.encode(entries))!
+		changed << extra
+		mut bad := json2.decode[map[string]json2.Any](json2.encode(receipt))!
+		bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(changed))!
+		if _ := verify_resource_lock_receipt(bad, stage) { return error('duplicate or framework resource lock overlay file accepted') }
+	}
+	for old in [intent_extras_receipt_fixture()!, dialog_theme_receipt_fixture()!, auth_worker_receipt_fixture()!] {
+		if _ := verify_resource_lock_receipt(old, stage) { return error('historical receipt accepted by resource lock profile') }
+	}
+	if _ := verify_intent_extras_receipt(receipt, stage) { return error('resource lock receipt accepted by Intent profile') }
+	if _ := verify_dialog_theme_receipt(receipt, stage) { return error('resource lock receipt accepted by Dialog profile') }
+	verify_resource_lock_receipt(receipt, stage)!
+	println('MAPS-RESOURCE-LOCK KERNEL-PROFILE-SELF-TEST PASS two files ninety-eight seals forty-one inherited modules native-only source and C API delta unchanged Java SDK exact provenance and historical rejection')
+}
+
 fn self_test() ! {
 	protected_profile_self_test()!
 	controller_profile_self_test()!
@@ -10236,6 +10541,7 @@ fn self_test() ! {
 	paint_drawable_profile_self_test()!
 	dialog_theme_profile_self_test()!
 	intent_extras_profile_self_test()!
+	resource_lock_profile_self_test()!
 	maps := maps_profile()
 	before := Config{'vinix', maps.modules}
 	mut modules := maps.modules.clone()
@@ -10315,6 +10621,7 @@ fn self_test() ! {
 	fat_self_test(root + '/paint-drawable', 'maps-paint-drawable.tar', paint_drawable_profile().modules)!
 	fat_self_test(root + '/dialog-theme', 'maps-dialog-theme.tar', dialog_theme_profile().modules)!
 	fat_self_test(root + '/intent-extras', 'maps-intent-extras.tar', intent_extras_profile().modules)!
+	fat_self_test(root + '/resource-lock', 'maps-resource-lock.tar', resource_lock_profile().modules)!
 	println('BROWSER-KERNEL-PATCH SELF-TEST PASS configuration inventory digest symlink launched-stage guards')
 }
 
@@ -10361,9 +10668,10 @@ fn main() {
 	is_paint_drawable := os.args.len == 5 && os.args[1] == '--maps-paint-drawable'
 	is_dialog_theme := os.args.len == 5 && os.args[1] == '--maps-dialog-theme'
 	is_intent_extras := os.args.len == 5 && os.args[1] == '--maps-intent-extras'
-	is_selected := is_maps || is_protected || is_controller || is_service_query || is_controller_memory || is_direct_boot || is_context_storage || is_broadcast_result || is_onboarding_trace || is_native_onboarding_trace || is_onboarding_framework || is_native_heartbeat || is_browser_poll || is_account_pump || is_application_restrictions || is_account_handoff || is_auth_exception || is_auth_worker || is_binder_identity || is_service_lifecycle || is_platform_fragments || is_imageview_bounds || is_window_system_ui || is_broker_tail || is_seed_companion || is_persistent_data_block || is_bitmap_tiles || is_window_animations || is_layout_alignment || is_user_restrictions || is_bundle_cross_profile || is_resources_float || is_paint_drawable || is_dialog_theme || is_intent_extras
+	is_resource_lock := os.args.len == 5 && os.args[1] == '--maps-resource-lock'
+	is_selected := is_maps || is_protected || is_controller || is_service_query || is_controller_memory || is_direct_boot || is_context_storage || is_broadcast_result || is_onboarding_trace || is_native_onboarding_trace || is_onboarding_framework || is_native_heartbeat || is_browser_poll || is_account_pump || is_application_restrictions || is_account_handoff || is_auth_exception || is_auth_worker || is_binder_identity || is_service_lifecycle || is_platform_fragments || is_imageview_bounds || is_window_system_ui || is_broker_tail || is_seed_companion || is_persistent_data_block || is_bitmap_tiles || is_window_animations || is_layout_alignment || is_user_restrictions || is_bundle_cross_profile || is_resources_float || is_paint_drawable || is_dialog_theme || is_intent_extras || is_resource_lock
 	if os.args.len != 4 && !is_selected {
-		eprintln('usage: patch-kernel [--maps-account|--protected-storage-maps|--maps-controller|--maps-service-query|--maps-controller-memory|--maps-direct-boot|--maps-context-storage|--maps-broadcast-result|--maps-onboarding-trace|--maps-native-onboarding-trace|--maps-onboarding-framework|--maps-native-heartbeat|--maps-browser-poll|--maps-account-pump|--maps-application-restrictions|--maps-account-handoff|--maps-auth-exception|--maps-auth-worker|--maps-binder-identity|--maps-service-lifecycle|--maps-platform-fragments|--maps-imageview-bounds|--maps-window-system-ui|--maps-broker-tail|--maps-seed-account-companion|--maps-persistent-data-block|--maps-bitmap-tiles|--maps-window-animations|--maps-layout-alignment|--maps-user-restrictions|--maps-bundle-cross-profile|--maps-resources-float|--maps-paint-drawable|--maps-dialog-theme|--maps-intent-extras] FRESH_STAGE FROZEN_KERNEL_BUILD BUILD_JSON_SHA256')
+		eprintln('usage: patch-kernel [--maps-account|--protected-storage-maps|--maps-controller|--maps-service-query|--maps-controller-memory|--maps-direct-boot|--maps-context-storage|--maps-broadcast-result|--maps-onboarding-trace|--maps-native-onboarding-trace|--maps-onboarding-framework|--maps-native-heartbeat|--maps-browser-poll|--maps-account-pump|--maps-application-restrictions|--maps-account-handoff|--maps-auth-exception|--maps-auth-worker|--maps-binder-identity|--maps-service-lifecycle|--maps-platform-fragments|--maps-imageview-bounds|--maps-window-system-ui|--maps-broker-tail|--maps-seed-account-companion|--maps-persistent-data-block|--maps-bitmap-tiles|--maps-window-animations|--maps-layout-alignment|--maps-user-restrictions|--maps-bundle-cross-profile|--maps-resources-float|--maps-paint-drawable|--maps-dialog-theme|--maps-intent-extras|--maps-resource-lock] FRESH_STAGE FROZEN_KERNEL_BUILD BUILD_JSON_SHA256')
 		exit(2)
 	}
 	offset := if is_selected { 1 } else { 0 }
@@ -10376,7 +10684,7 @@ fn main() {
 		exit(1)
 	}
 	profile := if is_seed_companion { seed_companion_profile() } else if is_broker_tail { broker_tail_profile() } else if is_window_system_ui { window_system_ui_profile() } else if is_imageview_bounds { imageview_bounds_profile() } else if is_platform_fragments { platform_fragments_profile() } else if is_service_lifecycle { service_lifecycle_profile() } else if is_binder_identity { binder_identity_profile() } else if is_auth_worker { auth_worker_profile() } else if is_auth_exception { auth_exception_profile() } else if is_account_handoff { account_handoff_profile() } else if is_application_restrictions { application_restrictions_profile() } else if is_account_pump { account_pump_profile() } else if is_browser_poll { browser_poll_profile() } else if is_native_heartbeat { native_heartbeat_profile() } else if is_onboarding_framework { onboarding_framework_profile() } else if is_native_onboarding_trace { native_onboarding_trace_profile() } else if is_onboarding_trace { onboarding_trace_profile() } else if is_broadcast_result { broadcast_result_profile() } else if is_context_storage { context_storage_profile() } else if is_direct_boot { direct_boot_profile() } else if is_controller_memory { controller_memory_profile() } else if is_service_query { service_query_profile() } else if is_controller { controller_profile() } else if is_protected { protected_maps_profile() } else if is_maps { maps_profile() } else { browser_profile() }
-	selected_profile := if is_intent_extras { intent_extras_profile() } else if is_dialog_theme { dialog_theme_profile() } else if is_paint_drawable { paint_drawable_profile() } else if is_resources_float { resources_float_profile() } else if is_bundle_cross_profile { bundle_cross_profile_profile() } else if is_user_restrictions { user_restrictions_profile() } else if is_layout_alignment { layout_alignment_profile() } else if is_window_animations { window_animations_profile() } else if is_bitmap_tiles { bitmap_tiles_profile() } else if is_persistent_data_block { persistent_data_block_profile() } else { profile }
+	selected_profile := if is_resource_lock { resource_lock_profile() } else if is_intent_extras { intent_extras_profile() } else if is_dialog_theme { dialog_theme_profile() } else if is_paint_drawable { paint_drawable_profile() } else if is_resources_float { resources_float_profile() } else if is_bundle_cross_profile { bundle_cross_profile_profile() } else if is_user_restrictions { user_restrictions_profile() } else if is_layout_alignment { layout_alignment_profile() } else if is_window_animations { window_animations_profile() } else if is_bitmap_tiles { bitmap_tiles_profile() } else if is_persistent_data_block { persistent_data_block_profile() } else { profile }
 	patch(root, build_root, os.args[3 + offset], selected_profile) or {
 		eprintln(err)
 		exit(1)
