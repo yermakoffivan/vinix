@@ -98,6 +98,11 @@ const user_restrictions_pass_marker = 'USER-RESTRICTIONS-PASS fresh-snapshots bu
 const bundle_cross_profile_framework_sha = '3ebf88615dcb87ec103b098a0baf397f5a4428623f809fd139b23e9f60978235'
 const bundle_cross_profile_apk_sha = 'c781769a0ef5fd5357ae1f678d52ef98a2532a5ae07c155a013e278a7b2248ab'
 const bundle_cross_profile_pass_marker = 'BUNDLE-BOOLEAN-PASS null-keys defaults stored-values nonmutating ordinary-keys legacy-control cross-profile-absent'
+// Resource floats require their signed fixture and exact coupled runtime pair.
+const resources_float_framework_sha = 'aac12a41b70ce34c0893580431a28de81cb3476e7c6833cbe0c0ca8596db677d'
+const resources_float_native_sha = '441ae035ec4b69c36635cc4521af3fafcb6a867305b0ba25d6e55df7ff0dadc9'
+const resources_float_apk_sha = '59439180e4b2bff8c533689db5e4f6ba121406a3cb4950b3746f170a960a7d93'
+const resources_float_pass_marker = 'RESOURCES-FLOAT-PASS packaged-floats aliases strict-types virtual-lookup raw-bits unchanged-values failures'
 
 struct FixtureProfile {
 	name          string
@@ -340,6 +345,17 @@ fn user_restrictions_bundle_profile() FixtureProfile {
 	}
 }
 
+fn resources_float_profile() FixtureProfile {
+	return FixtureProfile{
+		name: 'resources-float'
+		apk_sha: resources_float_apk_sha
+		framework_sha: resources_float_framework_sha
+		native_sha: resources_float_native_sha
+		pass_marker: resources_float_pass_marker
+		scope: 'standalone Resources floating-point lookup regression with packaged resources, aliases, strict type checks and virtual lookup controls; Maps UI, GMS and authentication are not exercised'
+	}
+}
+
 struct Configuration {
 	runtime   string
 	apk       string
@@ -451,7 +467,7 @@ fn health(line string, expected_marker string) ! {
 		|| line.contains('PERSISTENT-DATA-BLOCK-PASS') || line.contains('BITMAP-TILES-PASS')
 		|| line.contains('CONNECTIVITY-TRUTH-PASS') || line.contains('WINDOW-ANIMATIONS-PASS')
 		|| line.contains('LAYOUT-ALIGNMENT-PASS') || line.contains('USER-RESTRICTIONS-PASS')
-		|| line.contains('BUNDLE-BOOLEAN-PASS')) && line != expected_marker {
+		|| line.contains('BUNDLE-BOOLEAN-PASS') || line.contains('RESOURCES-FLOAT-PASS')) && line != expected_marker {
 		return error('conflicting fixture marker')
 	}
 }
@@ -652,7 +668,7 @@ fn export_evidence(output string) ! {
 
 fn selftest() ! {
 	mut cases := 0
-	profiles := [child_attach_profile(), settings_global_profile(), application_restrictions_profile(), authenticator_exception_profile(), maps_network_profile(), authenticator_worker_profile(), maps_network_v2_profile(), authenticator_binder_identity_profile(), maps_network_v3_profile(), service_lifecycle_profile(), platform_fragments_profile(), image_bounds_profile(), window_system_ui_profile(), seed_account_options_profile(), persistent_data_block_profile(), bitmap_tiles_profile(), connectivity_truth_profile(), window_animations_profile(), layout_alignment_profile(), user_restrictions_profile(), bundle_cross_profile_profile(), user_restrictions_bundle_profile()]
+	profiles := [child_attach_profile(), settings_global_profile(), application_restrictions_profile(), authenticator_exception_profile(), maps_network_profile(), authenticator_worker_profile(), maps_network_v2_profile(), authenticator_binder_identity_profile(), maps_network_v3_profile(), service_lifecycle_profile(), platform_fragments_profile(), image_bounds_profile(), window_system_ui_profile(), seed_account_options_profile(), persistent_data_block_profile(), bitmap_tiles_profile(), connectivity_truth_profile(), window_animations_profile(), layout_alignment_profile(), user_restrictions_profile(), bundle_cross_profile_profile(), user_restrictions_bundle_profile(), resources_float_profile()]
 	require(child_attach_profile().framework_sha == framework_sha
 		&& settings_global_profile().framework_sha == framework_sha
 		&& application_restrictions_profile().framework_sha != framework_sha, 'exact per-profile framework identities')!
@@ -728,6 +744,10 @@ fn selftest() ! {
 		&& user_restrictions_bundle_profile().apk_sha == user_restrictions_profile().apk_sha
 		&& user_restrictions_bundle_profile().pass_marker == user_restrictions_profile().pass_marker,
 		'UserManager retry must preserve the exact original signed fixture and marker on the corrected framework')!
+	require(resources_float_profile().framework_sha != bundle_cross_profile_profile().framework_sha
+		&& resources_float_profile().native_sha.len == 64
+		&& resources_float_profile().apk_sha != bundle_cross_profile_profile().apk_sha,
+		'resource floats require their new framework, signed fixture and exact coupled native pin')!
 	for profile in profiles {
 		mut pins := [profile.apk_sha, profile.framework_sha]
 		if profile.native_sha != '' { pins << profile.native_sha }
@@ -773,7 +793,7 @@ fn selftest() ! {
 		cases++
 	}
 	require(canonical('/var/lib/onboarding-api-r1'), 'canonical path rejected')!
-	for selector in ['--authenticator-binder-identity', '--maps-network-v3', '--service-lifecycle', '--platform-fragments', '--image-bounds', '--window-system-ui', '--seed-account-options', '--persistent-data-block', '--bitmap-tiles', '--connectivity-truth', '--window-animations', '--layout-alignment', '--user-restrictions', '--bundle-cross-profile', '--user-restrictions-bundle'] {
+	for selector in ['--authenticator-binder-identity', '--maps-network-v3', '--service-lifecycle', '--platform-fragments', '--image-bounds', '--window-system-ui', '--seed-account-options', '--persistent-data-block', '--bitmap-tiles', '--connectivity-truth', '--window-animations', '--layout-alignment', '--user-restrictions', '--bundle-cross-profile', '--user-restrictions-bundle', '--resources-float'] {
 		full := [selector, '/runtime', '/fixture.apk', '10117', '10117', '/results']
 		for count in 1 .. full.len {
 			mut argv := [os.executable()]
@@ -802,9 +822,10 @@ fn run() ! {
 		return
 	}
 	mut arguments := os.args[1..]
-	require(arguments.len == 6 && arguments[0] in ['--child-attach', '--settings-global', '--application-restrictions', '--authenticator-private-exception', '--maps-network', '--authenticator-worker', '--maps-network-v2', '--authenticator-binder-identity', '--maps-network-v3', '--service-lifecycle', '--platform-fragments', '--image-bounds', '--window-system-ui', '--seed-account-options', '--persistent-data-block', '--bitmap-tiles', '--connectivity-truth', '--window-animations', '--layout-alignment', '--user-restrictions', '--bundle-cross-profile', '--user-restrictions-bundle'],
-		'usage: onboarding-api-run (--child-attach|--settings-global|--application-restrictions|--authenticator-private-exception|--maps-network|--authenticator-worker|--maps-network-v2|--authenticator-binder-identity|--maps-network-v3|--service-lifecycle|--platform-fragments|--image-bounds|--window-system-ui|--seed-account-options|--persistent-data-block|--bitmap-tiles|--connectivity-truth|--window-animations|--layout-alignment|--user-restrictions|--bundle-cross-profile|--user-restrictions-bundle) RUNTIME APK UID GID FRESH_OUTPUT | selftest')!
+	require(arguments.len == 6 && arguments[0] in ['--child-attach', '--settings-global', '--application-restrictions', '--authenticator-private-exception', '--maps-network', '--authenticator-worker', '--maps-network-v2', '--authenticator-binder-identity', '--maps-network-v3', '--service-lifecycle', '--platform-fragments', '--image-bounds', '--window-system-ui', '--seed-account-options', '--persistent-data-block', '--bitmap-tiles', '--connectivity-truth', '--window-animations', '--layout-alignment', '--user-restrictions', '--bundle-cross-profile', '--user-restrictions-bundle', '--resources-float'],
+		'usage: onboarding-api-run (--child-attach|--settings-global|--application-restrictions|--authenticator-private-exception|--maps-network|--authenticator-worker|--maps-network-v2|--authenticator-binder-identity|--maps-network-v3|--service-lifecycle|--platform-fragments|--image-bounds|--window-system-ui|--seed-account-options|--persistent-data-block|--bitmap-tiles|--connectivity-truth|--window-animations|--layout-alignment|--user-restrictions|--bundle-cross-profile|--user-restrictions-bundle|--resources-float) RUNTIME APK UID GID FRESH_OUTPUT | selftest')!
 	profile := if arguments[0] == '--authenticator-private-exception' { authenticator_exception_profile() }
+		else if arguments[0] == '--resources-float' { resources_float_profile() }
 		else if arguments[0] == '--bundle-cross-profile' { bundle_cross_profile_profile() }
 		else if arguments[0] == '--user-restrictions-bundle' { user_restrictions_bundle_profile() }
 		else if arguments[0] == '--user-restrictions' { user_restrictions_profile() }
