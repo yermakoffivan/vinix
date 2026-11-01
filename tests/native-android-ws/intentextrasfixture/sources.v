@@ -14,6 +14,10 @@ fn new_object(register string, class string) string {
 	return 'new-instance ${register}, ${class}\ninvoke-direct {${register}}, ${class}-><init>()V\n'
 }
 
+fn no_extras(register string) string {
+	return 'invoke-static {}, ${main_type}->noExtras()Landroid/content/Intent;\nmove-result-object ${register}\n'
+}
+
 fn put_text(register string, key string, value string, bundle bool) string {
 	owner := if bundle { 'Landroid/os/Bundle;' } else { 'Landroid/content/Intent;' }
 	method_name := if bundle { 'putString' } else { 'putExtra' }
@@ -60,7 +64,18 @@ const/4 v1, 1
 invoke-static {v0, v1}, ${main_type}->equal(II)V
 return-void')
 	}
-	return text + method('private static errorIntent()Landroid/content/Intent;', 3, '
+	// The retained framework constructor eagerly allocates an empty Bundle.
+	// Set up the absent-extras state explicitly so these tests exercise the
+	// putExtras branches independently of constructor behavior.
+	return text + method('private static noExtras()Landroid/content/Intent;', 3, '
+new-instance v0, Landroid/content/Intent;
+invoke-direct {v0}, Landroid/content/Intent;-><init>()V
+const/4 v1, 0
+invoke-virtual {v0, v1}, Landroid/content/Intent;->replaceExtras(Landroid/os/Bundle;)Landroid/content/Intent;
+invoke-virtual {v0}, Landroid/content/Intent;->getExtras()Landroid/os/Bundle;
+move-result-object v2
+invoke-static {v2, v1}, ${main_type}->same(Ljava/lang/Object;Ljava/lang/Object;)V
+return-object v0') + method('private static errorIntent()Landroid/content/Intent;', 3, '
 new-instance v0, Landroid/content/Intent;
 invoke-direct {v0}, Landroid/content/Intent;-><init>()V
 const-string v1, "ErrorTitle"
@@ -147,7 +162,7 @@ return-void'
 }
 
 fn bundle_initial_source() string {
-	mut body := new_object('v0', 'Landroid/content/Intent;') + new_object('v1', 'Landroid/os/Bundle;')
+	mut body := no_extras('v0') + new_object('v1', 'Landroid/os/Bundle;')
 	body += put_text('v1', 'initial', 'before', true)
 	body += '
 invoke-virtual {v0, v1}, Landroid/content/Intent;->putExtras(Landroid/os/Bundle;)Landroid/content/Intent;
@@ -162,7 +177,7 @@ invoke-static {v2, v1}, ${main_type}->different(Ljava/lang/Object;Ljava/lang/Obj
 	body += new_object('v1', 'Landroid/os/Bundle;')
 	body += 'invoke-virtual {v0, v1}, Landroid/content/Intent;->putExtras(Landroid/os/Bundle;)Landroid/content/Intent;\n'
 	body += expect_text('v0', 'initial', 'destination changed', false)
-	body += new_object('v0', 'Landroid/content/Intent;')
+	body += no_extras('v0')
 	body += '
 invoke-virtual {v0, v1}, Landroid/content/Intent;->putExtras(Landroid/os/Bundle;)Landroid/content/Intent;
 move-result-object v2
@@ -182,7 +197,7 @@ return-void'
 fn intent_merge_source() string {
 	mut body := ''
 	for populated in [true, false] {
-		body += if populated { 'invoke-static {}, ${main_type}->errorIntent()Landroid/content/Intent;\nmove-result-object v0\n' } else { new_object('v0', 'Landroid/content/Intent;') }
+		body += if populated { 'invoke-static {}, ${main_type}->errorIntent()Landroid/content/Intent;\nmove-result-object v0\n' } else { no_extras('v0') }
 		body += new_object('v1', 'Landroid/content/Intent;')
 		body += put_text('v1', 'metadata', 'source intent', false) + put_text('v1', 'duplicate', 'intent incoming', false)
 		body += '
@@ -217,9 +232,9 @@ invoke-static {v4, v5}, ${main_type}->equal(II)V
 }
 
 fn empty_intent_source() string {
-	mut body := new_object('v1', 'Landroid/content/Intent;')
+	mut body := no_extras('v1')
 	for populated in [true, false] {
-		body += if populated { 'invoke-static {}, ${main_type}->errorIntent()Landroid/content/Intent;\nmove-result-object v0\n' } else { new_object('v0', 'Landroid/content/Intent;') }
+		body += if populated { 'invoke-static {}, ${main_type}->errorIntent()Landroid/content/Intent;\nmove-result-object v0\n' } else { no_extras('v0') }
 		body += '
 invoke-virtual {v0, v1}, Landroid/content/Intent;->putExtras(Landroid/content/Intent;)Landroid/content/Intent;
 move-result-object v2
@@ -268,7 +283,7 @@ throw v0
 move-exception v0
 return-void')
 	}
-	mut body := new_object('v0', 'Landroid/content/Intent;')
+	mut body := no_extras('v0')
 	body += '
 invoke-static {v0}, ${main_type}->nullIntent(Landroid/content/Intent;)V
 invoke-virtual {v0}, Landroid/content/Intent;->getExtras()Landroid/os/Bundle;
