@@ -481,6 +481,31 @@ const bundle_cross_profile_class_raw = 'aca7652cf589433b1db13c412fe8a3fe400b2d2a
 const bundle_cross_profile_class_canonical = 'aca7652cf589433b1db13c412fe8a3fe400b2d2a999135017d962f81dfe8fda0'
 const bundle_cross_profile_bundle_before = 'd12c21681d20a535a12e17685b0b5a5b5a82b61e191936b4dcee34b8de150888'
 const bundle_cross_profile_context_before = 'bb3370f9aac0630357dfced4d361a358f990b982441fe78cc046f7e938540eac'
+const resources_float_base = '/Users/alex/.local/state/vinix/android/maps-bundle-cross-profile-r1'
+const resources_float_base_seal = '03e847ea0b37729b04a9794294b8d39f1c8e5db96d5ab08868f2775312c16631'
+const resources_float_boot = 'cdb68a1aa4243f00aaaf944c164f560b2919f85f08c1ceda500682a934723584'
+const resources_float_base_overlay = '7d807d418c3d2d6873fcf86a2683930a30141f4ccfdad3ce49ae7cd9a32de007'
+const resources_float_old_deployment = '1541f07e253e77d65d3424b06a198e8bdb4733cc93354036cc1b171b95162019'
+const resources_float_old_headless = 'e92ab5839e8180f33d27156a24ca440bece28925aa00ca280fc968ea3c28c281'
+const resources_float_framework = '/Users/alex/.local/state/vinix/android/combined-account-webview-resources-float-framework-2026-10-31-r1'
+const resources_float_seal = 'b88ea5adb85e7b5ea6ff70cdd7310fbb039e1922c4d3467b35ce6f71ebd0d38f'
+const resources_float_build = 'e6dd9df8164e83e4f5eb91e730b112534426cc4096b5d514013d1cb9bfb3f1b4'
+const resources_float_jar = 'aac12a41b70ce34c0893580431a28de81cb3476e7c6833cbe0c0ca8596db677d'
+const resources_float_dex = 'd5c79f9ecf953b4f33263bf45dbfcb606d0d64a0a0cf9aa4015d073f883e638c'
+const resources_float_native = '/Users/alex/.local/state/vinix/android/current-native-build-2026-11-01-resources-float-r2'
+const resources_float_native_seal = 'c8a7134531f5fdfb6a8e484537a4eb798564fb039760ae9f82cc9a2045ba3062'
+const resources_float_native_build = 'c9c6a06637f8b4c9e53fea29caeeb07b8bae71033e364a9e8c09eaa57df476e6'
+const resources_float_native_pin = '441ae035ec4b69c36635cc4521af3fafcb6a867305b0ba25d6e55df7ff0dadc9'
+const resources_float_framework_helper = '099098991b821645306dbc90ed7a21506eb6828cf550849bc07bc8048eacc894'
+const resources_float_provider_helper = 'c89ebf8de71a41970b264d54ab835f4fe45cd9b8f0ae387010e5a5207e2b6fd0'
+const resources_float_native_builder = 'b307f9afc36f19aefdf160c51c528f6bf7b157b4cfcced7d625fc697dfe55eeb'
+const resources_float_before = 'b35d626cb7c7f095878969bc6c3f15990901d4f99dda17bd2491bf88588d132c'
+const resources_float_raw = 'a732642cc032ea7092312df3602559b1285147910c6488bc89c4b64daaa24c5b'
+const resources_float_canonical = '61c634f5dba23234794c9a0ec97336d9ec3dc3cf985ea5398a0b100d8f531c74'
+const resources_float_relink_guard = '615f1370abda04cb7a57b98236b5eae91c1d8f497a3f507115319a85fd8b3339'
+const resources_float_relink_log = '3080e57daf624d0b8b78bfe2209ae2328448787fcbb5d84fbaa6b2233cf40a5a'
+const resources_float_relink_command = '498825b7e9a08dc2acbbbdc2ff95e9fa6eac4186e02849722970010617676d49'
+const resources_float_relink_pins = '56f127e2f0d4d662d9f547132cc445910a145fb115d11cd698e51b6f91560644'
 const source = $embed_file(@FILE).to_string()
 
 struct Profile {
@@ -3990,6 +4015,163 @@ fn bundle_cross_profile_baseline(receipt map[string]json2.Any, stage Stage) !str
 	return bundle_cross_profile_base + '/boot.img'
 }
 
+fn resources_float_profile() Profile {
+	mut modules := bundle_cross_profile_profile().modules.clone()
+	modules << 'maps-bundle-cross-profile.tar'
+	return Profile{'maps-resources-float', resources_float_boot, 'maps-resources-float.tar', modules}
+}
+fn resources_float_modules() map[string]string {
+	mut modules := bundle_cross_profile_modules()
+	modules['maps-bundle-cross-profile.tar'] = resources_float_base_overlay
+	return modules
+}
+fn resources_float_fields() map[string]string {
+	mut fields := bundle_cross_profile_fields()
+	fields['kind'] = 'vinix-maps-resources-float-v1'
+	fields['base_root'] = resources_float_base
+	fields['base_manifest_sha256'] = resources_float_base_seal
+	fields['framework_build_root'] = resources_float_framework
+	fields['framework_manifest_sha256'] = resources_float_seal
+	fields['framework_jar_sha256'] = resources_float_jar
+	fields['framework_dex_sha256'] = resources_float_dex
+	fields['retained_framework_manifest_sha256'] = bundle_cross_profile_seal
+	fields['native_compatibility_framework_manifest_sha256'] = layout_alignment_seal
+	fields['native_build_root'] = resources_float_native
+	fields['native_manifest_sha256'] = resources_float_native_seal
+	fields['native_build_sha256'] = resources_float_native_build
+	fields['native_sha256'] = resources_float_native_pin
+	fields['retained_native_manifest_sha256'] = layout_alignment_native_seal
+	fields['native_framework_manifest_sha256'] = resources_float_seal
+	return fields
+}
+fn resources_float_relink_root() string {
+	return '/Users/alex/.local/state/vinix/android/resources-float-prefix-map-proof-2026-11-01-r1'
+}
+fn resources_float_relink_files() map[string]string {
+	return {'compile.guard.json': resources_float_relink_guard, 'compile.log': resources_float_relink_log,
+		'original-build-native.json': resources_float_relink_command, 'input-pins.sha256': resources_float_relink_pins,
+		'out/canonical.so': layout_alignment_native_pin}
+}
+fn resources_float_relink_inputs() map[string]string {
+	mut inputs := map[string]string{}
+	for name, pin in resources_float_relink_files() { inputs[resources_float_relink_root() + '/' + name] = pin }
+	return inputs
+}
+fn resources_float_relink_description() map[string]json2.Any {
+	mut files := map[string]json2.Any{}
+	for name, pin in resources_float_relink_files() { files[name] = json2.Any(pin) }
+	return {'root': json2.Any(resources_float_relink_root()), 'files_sha256': json2.Any(files),
+		'input_entry_count': json2.Any(5), 'canonical_native_sha256': json2.Any(layout_alignment_native_pin),
+		'scope': json2.Any('Only embedded source-root paths differ; exact successor command with one prefix-map flag reproduces the entire original Layout native DSO.')}
+}
+fn resources_float_inputs() map[string]string {
+	mut inputs := bundle_cross_profile_inputs()
+	inputs[resources_float_base + '/sha256.json'] = resources_float_base_seal
+	inputs[resources_float_framework + '/sha256.json'] = resources_float_seal
+	inputs[resources_float_native + '/sha256.json'] = resources_float_native_seal
+	for path, pin in resources_float_relink_inputs() { inputs[path] = pin }
+	return inputs
+}
+fn resources_float_known_delta() map[string]string {
+	return {'/' + service_query_jar_path: resources_float_jar,
+		'/' + service_query_dex_path: resources_float_dex,
+		'/' + native_onboarding_trace_path: resources_float_native_pin,
+		'/' + service_query_headless + '/framework-build.json': resources_float_build,
+		'/' + service_query_headless + '/framework-sha256.json': resources_float_seal}
+}
+fn resources_float_native_helper_delta() map[string]string {
+	return {'tests/native-android-tools/androidtools/framework.v': resources_float_framework_helper,
+		'tests/native-android-tools/androidtools/framework_user_restrictions.v': user_restrictions_provider_helper,
+		'tests/native-android-tools/androidtools/framework_bundle_boolean.v': bundle_cross_profile_boolean_helper,
+		'tests/native-android-tools/androidtools/framework_cross_profile_apps.v': bundle_cross_profile_cross_helper,
+		'tests/native-android-tools/androidtools/framework_resources_float.v': resources_float_provider_helper,
+		'tests/native-android-ws/build-current-native.v': resources_float_native_builder}
+}
+fn resources_float_proofs() map[string]string {
+	mut proofs := bundle_cross_profile_proofs()
+	proofs['headless_input_delta'] = json2.encode({'/' + service_query_jar_path: resources_float_jar})
+	proofs['deployment_top_level_delta'] = json2.encode(['inputs_sha256', 'framework_manifest_sha256', 'native_manifest_sha256'])
+	proofs['framework_source_delta'] = json2.encode({'smali/android/content/res/Resources.smali': resources_float_raw})
+	proofs['framework_canonical_delta'] = json2.encode({'new-dex/android/content/res/Resources.smali': resources_float_canonical})
+	proofs['framework_builder_helper_delta'] = json2.encode({'tests/native-android-tools/androidtools/framework.v': resources_float_framework_helper,
+		'tests/native-android-tools/androidtools/framework_resources_float.v': resources_float_provider_helper})
+	proofs['native_builder_helper_delta'] = json2.encode(resources_float_native_helper_delta())
+	proofs['native_consumed_raw_delta'] = json2.encode({
+		'smali/android/content/res/Resources.smali': [resources_float_before, resources_float_raw],
+		'smali/android/text/Layout.smali': [layout_alignment_raw, layout_alignment_canonical]})
+	proofs['native_consumed_canonical_delta'] = json2.encode({'android/content/res/Resources.smali': [resources_float_before, resources_float_canonical]})
+	proofs['native_relink_proof'] = json2.encode(resources_float_relink_description())
+	return proofs
+}
+fn resources_float_overlay_paths() []string {
+	mut paths := bundle_cross_profile_overlay_paths()
+	paths << native_onboarding_trace_path
+	return paths
+}
+fn verify_resources_float_overlay(receipt map[string]json2.Any) ! {
+	if 'deployment_input_additions' in receipt || 'deployment_top_level_additions' in receipt { return error('Resources float changes existing framework/native inputs only') }
+	delta := json2.decode[map[string]string](json2.encode(receipt['deployment_input_delta'] or { return error('Resources float deployment delta absent') }))!
+	mut expected := resources_float_known_delta()
+	guest := '/' + service_query_headless + '/guest-inputs.json'
+	guest_pin := delta[guest] or { return error('Resources float headless pin absent') }
+	if !digest_valid(guest_pin) || guest_pin == resources_float_old_headless { return error('new Resources float headless receipt required') }
+	expected[guest] = guest_pin
+	if delta != expected { return error('Resources float exact deployment input changes differ') }
+	entries := json2.decode[[]ServiceQueryEntry](json2.encode(receipt['overlay_inventory'] or { return error('Resources float overlay inventory absent') }))!
+	paths := resources_float_overlay_paths()
+	mut regulars := map[string]string{}
+	mut seen := map[string]bool{}
+	for entry in entries {
+		if entry.name in seen || !relative(entry.name) || entry.mode & 0o7022 != 0 { return error('unsafe Resources float overlay inode') }
+		seen[entry.name] = true
+		if entry.kind == 'regular' {
+			mode := if entry.name == native_onboarding_trace_path { u32(0o755) } else { u32(0o644) }
+			if entry.name !in paths || !digest_valid(entry.sha256) || entry.mode != mode { return error('Resources float regular allowlist or mode differs') }
+			regulars[entry.name] = entry.sha256
+		} else if entry.kind != 'directory' || entry.mode != 0o755 || !paths.any(it.starts_with(entry.name + '/')) { return error('unexpected Resources float overlay inode') }
+	}
+	if regulars.len != 7 || regulars[service_query_deployment] or { '' } == resources_float_old_deployment { return error('exact seven Resources float files required') }
+	if regulars[native_onboarding_trace_path] or { '' } != resources_float_native_pin { return error('Resources float coupled DSO differs') }
+	for path, pin in expected { if regulars[path.trim_left('/')] or { '' } != pin { return error('Resources float input differs from inventory') } }
+}
+fn verify_resources_float_receipt(receipt map[string]json2.Any, stage Stage) ! {
+	for pin in [resources_float_base_seal, resources_float_boot, resources_float_base_overlay,
+		resources_float_old_deployment, resources_float_old_headless, resources_float_seal,
+		resources_float_build, resources_float_jar, resources_float_dex, resources_float_native_seal,
+		resources_float_native_build, resources_float_native_pin, resources_float_framework_helper,
+		resources_float_provider_helper, resources_float_native_builder, resources_float_before, resources_float_raw, resources_float_canonical] {
+		if !digest_valid(pin) { return error('completed Resources float producers required') }
+	}
+	for pin in resources_float_relink_files().values() { if !digest_valid(pin) { return error('completed exact Resources float relink proof required') } }
+	if resources_float_seal == bundle_cross_profile_seal || resources_float_jar == bundle_cross_profile_jar
+		|| resources_float_dex == bundle_cross_profile_dex || resources_float_native_seal == layout_alignment_native_seal
+		|| resources_float_native_pin == layout_alignment_native_pin || resources_float_canonical == resources_float_before { return error('new Resources float SDK and coupled native required') }
+	for name, expected in resources_float_fields() { if receipt[name] or { json2.Any('absent') } != json2.Any(expected) { return error('Resources float receipt differs: ' + name) } }
+	for name, expected in resources_float_proofs() { if receipt[name] or { json2.Any('absent') } != json2.decode[json2.Any](expected)! { return error('Resources float proof differs: ' + name) } }
+	mut seals := map[string]string{}
+	for path, pin in stage.inputs_sha256 { if path.ends_with('/sha256.json') { seals[path] = pin } }
+	mut expected_seals := map[string]string{}
+	for path, pin in resources_float_inputs() { if path.ends_with('/sha256.json') { expected_seals[path] = pin } }
+	if seals.len != 89 || seals != expected_seals { return error('Resources float exact eighty-nine dependency seals differ') }
+	mut relink := map[string]string{}
+	for path, pin in stage.inputs_sha256 { if path == resources_float_relink_root() || path.starts_with(resources_float_relink_root() + '/') { relink[path] = pin } }
+	if relink != resources_float_relink_inputs() { return error('Resources float exact relink proof inputs differ') }
+	for path in stage.inputs_sha256.keys() {
+		if path.starts_with(layout_alignment_relink_root() + '/') || path.starts_with(window_animations_relink_root() + '/') { return error('old relink proof leaves are not new Resources float direct inputs') }
+	}
+	if stage.format != 1 || stage.original_modules_sha256 != resources_float_modules() || stage.preserved_modules_sha256 != resources_float_modules() { return error('Resources float original thirty-seven modules differ') }
+	verify_resources_float_overlay(receipt)!
+}
+fn resources_float_baseline(receipt map[string]json2.Any, stage Stage) !string {
+	verify_resources_float_receipt(receipt, stage)!
+	path := resources_float_base + '/sha256.json'
+	regular(path)!
+	if os.lstat(path)!.size > 8 * 1024 * 1024 || hash(path)! != resources_float_base_seal { return error('Resources float original Bundle manifest differs') }
+	pins := json2.decode[map[string]string](os.read_file(path)!)!
+	if pins['boot.img'] or { '' } != resources_float_boot || pins['maps-bundle-cross-profile.tar'] or { '' } != resources_float_base_overlay { return error('Resources float original boot or Bundle overlay differs') }
+	return resources_float_base + '/boot.img'
+}
+
 fn service_query_modules() map[string]string {
 	mut modules := controller_modules()
 	modules['maps-controller-diagnostic.tar'] = 'bef5f25859e77a9671a6a144ccb56891da5ed2f7b4324a93a96da7fdcab1987a'
@@ -4616,6 +4798,8 @@ fn patch(root string, build_root string, receipt_sha string, profile Profile) ! 
 		baseline = user_restrictions_baseline(stage_map, stage)!
 	} else if profile.name == 'maps-bundle-cross-profile' {
 		baseline = bundle_cross_profile_baseline(stage_map, stage)!
+	} else if profile.name == 'maps-resources-float' {
+		baseline = resources_float_baseline(stage_map, stage)!
 	} else {
 		for path, expected in stage.inputs_sha256 {
 			if os.file_name(path) == 'boot.img' && expected == baseline_pin {
@@ -8791,6 +8975,204 @@ fn bundle_cross_profile_self_test() ! {
 	println('MAPS-BUNDLE-CROSS-PROFILE KERNEL-PROFILE-SELF-TEST PASS six files eighty-six seals thirty-six inherited modules two method fixes one memberless class reused native with original Layout provenance and historical rejection')
 }
 
+fn resources_float_entries_fixture() []ServiceQueryEntry {
+	paths := resources_float_overlay_paths()
+	mut parents := map[string]bool{}
+	for path in paths {
+		mut parent := os.dir(path)
+		for parent !in ['', '.'] { parents[parent] = true; parent = os.dir(parent) }
+	}
+	mut entries := []ServiceQueryEntry{}
+	for parent in parents.keys().sorted() { entries << ServiceQueryEntry{name: parent, kind: 'directory', mode: 0o755} }
+	mut pins := resources_float_known_delta()
+	pins['/' + service_query_headless + '/guest-inputs.json'] = 'c'.repeat(64)
+	pins['/' + service_query_deployment] = 'd'.repeat(64)
+	for path in paths {
+		mode := if path == native_onboarding_trace_path { u32(0o755) } else { u32(0o644) }
+		entries << ServiceQueryEntry{name: path, kind: 'regular', sha256: pins['/' + path]!, mode: mode}
+	}
+	return entries
+}
+fn resources_float_receipt_fixture() !map[string]json2.Any {
+	mut receipt := map[string]json2.Any{}
+	for name, value in resources_float_fields() { receipt[name] = json2.Any(value) }
+	for name, value in resources_float_proofs() { receipt[name] = json2.decode[json2.Any](value)! }
+	mut delta := resources_float_known_delta()
+	delta['/' + service_query_headless + '/guest-inputs.json'] = 'c'.repeat(64)
+	receipt['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(delta))!
+	receipt['overlay_inventory'] = json2.decode[json2.Any](json2.encode(resources_float_entries_fixture()))!
+	return receipt
+}
+fn resources_float_profile_self_test() ! {
+	profile := resources_float_profile()
+	if profile.baseline_sha != resources_float_boot || profile.modules.len != 37 || profile.modules.last() != 'maps-bundle-cross-profile.tar'
+		|| resources_float_inputs().keys().filter(it.ends_with('/sha256.json')).len != 89
+		|| resources_float_inputs().len != 94 { return error('Resources float strict profile differs') }
+	mut modules := profile.modules.clone()
+	modules << profile.overlay
+	if modules.len != 38 || resources_float_overlay_paths().len != 7 || resources_float_known_delta().len != 5 { return error('Resources float exact modules, files or actual changes differ') }
+	verify_modules(profile, Config{'vinix', profile.modules}, Config{'vinix', modules})!
+	for bad in [Config{'vinix', profile.modules}, Config{'vinix', modules.reverse()}, Config{'other', modules}] {
+		if _ := verify_modules(profile, Config{'vinix', profile.modules}, bad) { return error('wrong Resources float module order accepted') }
+	}
+	stage := Stage{format: 1, inputs_sha256: resources_float_inputs(), original_modules_sha256: resources_float_modules(), preserved_modules_sha256: resources_float_modules()}
+	receipt := resources_float_receipt_fixture()!
+	verify_resources_float_receipt(receipt, stage)!
+	mut fields := resources_float_fields().keys()
+	fields << resources_float_proofs().keys()
+	fields << ['deployment_input_delta', 'overlay_inventory']
+	for field in fields {
+		mut bad := resources_float_receipt_fixture()!
+		bad[field] = json2.Any('changed')
+		if _ := verify_resources_float_receipt(bad, stage) { return error('changed Resources float field/proof accepted') }
+		bad.delete(field)
+		if _ := verify_resources_float_receipt(bad, stage) { return error('missing Resources float field/proof accepted') }
+	}
+	for proof in ['framework_builder_helper_delta', 'native_builder_helper_delta', 'framework_source_delta', 'framework_canonical_delta', 'native_source_delta',
+		'native_bindings_delta', 'native_generated_jni_delta', 'native_consumed_raw_delta', 'native_consumed_canonical_delta',
+		'native_consumed_raw_additions', 'native_consumed_canonical_additions', 'headless_input_delta'] {
+		original := json2.decode[map[string]json2.Any](json2.encode(receipt[proof]!))!
+		for path in original.keys() {
+			mut changed := json2.decode[map[string]json2.Any](json2.encode(original))!
+			changed[path] = json2.Any('0'.repeat(64))
+			mut bad := resources_float_receipt_fixture()!
+			bad[proof] = json2.Any(changed)
+			if _ := verify_resources_float_receipt(bad, stage) { return error('changed Resources float proof member accepted') }
+			changed.delete(path)
+			bad[proof] = json2.Any(changed)
+			if _ := verify_resources_float_receipt(bad, stage) { return error('missing Resources float proof member accepted') }
+		}
+		mut extra := json2.decode[map[string]json2.Any](json2.encode(original))!
+		extra['unreviewed'] = json2.Any('a'.repeat(64))
+		mut bad := resources_float_receipt_fixture()!
+		bad[proof] = json2.Any(extra)
+		if _ := verify_resources_float_receipt(bad, stage) { return error('extra Resources float proof member accepted') }
+	}
+	for wrong in [user_restrictions_seal, bundle_cross_profile_seal, resources_float_seal] {
+		mut bad := resources_float_receipt_fixture()!
+		bad['native_compatibility_framework_manifest_sha256'] = json2.Any(wrong)
+		if _ := verify_resources_float_receipt(bad, stage) { return error('Resources float original native provenance replaced') }
+	}
+	for field in ['root', 'input_entry_count', 'canonical_native_sha256', 'scope'] {
+		mut proof := resources_float_relink_description()
+		proof[field] = json2.Any('changed')
+		mut bad := resources_float_receipt_fixture()!
+		bad['native_relink_proof'] = json2.Any(proof)
+		if _ := verify_resources_float_receipt(bad, stage) { return error('changed Resources float relink description accepted') }
+	}
+	for path in resources_float_relink_files().keys() {
+		mut files := resources_float_relink_files()
+		files[path] = '0'.repeat(64)
+		mut proof := resources_float_relink_description()
+		proof['files_sha256'] = json2.decode[json2.Any](json2.encode(files))!
+		mut bad := resources_float_receipt_fixture()!
+		bad['native_relink_proof'] = json2.Any(proof)
+		if _ := verify_resources_float_receipt(bad, stage) { return error('changed Resources float relink file accepted') }
+		files.delete(path)
+		proof['files_sha256'] = json2.decode[json2.Any](json2.encode(files))!
+		bad['native_relink_proof'] = json2.Any(proof)
+		if _ := verify_resources_float_receipt(bad, stage) { return error('missing Resources float relink file accepted') }
+	}
+	for proof in ['native_consumed_raw_delta', 'native_consumed_canonical_delta'] {
+		original := json2.decode[map[string][]string](json2.encode(receipt[proof]!))!
+		for path, pair in original {
+			for index in 0 .. 2 {
+				mut changed := pair.clone()
+				changed[index] = '0'.repeat(64)
+				mut values := original.clone()
+				values[path] = changed
+				mut bad := resources_float_receipt_fixture()!
+				bad[proof] = json2.decode[json2.Any](json2.encode(values))!
+				if _ := verify_resources_float_receipt(bad, stage) { return error('changed Resources float consumed before/after value accepted') }
+			}
+		}
+	}
+	for path in stage.inputs_sha256.keys() {
+		mut pins := resources_float_inputs()
+		pins[path] = '0'.repeat(64)
+		if _ := verify_resources_float_receipt(receipt, Stage{...stage, inputs_sha256: pins}) { return error('changed Resources float input accepted') }
+		pins.delete(path)
+		if _ := verify_resources_float_receipt(receipt, Stage{...stage, inputs_sha256: pins}) { return error('missing Resources float input accepted') }
+	}
+	for path in ['/unreviewed/sha256.json', layout_alignment_relink_root() + '/out/canonical.so', window_animations_relink_root() + '/compile.log', resources_float_relink_root() + '/extra'] {
+		mut extra := resources_float_inputs()
+		extra[path] = 'a'.repeat(64)
+		if _ := verify_resources_float_receipt(receipt, Stage{...stage, inputs_sha256: extra}) { return error('extra Resources float seal or proof input accepted') }
+	}
+	for bad in [Stage{...stage, format: 0}, Stage{...stage, original_modules_sha256: bundle_cross_profile_modules()}, Stage{...stage, preserved_modules_sha256: bundle_cross_profile_modules()}] {
+		if _ := verify_resources_float_receipt(receipt, bad) { return error('wrong Resources float module inventory accepted') }
+	}
+	for addition in ['deployment_input_additions', 'deployment_top_level_additions'] {
+		mut bad := resources_float_receipt_fixture()!
+		bad[addition] = json2.Any(map[string]json2.Any{})
+		if _ := verify_resources_float_receipt(bad, stage) { return error('Resources float undeclared addition accepted') }
+	}
+	delta := json2.decode[map[string]string](json2.encode(receipt['deployment_input_delta']!))!
+	for path in delta.keys() {
+		mut changed := delta.clone()
+		changed.delete(path)
+		mut bad := resources_float_receipt_fixture()!
+		bad['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(changed))!
+		if _ := verify_resources_float_receipt(bad, stage) { return error('missing Resources float actual input change accepted') }
+	}
+	for path, pin in {'/opt/vinix-maps-account/bin/maps-account-guest': seed_companion_controller_pin, '/' + native_onboarding_trace_path: layout_alignment_native_pin} {
+		mut changed := delta.clone()
+		changed[path] = pin
+		mut bad := resources_float_receipt_fixture()!
+		bad['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(changed))!
+		if _ := verify_resources_float_receipt(bad, stage) { return error('unrelated or stale Resources float input accepted') }
+	}
+	entries := resources_float_entries_fixture()
+	for index, entry in entries {
+		for changed in [ServiceQueryEntry{...entry, name: '../escape'}, ServiceQueryEntry{...entry, kind: 'symlink'}, ServiceQueryEntry{...entry, mode: 0o777}, ServiceQueryEntry{...entry, mode: 0o4755}] {
+			mut bad_entries := entries.clone()
+			bad_entries[index] = changed
+			mut bad := resources_float_receipt_fixture()!
+			bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(bad_entries))!
+			if _ := verify_resources_float_receipt(bad, stage) { return error('unsafe Resources float overlay inode accepted') }
+		}
+		if entry.kind == 'regular' {
+			if entry.name == native_onboarding_trace_path {
+				mut nonexecutable := entries.clone()
+				nonexecutable[index] = ServiceQueryEntry{...entry, mode: 0o644}
+				mut bad_native := resources_float_receipt_fixture()!
+				bad_native['overlay_inventory'] = json2.decode[json2.Any](json2.encode(nonexecutable))!
+				if _ := verify_resources_float_receipt(bad_native, stage) { return error('nonexecutable Resources float native accepted') }
+			}
+			mut bad_entries := entries.clone()
+			bad_entries.delete(index)
+			mut bad := resources_float_receipt_fixture()!
+			bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(bad_entries))!
+			if _ := verify_resources_float_receipt(bad, stage) { return error('missing Resources float overlay file accepted') }
+			if entry.name != service_query_deployment {
+				mut changed := entries.clone()
+				changed[index] = ServiceQueryEntry{...entry, sha256: '0'.repeat(64)}
+				bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(changed))!
+				if _ := verify_resources_float_receipt(bad, stage) { return error('changed Resources float overlay pin accepted') }
+			}
+		}
+	}
+	mut duplicated := entries.clone()
+	duplicated << entries.last()
+	mut duplicate := resources_float_receipt_fixture()!
+	duplicate['overlay_inventory'] = json2.decode[json2.Any](json2.encode(duplicated))!
+	if _ := verify_resources_float_receipt(duplicate, stage) { return error('duplicate Resources float overlay inode accepted') }
+	mut stale_delta := delta.clone()
+	stale_delta['/' + service_query_headless + '/guest-inputs.json'] = resources_float_old_headless
+	mut stale_entries := entries.clone()
+	for index, entry in stale_entries { if entry.name == service_query_headless + '/guest-inputs.json' { stale_entries[index] = ServiceQueryEntry{...entry, sha256: resources_float_old_headless} } }
+	mut stale := resources_float_receipt_fixture()!
+	stale['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(stale_delta))!
+	stale['overlay_inventory'] = json2.decode[json2.Any](json2.encode(stale_entries))!
+	if _ := verify_resources_float_receipt(stale, stage) { return error('stale Resources float headless pin accepted') }
+	for old in [bundle_cross_profile_receipt_fixture()!, user_restrictions_receipt_fixture()!, layout_alignment_receipt_fixture()!] {
+		if _ := verify_resources_float_receipt(old, stage) { return error('historical receipt accepted by Resources float profile') }
+	}
+	if _ := verify_bundle_cross_profile_receipt(receipt, stage) { return error('Resources float receipt accepted by Bundle profile') }
+	if _ := verify_user_restrictions_receipt(receipt, stage) { return error('Resources float receipt accepted by UserManager profile') }
+	println('MAPS-RESOURCES-FLOAT KERNEL-PROFILE-SELF-TEST PASS seven files eighty-nine seals thirty-seven inherited modules one Resources getter coupled native original Layout provenance exact path-only proof and historical rejection')
+}
+
 fn self_test() ! {
 	protected_profile_self_test()!
 	controller_profile_self_test()!
@@ -8822,6 +9204,7 @@ fn self_test() ! {
 	layout_alignment_profile_self_test()!
 	user_restrictions_profile_self_test()!
 	bundle_cross_profile_self_test()!
+	resources_float_profile_self_test()!
 	maps := maps_profile()
 	before := Config{'vinix', maps.modules}
 	mut modules := maps.modules.clone()
@@ -8897,6 +9280,7 @@ fn self_test() ! {
 	fat_self_test(root + '/layout-alignment', 'maps-layout-alignment.tar', layout_alignment_profile().modules)!
 	fat_self_test(root + '/user-restrictions', 'maps-user-restrictions.tar', user_restrictions_profile().modules)!
 	fat_self_test(root + '/bundle-cross-profile', 'maps-bundle-cross-profile.tar', bundle_cross_profile_profile().modules)!
+	fat_self_test(root + '/resources-float', 'maps-resources-float.tar', resources_float_profile().modules)!
 	println('BROWSER-KERNEL-PATCH SELF-TEST PASS configuration inventory digest symlink launched-stage guards')
 }
 
@@ -8939,9 +9323,10 @@ fn main() {
 	is_layout_alignment := os.args.len == 5 && os.args[1] == '--maps-layout-alignment'
 	is_user_restrictions := os.args.len == 5 && os.args[1] == '--maps-user-restrictions'
 	is_bundle_cross_profile := os.args.len == 5 && os.args[1] == '--maps-bundle-cross-profile'
-	is_selected := is_maps || is_protected || is_controller || is_service_query || is_controller_memory || is_direct_boot || is_context_storage || is_broadcast_result || is_onboarding_trace || is_native_onboarding_trace || is_onboarding_framework || is_native_heartbeat || is_browser_poll || is_account_pump || is_application_restrictions || is_account_handoff || is_auth_exception || is_auth_worker || is_binder_identity || is_service_lifecycle || is_platform_fragments || is_imageview_bounds || is_window_system_ui || is_broker_tail || is_seed_companion || is_persistent_data_block || is_bitmap_tiles || is_window_animations || is_layout_alignment || is_user_restrictions || is_bundle_cross_profile
+	is_resources_float := os.args.len == 5 && os.args[1] == '--maps-resources-float'
+	is_selected := is_maps || is_protected || is_controller || is_service_query || is_controller_memory || is_direct_boot || is_context_storage || is_broadcast_result || is_onboarding_trace || is_native_onboarding_trace || is_onboarding_framework || is_native_heartbeat || is_browser_poll || is_account_pump || is_application_restrictions || is_account_handoff || is_auth_exception || is_auth_worker || is_binder_identity || is_service_lifecycle || is_platform_fragments || is_imageview_bounds || is_window_system_ui || is_broker_tail || is_seed_companion || is_persistent_data_block || is_bitmap_tiles || is_window_animations || is_layout_alignment || is_user_restrictions || is_bundle_cross_profile || is_resources_float
 	if os.args.len != 4 && !is_selected {
-		eprintln('usage: patch-kernel [--maps-account|--protected-storage-maps|--maps-controller|--maps-service-query|--maps-controller-memory|--maps-direct-boot|--maps-context-storage|--maps-broadcast-result|--maps-onboarding-trace|--maps-native-onboarding-trace|--maps-onboarding-framework|--maps-native-heartbeat|--maps-browser-poll|--maps-account-pump|--maps-application-restrictions|--maps-account-handoff|--maps-auth-exception|--maps-auth-worker|--maps-binder-identity|--maps-service-lifecycle|--maps-platform-fragments|--maps-imageview-bounds|--maps-window-system-ui|--maps-broker-tail|--maps-seed-account-companion|--maps-persistent-data-block|--maps-bitmap-tiles|--maps-window-animations|--maps-layout-alignment|--maps-user-restrictions|--maps-bundle-cross-profile] FRESH_STAGE FROZEN_KERNEL_BUILD BUILD_JSON_SHA256')
+		eprintln('usage: patch-kernel [--maps-account|--protected-storage-maps|--maps-controller|--maps-service-query|--maps-controller-memory|--maps-direct-boot|--maps-context-storage|--maps-broadcast-result|--maps-onboarding-trace|--maps-native-onboarding-trace|--maps-onboarding-framework|--maps-native-heartbeat|--maps-browser-poll|--maps-account-pump|--maps-application-restrictions|--maps-account-handoff|--maps-auth-exception|--maps-auth-worker|--maps-binder-identity|--maps-service-lifecycle|--maps-platform-fragments|--maps-imageview-bounds|--maps-window-system-ui|--maps-broker-tail|--maps-seed-account-companion|--maps-persistent-data-block|--maps-bitmap-tiles|--maps-window-animations|--maps-layout-alignment|--maps-user-restrictions|--maps-bundle-cross-profile|--maps-resources-float] FRESH_STAGE FROZEN_KERNEL_BUILD BUILD_JSON_SHA256')
 		exit(2)
 	}
 	offset := if is_selected { 1 } else { 0 }
@@ -8954,7 +9339,7 @@ fn main() {
 		exit(1)
 	}
 	profile := if is_seed_companion { seed_companion_profile() } else if is_broker_tail { broker_tail_profile() } else if is_window_system_ui { window_system_ui_profile() } else if is_imageview_bounds { imageview_bounds_profile() } else if is_platform_fragments { platform_fragments_profile() } else if is_service_lifecycle { service_lifecycle_profile() } else if is_binder_identity { binder_identity_profile() } else if is_auth_worker { auth_worker_profile() } else if is_auth_exception { auth_exception_profile() } else if is_account_handoff { account_handoff_profile() } else if is_application_restrictions { application_restrictions_profile() } else if is_account_pump { account_pump_profile() } else if is_browser_poll { browser_poll_profile() } else if is_native_heartbeat { native_heartbeat_profile() } else if is_onboarding_framework { onboarding_framework_profile() } else if is_native_onboarding_trace { native_onboarding_trace_profile() } else if is_onboarding_trace { onboarding_trace_profile() } else if is_broadcast_result { broadcast_result_profile() } else if is_context_storage { context_storage_profile() } else if is_direct_boot { direct_boot_profile() } else if is_controller_memory { controller_memory_profile() } else if is_service_query { service_query_profile() } else if is_controller { controller_profile() } else if is_protected { protected_maps_profile() } else if is_maps { maps_profile() } else { browser_profile() }
-	selected_profile := if is_bundle_cross_profile { bundle_cross_profile_profile() } else if is_user_restrictions { user_restrictions_profile() } else if is_layout_alignment { layout_alignment_profile() } else if is_window_animations { window_animations_profile() } else if is_bitmap_tiles { bitmap_tiles_profile() } else if is_persistent_data_block { persistent_data_block_profile() } else { profile }
+	selected_profile := if is_resources_float { resources_float_profile() } else if is_bundle_cross_profile { bundle_cross_profile_profile() } else if is_user_restrictions { user_restrictions_profile() } else if is_layout_alignment { layout_alignment_profile() } else if is_window_animations { window_animations_profile() } else if is_bitmap_tiles { bitmap_tiles_profile() } else if is_persistent_data_block { persistent_data_block_profile() } else { profile }
 	patch(root, build_root, os.args[3 + offset], selected_profile) or {
 		eprintln(err)
 		exit(1)
