@@ -1466,6 +1466,129 @@ fn paint_drawable_self_test() ! {
  }
 }
 
+fn dialog_theme_profile() NarrowProfile {
+ dialog := 'android/app/Dialog.smali'
+ return NarrowProfile{
+  name: 'dialog-theme'
+  baseline_name: 'combined-account-webview-paint-drawable-framework-2026-11-01-r1'
+  manifest_pin: '15a60de7b8196aaca79d869cec972b0382da1be7327ee8f10c56b7e1db37cbb2'
+  jar_pin: 'b3fed7d846a23d9e8afc1256e5bfa7d9ebcd1ba5330705d40fd14131291d516c'
+  baseline_classes: 2108
+  providers: ['framework_dialog_theme.v']
+  directory_provider: 'framework_dialog_theme'
+  methods: {dialog: ['<init>(Landroid/content/Context;I)V']}
+  changed: {dialog: 1}
+  added: {dialog: 0}
+ }
+}
+
+fn dialog_theme_old_constructor() string {
+ return '.method public constructor <init>(Landroid/content/Context;I)V
+.registers 7
+invoke-direct {p0}, Ljava/lang/Object;-><init>()V
+iput-object p1, p0, Landroid/app/Dialog;->context:Landroid/content/Context;
+new-instance v0, Landroid/view/Window;
+invoke-direct {v0, p1, p0}, Landroid/view/Window;-><init>(Landroid/content/Context;Landroid/view/Window$Callback;)V
+iput-object v0, p0, Landroid/app/Dialog;->window:Landroid/view/Window;
+invoke-virtual {p0}, Landroid/app/Dialog;->nativeInit()J
+move-result-wide v0
+iput-wide v0, p0, Landroid/app/Dialog;->nativePtr:J
+iget-object v0, p0, Landroid/app/Dialog;->window:Landroid/view/Window;
+iget-wide v2, p0, Landroid/app/Dialog;->nativePtr:J
+invoke-virtual {v0, v2, v3}, Landroid/view/Window;->set_native_window(J)V
+return-void
+.end method'
+}
+
+fn dialog_theme_expected_constructor() string {
+ old := dialog_theme_old_constructor()
+ start := 'iput-object p1, p0, Landroid/app/Dialog;->context:Landroid/content/Context;'
+ finish := 'iput-object v0, p0, Landroid/app/Dialog;->window:Landroid/view/Window;'
+ before := old.all_before(start)
+ after := old.all_after(finish)
+ return before + 'if-nez p2, :theme_selected
+new-instance v0, Landroid/util/TypedValue;
+invoke-direct {v0}, Landroid/util/TypedValue;-><init>()V
+invoke-virtual {p1}, Landroid/content/Context;->getTheme()Landroid/content/res/Resources$Theme;
+move-result-object v1
+sget v2, Landroid/R$attr;->dialogTheme:I
+const/4 v3, 0x1
+invoke-virtual {v1, v2, v0, v3}, Landroid/content/res/Resources$Theme;->resolveAttribute(ILandroid/util/TypedValue;Z)Z
+iget p2, v0, Landroid/util/TypedValue;->resourceId:I
+:theme_selected
+new-instance v0, Landroid/view/ContextThemeWrapper;
+invoke-direct {v0, p1, p2}, Landroid/view/ContextThemeWrapper;-><init>(Landroid/content/Context;I)V
+iput-object v0, p0, Landroid/app/Dialog;->context:Landroid/content/Context;
+new-instance v1, Landroid/view/Window;
+invoke-direct {v1, v0, p0}, Landroid/view/Window;-><init>(Landroid/content/Context;Landroid/view/Window$Callback;)V
+iput-object v1, p0, Landroid/app/Dialog;->window:Landroid/view/Window;' + after
+}
+
+fn dialog_theme_members(old string, updated string) ! {
+ signature := '<init>(Landroid/content/Context;I)V'
+ before := store_parts(old)!.methods[signature] or { return error('missing retained Dialog constructor') }
+ after := store_parts(updated)!.methods[signature] or { return error('missing themed Dialog constructor') }
+ expected := dialog_theme_expected_constructor()
+ norm_before := before.split_into_lines().map(it.trim_space()).filter(it != '' && !it.starts_with('#')).join('\n')
+ norm_after := after.split_into_lines().map(it.trim_space()).filter(it != '' && !it.starts_with('#')).join('\n')
+ if norm_before != dialog_theme_old_constructor()
+  || (norm_after != expected && norm_after != expected.replace(':theme_selected', ':cond_16')) {
+  return error('Dialog theme constructor must retain exact wrapper/default lookup and original native window tail')
+ }
+}
+
+fn dialog_theme_self_test() ! {
+ profile := dialog_theme_profile()
+ dialog := 'android/app/Dialog.smali'
+ signature := '<init>(Landroid/content/Context;I)V'
+ if profile.baseline_classes != 2108 || profile.methods != {dialog: [signature]}
+  || profile.calls.len != 0 || profile.changed != {dialog: 1} || profile.added != {dialog: 0}
+  || profile.providers != ['framework_dialog_theme.v'] || profile.directory_provider != 'framework_dialog_theme'
+  || profile.fields.len != 0 || profile.extra_classes.len != 0 || profile.class_provider != '' {
+  return error('Dialog theme profile requires exactly one changed constructor body')
+ }
+ narrow_method_self_test([signature], 1, 0)!
+ old := dialog_theme_old_constructor()
+ expected := dialog_theme_expected_constructor()
+ dialog_theme_members(old, expected)!
+ dialog_theme_members(old, expected.replace(':theme_selected', ':cond_16'))!
+ for invalid in [expected.replace('.method public constructor ', '.method private constructor '),
+  expected.replace('.registers 7', '.registers 8'), expected.replace('if-nez p2', 'if-eqz p2'),
+  expected.replace('const/4 v3, 0x1', 'const/4 v3, 0x0'),
+  expected.replace('TypedValue;->resourceId:I', 'TypedValue;->data:I'),
+  expected.replace('sget v2, Landroid/R$attr;->dialogTheme:I', 'const/4 v2, 0x0'),
+  expected.replace('{v0, p1, p2}', '{v0, p1, v2}'),
+  expected.replace('iput-object v0, p0, Landroid/app/Dialog;->context:', 'iput-object p1, p0, Landroid/app/Dialog;->context:'),
+  expected.replace('{v1, v0, p0}', '{v1, p1, p0}'),
+  expected.replace('move-result-wide v0', 'move-result-wide v2'),
+  expected.replace('->set_native_window(J)V', '->wrong_native_window(J)V'),
+  expected.replace(':theme_selected', ':wrong_label')] {
+  dialog_theme_members(old, invalid) or { continue }
+  return error('Dialog constructor wrapper/default/native-tail mutation accepted')
+ }
+ for invalid in [old.replace('iput-object p1', 'iput-object p2'), old.replace('.registers 7', '.registers 8')] {
+  dialog_theme_members(invalid, expected) or { continue }
+  return error('different original Dialog constructor accepted')
+ }
+ mut before := {dialog: 'old'}
+ for i in 0 .. 2107 { before['other/' + i.str() + '.smali'] = 'same' }
+ mut good := before.clone()
+ good[dialog] = 'new'
+ narrow_profile_class_delta(before, good, [dialog], []string{}, 2108)!
+ for case in 0 .. 5 {
+  mut bad := good.clone()
+  match case {
+   0 { bad[dialog] = 'old' }
+   1 { bad['other/0.smali'] = 'changed' }
+   2 { bad.delete(dialog) }
+   3 { bad['unrelated.smali'] = 'new' }
+   else { bad.delete(dialog); bad['substituted.smali'] = 'new' }
+  }
+  narrow_profile_class_delta(before, bad, [dialog], []string{}, 2108) or { continue }
+  return error('invalid Dialog-only class delta accepted')
+ }
+}
+
 fn window_system_ui_self_test() ! {
  profile := window_system_ui_profile()
  layout := 'android/view/WindowManager$LayoutParams.smali'
@@ -2244,6 +2367,7 @@ fn self_test() ! {
  bundle_cross_profile_self_test()!
  resources_float_self_test()!
  paint_drawable_self_test()!
+ dialog_theme_self_test()!
  query_profile := service_query_profile()
  narrow_method_self_test(query_profile.methods['android/content/pm/PackageManager.smali']!, 1, 0)!
  boot_profile := direct_boot_profile()
@@ -2529,6 +2653,7 @@ fn build_narrow(profile NarrowProfile, baseline string, manifest_pin string, jar
    else { cross_profile_members(os.read_file(root + '/old-dex/' + target)!, os.read_file(root + '/smali/' + target)!)! }
   }
   if profile.name == 'resources-float' { resources_float_abi(os.read_file(root + '/smali/' + target)!)! }
+  if profile.name == 'dialog-theme' { dialog_theme_members(os.read_file(root + '/old-dex/' + target)!, os.read_file(root + '/smali/' + target)!)! }
  }
  if profile.name == 'platform-fragments' {
   for target in profile.extra_classes { platform_fragments_abi(os.read_file(root + '/smali/' + target)!, target)! }
@@ -2570,6 +2695,7 @@ fn build_narrow(profile NarrowProfile, baseline string, manifest_pin string, jar
    else { cross_profile_members(os.read_file(root + '/old-dex/' + target)!, os.read_file(root + '/new-dex/' + target)!)! }
   }
   if profile.name == 'resources-float' { resources_float_abi(os.read_file(root + '/new-dex/' + target)!)! }
+  if profile.name == 'dialog-theme' { dialog_theme_members(os.read_file(root + '/old-dex/' + target)!, os.read_file(root + '/new-dex/' + target)!)! }
  }
  if profile.name == 'platform-fragments' {
   for target in profile.extra_classes { platform_fragments_abi(os.read_file(root + '/new-dex/' + target)!, target)! }
@@ -2888,11 +3014,15 @@ fn main() {
   build_narrow(paint_drawable_profile(), os.abs_path(os.args[2]), os.args[3], os.args[4], os.abs_path(os.args[5])) or { eprintln(err); exit(1) }
   return
  }
+ if os.args.len == 6 && os.args[1] == '--dialog-theme' {
+  build_narrow(dialog_theme_profile(), os.abs_path(os.args[2]), os.args[3], os.args[4], os.abs_path(os.args[5])) or { eprintln(err); exit(1) }
+  return
+ }
  if os.args.len == 6 && os.args[1] in ['--store', '--auth', '--cache', '--descriptions', '--protected-storage', '--service-query', '--direct-boot', '--credential-storage', '--broadcast-result', '--onboarding', '--application-restrictions', '--auth-exception', '--binder-identity', '--service-lifecycle', '--platform-fragments', '--imageview-bounds', '--window-system-ui'] {
   profile := match os.args[1] { '--store' { storage_profile() } '--auth' { auth_profile() } '--cache' { cache_profile() } '--descriptions' { descriptions_profile() } '--protected-storage' { protected_storage_profile() } '--service-query' { service_query_profile() } '--direct-boot' { direct_boot_profile() } '--credential-storage' { credential_storage_profile() } '--broadcast-result' { broadcast_result_profile() } '--application-restrictions' { application_restrictions_profile() } '--auth-exception' { auth_exception_profile() } '--binder-identity' { binder_identity_profile() } '--service-lifecycle' { service_lifecycle_profile() } '--platform-fragments' { platform_fragments_profile() } '--imageview-bounds' { imageview_bounds_profile() } '--window-system-ui' { window_system_ui_profile() } else { onboarding_profile() } }
   build_narrow(profile, os.abs_path(os.args[2]), os.args[3], os.args[4], os.abs_path(os.args[5])) or { eprintln(err); exit(1) }
   return
  }
- if os.args.len != 5 { eprintln('usage: combined-account-webview-build [--store|--auth|--cache|--descriptions|--protected-storage|--service-query|--direct-boot|--credential-storage|--broadcast-result|--onboarding|--application-restrictions|--auth-exception|--binder-identity|--service-lifecycle|--platform-fragments|--imageview-bounds|--window-system-ui|--bitmap-tiles|--window-animations|--layout-alignment|--user-restrictions|--bundle-cross-profile|--resources-float|--paint-drawable] BASELINE BASELINE_MANIFEST_SHA256 BASELINE_JAR_SHA256 FRESH_OUTPUT | --self-test'); exit(2) }
+ if os.args.len != 5 { eprintln('usage: combined-account-webview-build [--store|--auth|--cache|--descriptions|--protected-storage|--service-query|--direct-boot|--credential-storage|--broadcast-result|--onboarding|--application-restrictions|--auth-exception|--binder-identity|--service-lifecycle|--platform-fragments|--imageview-bounds|--window-system-ui|--bitmap-tiles|--window-animations|--layout-alignment|--user-restrictions|--bundle-cross-profile|--resources-float|--paint-drawable|--dialog-theme] BASELINE BASELINE_MANIFEST_SHA256 BASELINE_JAR_SHA256 FRESH_OUTPUT | --self-test'); exit(2) }
  build(os.abs_path(os.args[1]), os.args[2], os.args[3], os.abs_path(os.args[4])) or { eprintln(err); exit(1) }
 }
