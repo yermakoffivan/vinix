@@ -26,19 +26,25 @@ barriers have 10-second timeouts, overall completion has 90 seconds, and each
 join has one second. Timeout diagnostics snapshot every worker; a holder with
 active workers is left for process teardown rather than closed before joins.
 
+The XML check strictly asserts the retained parser's first `next()` result is
+START_DOCUMENT (0), then the second is START_TAG (2), followed by the exact
+`proof` root, unnamespaced `answer="locked"` attribute, and close. Each XML
+operation has a distinct diagnostic stage. No event, literal resource,
+concurrency, ownership, iteration, timeout or guard assertion was relaxed.
+
 Final evidence is outside Git under
-`/Users/alex/.local/state/vinix/android/resource-lock-fixture-2026-11-01-r3` and
-`resource-lock-fixture-controls-2026-11-01-r3` beneath the same state directory.
-The build observed source revision `fafbd83a9a3ca8690ad34fe4ecec719f21b0d8f1`;
+`/Users/alex/.local/state/vinix/android/resource-lock-fixture-2026-11-01-r4` and
+`resource-lock-fixture-controls-2026-11-01-r4` beneath the same state directory.
+The build observed source revision `cc5f16b30c026a036a140877d1c983dd13000d96`;
 its complete generator bytes are archived and pinned in `build.json`.
 
 | Input or artifact | SHA-256 |
 | --- | --- |
 | `main.v` | `11b3d25b1917599dcc5695c2a649e61debbb1452e6d43379d4fa25441bdc01cf` |
-| `sources.v` | `8a1d4321fa266c5a813b98fe1cc53218903f59f5ccb996f30ce57f3ab2e00567` |
+| `sources.v` | `ba396eb35793ebe508ddd0113ba9e60b716417e7923f4f5b8598ca2f95c0759d` |
 | `resourcelockprobe/probe.v` | `bd1a3877c3f695e36b19929975ef74bd003a48af8184dfef4ddd548fc0f4a68d` |
-| Signed `probe.apk` | `bafc5f4e708f15fdb0d2868d8b332863c7ce429f1447952867968300e58e12dd` |
-| `build.json` | `a1cd7b14482f007d3bb189e33c499b3dd3efe4fd495f97c1d547efd1112af270` |
+| Signed `probe.apk` | `ef4188b65ffd8fd5c2c0b4c71494b45cec3dea9038bc4d2853ae3daa726c1da1` |
+| `build.json` | `de1210a74c5475ff29d86dcf83de0a5a88c3c375ec917e16458b317af15cb683` |
 | Bundled `lib/arm64-v8a/libresource-lock-probe.so` | `fbb100a58cbdcb624e84750f871f0a472b01ab3f85e4279d853478a6fc076c43` |
 
 The signed package is `org.vinix.bootstrap`, activity `.Main`, min SDK 29,
@@ -60,9 +66,9 @@ Loading follows the existing bootstrap assetprobe APK/System.loadLibrary path;
 the helper is not added to the production runtime ABI.
 
 Both final guards and children exited 0 with cleanup complete. Builder compilation
-took 1.957 seconds, sampled 336,936,960 bytes RSS (time high-water 357,220,352),
-and observed 5,439,488 bytes shared-volume growth. APK production took 11.978
-seconds, sampled 106,496,000 bytes RSS and observed 69,574,656 bytes growth.
+took 1.808 seconds, sampled 304,791,552 bytes RSS (time high-water 358,940,672),
+and observed 286,720 bytes shared-volume growth. APK production took 12.350
+seconds, sampled 104,071,168 bytes RSS and observed 33,804,288 bytes growth.
 Both recorded zero swaps. Original limits remained 600 MiB RSS, 300 seconds,
 512 MiB growth, 1 GiB reserve, 4 MiB command output, and file limit 16,777,216.
 
@@ -72,3 +78,18 @@ incorrectly counted the next resource type header inside a style bag. The final
 parser recognizes type boundaries and checks exact array/string/attribute/XML
 values. Neither failed attempt is admitted as a passing build. All r1/r2
 artifact and control directories remain unchanged.
+
+The original r3 host-passing APK
+`bafc5f4e708f15fdb0d2868d8b332863c7ce429f1447952867968300e58e12dd`
+and build receipt
+`a1cd7b14482f007d3bb189e33c499b3dd3efe4fd495f97c1d547efd1112af270`
+remain immutable. Its first ARM run failed because both readers asserted the
+first XML `next()` was START_TAG; it was START_DOCUMENT, as the consumed
+`XmlBlock$Parser` source specifies. The later mutator barrier timeouts were
+secondary. IDs, names, strings, arrays and bags preceding XML returned, but
+the complete ARM fixture failed. The 10,948-byte original log is preserved at
+`/Users/alex/.local/state/vinix/android/maps-resource-lock-runtime-audit-2026-11-01-r1/failed-fixture-decoded-r1/child.log`,
+SHA-256 `86e0392e99b7a0c7907f20bdca2a1473ab0bd2692b691e8b0118af242b34a470`.
+R4 changes only fixture XML sequencing and diagnostic labels; the native helper
+is byte-identical and the framework/native/image pair is unchanged. Its ARM
+retry remains pending.

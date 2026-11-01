@@ -160,25 +160,39 @@ move-result v0
 const/16 v1, 37
 invoke-static {v0, v1}, ${main_type}->equal(II)V
 invoke-virtual {v2}, Landroid/content/res/TypedArray;->recycle()V
-const-string v0, "xml"
+const-string v0, "xml-open"
 iput-object v0, p1, ${worker_type}->stage:Ljava/lang/String;
 const v1, ${ids['xml/proof']}
 invoke-virtual {p0, v1}, Landroid/content/res/Resources;->getXml(I)Landroid/content/res/XmlResourceParser;
 move-result-object v2
+const-string v0, "xml-start-document"
+iput-object v0, p1, ${worker_type}->stage:Ljava/lang/String;
+invoke-interface {v2}, Landroid/content/res/XmlResourceParser;->next()I
+move-result v0
+const/4 v1, 0
+invoke-static {v0, v1}, ${main_type}->equal(II)V
+const-string v0, "xml-start-tag"
+iput-object v0, p1, ${worker_type}->stage:Ljava/lang/String;
 invoke-interface {v2}, Landroid/content/res/XmlResourceParser;->next()I
 move-result v0
 const/4 v1, 2
 invoke-static {v0, v1}, ${main_type}->equal(II)V
+const-string v0, "xml-root-name"
+iput-object v0, p1, ${worker_type}->stage:Ljava/lang/String;
 invoke-interface {v2}, Landroid/content/res/XmlResourceParser;->getName()Ljava/lang/String;
 move-result-object v0
 const-string v1, "proof"
 invoke-static {v0, v1}, ${main_type}->text(Ljava/lang/String;Ljava/lang/String;)V
+const-string v0, "xml-answer-attribute"
+iput-object v0, p1, ${worker_type}->stage:Ljava/lang/String;
 const/4 v0, 0
 const-string v1, "answer"
 invoke-interface {v2, v0, v1}, Landroid/content/res/XmlResourceParser;->getAttributeValue(Ljava/lang/String;Ljava/lang/String;)Ljava/lang/String;
 move-result-object v0
 const-string v1, "locked"
 invoke-static {v0, v1}, ${main_type}->text(Ljava/lang/String;Ljava/lang/String;)V
+const-string v0, "xml-close"
+iput-object v0, p1, ${worker_type}->stage:Ljava/lang/String;
 invoke-interface {v2}, Landroid/content/res/XmlResourceParser;->close()V
 const-string v0, "asset-directory-list"
 iput-object v0, p1, ${worker_type}->stage:Ljava/lang/String;
