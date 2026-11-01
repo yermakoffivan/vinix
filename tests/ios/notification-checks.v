@@ -82,6 +82,10 @@ fn main() {
 		run_host_fixture(root, old, out, 'ns_url_session_configuration_test.v')!
 		return
 	}
+	if os.args[1] == 'url-request-host' {
+		run_host_fixture(root, old, out, 'url_request_test.v')!
+		return
+	}
 	if os.args[1] == 'object-equality-host' {
 		run_host_fixture(root, old, out, 'ns_object_equality_test.v')!
 		return

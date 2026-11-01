@@ -126,7 +126,8 @@ fn url_session_request_snapshot(request u64, configuration u64) &URLSessionReque
 	source := header.request
 	result.request = URLSessionRequestPolicy{timeout: source.timeout, cache: source.cache_policy,
 		service: source.network_service, attribution: source.attribution, cellular: source.cellular,
-		expensive: source.expensive, constrained: source.constrained, cookies: source.cookies,
+		expensive: source.expensive, constrained: source.constrained,
+		cookies: if source.cookies_explicit { source.cookies } else { url_session_snapshot_flag(configuration, 71) },
 		pipelining: source.pipelining, http3: source.http3, dnssec: source.dnssec, cookie_partition: source.refs[5] != 0}
 	result.configuration = URLSessionConfigurationPolicy{
 		request_timeout: unsafe { *(&f64(configuration + 176)) }, resource_timeout: unsafe { *(&f64(configuration + 184)) },
@@ -181,7 +182,9 @@ fn (snapshot &URLSessionRequestSnapshot) transport_profile() URLSessionTransport
 	if route == .custom { return .protocols }
 	if c.background || c.identifier || c.shared_container || c.launch_events { return .background }
 	if c.proxy { return .proxy }
-	if r.cookies || c.cookies || r.cookie_partition { return .cookies }
+	// A request that disables cookie handling neither loads nor stores cookies,
+	// even when HTTPShouldSetCookies remains enabled on the configuration.
+	if r.cookies || r.cookie_partition { return .cookies }
 	if r.cache != 1 || c.cache != 1 { return .cache }
 	if !r.cellular || !r.expensive || !r.constrained || r.service != 0 || r.pipelining || r.http3 || r.dnssec
 		|| !c.cellular || !c.expensive || !c.constrained || c.waits || c.discretionary || c.service != 0

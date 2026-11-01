@@ -17,6 +17,7 @@ mut:
 	expensive bool
 	constrained bool
 	cookies bool
+	cookies_explicit bool // An unset cookie policy inherits session configuration.
 	pipelining bool
 	http3 bool
 	dnssec bool
@@ -227,7 +228,7 @@ fn request_dispatch(object u64, selector string, mut frame RegisterFrame) bool {
 		'setURL:', 'setMainDocumentURL:' { request_url(value); copy := if value == 0 { u64(0) } else { objc_copy_value(value, false) }; objc_store_strong(unsafe { &state.refs[if selector == 'setURL:' { 0 } else { 1 }] }, copy); objc_release(copy) }
 		'setHTTPMethod:' {
 			mut normalized := u64(0)
-			if value != 0 { text := request_string(value, false); for verb in ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'CONNECT', 'PATCH']! { if request_ascii_equal(text, verb) { normalized = owned_string(verb); break } }; if normalized == 0 { normalized = objc_retain(value) } }
+			if value != 0 { text := request_string(value, false); for verb in ['GET', 'HEAD', 'POST', 'PUT', 'DELETE', 'CONNECT', 'PATCH', 'OPTIONS']! { if request_ascii_equal(text, verb) { normalized = owned_string(verb); break } }; if normalized == 0 { normalized = objc_retain(value) } }
 			objc_store_strong(unsafe { &state.refs[2] }, normalized); objc_release(normalized)
 		}
 		'setCookiePartitionIdentifier:' { if value != 0 { request_string(value, false) }; objc_store_strong(unsafe { &state.refs[5] }, value) }
@@ -250,7 +251,7 @@ fn request_dispatch(object u64, selector string, mut frame RegisterFrame) bool {
 		'allowsConstrainedNetworkAccess' { frame.x[0] = u64(state.constrained) }
 		'setAllowsConstrainedNetworkAccess:' { state.constrained = u8(value) != 0 }
 		'HTTPShouldHandleCookies' { frame.x[0] = u64(state.cookies) }
-		'setHTTPShouldHandleCookies:' { state.cookies = u8(value) != 0 }
+		'setHTTPShouldHandleCookies:' { state.cookies = u8(value) != 0; state.cookies_explicit = true }
 		'HTTPShouldUsePipelining' { frame.x[0] = u64(state.pipelining) }
 		'setHTTPShouldUsePipelining:' { state.pipelining = u8(value) != 0 }
 		'assumesHTTP3Capable' { frame.x[0] = u64(state.http3) }

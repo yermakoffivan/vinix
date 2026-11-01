@@ -1303,7 +1303,7 @@ fn test_session_adapter_policy_boundaries() {
 	session_adapter_configure(api, config, request)
 	for entry in [
 		SessionAdapterPolicyCase{false, c'setHTTPShouldHandleCookies:', 1, .cookies},
-		SessionAdapterPolicyCase{true, c'setHTTPShouldSetCookies:', 1, .cookies},
+		SessionAdapterPolicyCase{true, c'setHTTPShouldSetCookies:', 1, .supported},
 		SessionAdapterPolicyCase{false, c'setCachePolicy:', 0, .cache},
 		SessionAdapterPolicyCase{true, c'setRequestCachePolicy:', 0, .cache},
 		SessionAdapterPolicyCase{false, c'setAllowsCellularAccess:', 0, .network},
@@ -1927,4 +1927,145 @@ fn test_session_builtin_protocol_policy_boundaries() {
 		C.close(listener.fd)
 	}
 	println('IOS-BUILTIN-PROTOCOL-POLICY: public resume rejects custom-list, cookie and cache profiles before connecting; configuration copies preserve custom selection PASS')
+}
+
+// Capture actual wire cookies, rather than infer session behavior from getters.
+fn session_cookie_server(listener DataHTTPListener, reply string) string {
+	defer { C.close(listener.fd) }
+	deadline := time.sys_mono_now() + 6 * time.second
+	if !data_http_wait(listener.fd, false, deadline) { return '<accept timeout>' }
+	fd := C.accept(listener.fd, unsafe { nil }, unsafe { nil })
+	if fd < 0 { return '<accept failed>' }
+	data_http_no_sigpipe(fd)
+	assert C.fcntl(fd, C.F_SETFL, usize(C.O_NONBLOCK)) == 0;
+	mut stream := &DataHTTPStream{fd: fd, deadline: deadline}
+	defer { stream.close(); unsafe { free(stream) } }
+	mut headers := []u8{cap: data_http_headers}; headers.flags |= .noslices
+	defer { unsafe { headers.free() } }
+	line := stream.line(mut headers) or { return '<request failed>' }
+	assert line.starts_with('GET '), line;
+	mut cookie := ''
+	for {
+		header := stream.line(mut headers) or { return '<header failed>' }
+		if header.len == 0 { break }
+		if header.len >= 7 && data_http_equal(http_borrow(header, 0, 7), 'Cookie:') {
+			assert cookie.len == 0;
+			cookie = http_borrow(header, 7, header.len).trim_space()
+		}
+	}
+	if !stream.send(reply) { unsafe { cookie.free() }; return '<send failed>' }
+	return cookie
+}
+
+fn test_session_native_cookie_policy() {
+	$if macos {
+		api := DataHTTPApi{native: true, send: u64(C.dlsym(unsafe { voidptr(-2) }, c'objc_msgSend'))}
+		cls := C.objc_allocateClassPair(unsafe { voidptr(api.cls(c'NSObject')) }, c'VinixSessionCookieOracle', 0)
+		assert cls != unsafe { nil };
+		assert C.class_addProtocol(cls, C.objc_getProtocol(c'NSURLSessionDataDelegate'));
+		assert C.class_addMethod(cls, C.sel_registerName(c'URLSession:dataTask:didReceiveResponse:completionHandler:'), unsafe { voidptr(task_http_oracle_response) }, c'v48@0:8@16@24@32@?40');
+		assert C.class_addMethod(cls, C.sel_registerName(c'URLSession:dataTask:didReceiveData:'), unsafe { voidptr(task_http_oracle_data) }, c'v40@0:8@16@24@32');
+		assert C.class_addMethod(cls, C.sel_registerName(c'URLSession:task:didCompleteWithError:'), unsafe { voidptr(task_http_oracle_complete) }, c'v40@0:8@16@24@32');
+		C.objc_registerClassPair(cls)
+		for mode in ['both', 'request-off', 'configuration-off', 'configuration-off-default', 'both-off', 'explicit', 'explicit-off']! {
+			pool := api.pool()
+			config := api.msg(api.cls(c'NSURLSessionConfiguration'), c'ephemeralSessionConfiguration', 0)
+			store := api.msg(config, c'HTTPCookieStorage', 0)
+			assert store != 0;
+			props := api.msg(api.cls(c'NSMutableDictionary'), c'dictionary', 0)
+			for pair in [['Name', 'vinix_seed']!, ['Value', 'one']!, ['Domain', 'localhost']!, ['Path', '/']!]! {
+				api.put(props, pair[0], api.string(pair[1]))
+			}
+			seed := api.msg(api.cls(c'NSHTTPCookie'), c'cookieWithProperties:', props)
+			assert seed != 0;
+			api.msg(store, c'setCookie:', seed)
+			api.msg(config, c'setHTTPShouldSetCookies:', u64(mode !in ['configuration-off', 'configuration-off-default', 'both-off']!))
+			listener := data_http_listener()
+			server := spawn session_cookie_server(listener, 'HTTP/1.1 200 OK\r\nSet-Cookie: vinix_received=two; Path=/\r\nContent-Length: 4\r\n\r\nping')
+			address := 'http://localhost:${listener.port}/'
+			request := api.msg(api.cls(c'NSMutableURLRequest'), c'requestWithURL:', api.url(address))
+			if mode != 'configuration-off-default' { api.msg(request, c'setHTTPShouldHandleCookies:', u64(mode !in ['request-off', 'both-off', 'explicit-off']!)) }
+			if mode in ['explicit', 'explicit-off']! { api.header(request, 'Cookie', 'vinix_explicit=three') }
+			queue := api.msg(api.cls(c'NSOperationQueue'), c'new', 0)
+			api.msg(queue, c'setMaxConcurrentOperationCount:', 1)
+			delegate := api.msg(u64(cls), c'new', 0)
+			mut p := unsafe { &TaskHTTPOracle(C.calloc(1, sizeof(TaskHTTPOracle))) }
+			unsafe { *p = TaskHTTPOracle{send: api.send, session_delegate: delegate, queue: queue} }
+			task_http_oracle = p
+			session := unsafe { TaskHTTPNative5(voidptr(api.send))(api.cls(c'NSURLSession'), u64(C.sel_registerName(c'sessionWithConfiguration:delegate:delegateQueue:')), config, delegate, queue) }
+			task := api.msg(session, c'dataTaskWithRequest:', request)
+			api.msg(task, c'resume', 0)
+			deadline := time.sys_mono_now() + 6 * time.second
+			for C.__atomic_load_n(unsafe { &p.finished }, 5) == 0 {
+				if time.sys_mono_now() >= deadline { C._exit(124) }
+				time.sleep(time.millisecond)
+			}
+			api.msg(queue, c'waitUntilAllOperationsAreFinished', 0)
+			wire := server.wait()
+			stored := api.msg(store, c'cookiesForURL:', api.url(address))
+			automatic := mode !in ['request-off', 'both-off', 'configuration-off-default', 'explicit-off']!
+			assert wire == if mode in ['explicit', 'explicit-off']! { 'vinix_explicit=three' } else if automatic { 'vinix_seed=one' } else { '' }, mode + ': ' + wire;
+			assert api.msg(stored, c'count', 0) == if automatic { u64(2) } else { u64(1) }, mode;
+			// Inherited policy affects the wire without rewriting public getters.
+			for getter in [c'originalRequest', c'currentRequest']! {
+				assert api.msg(api.msg(task, getter, 0), c'HTTPShouldHandleCookies', 0) == u64(mode !in ['request-off', 'both-off', 'explicit-off']!), mode;
+			}
+			assert p.bad_queue == 0 && p.error_code == 0 && p.body_size == 4;
+			api.msg(session, c'invalidateAndCancel', 0)
+			api.msg(delegate, c'release', 0); api.msg(queue, c'release', 0)
+			api.drain(pool); task_http_oracle = unsafe { nil }
+			unsafe { address.free(); wire.free(); C.free(p) }
+		}
+		println('IOS-SESSION-COOKIE-POLICY-NATIVE: explicit request overrides configuration, unset policy inherits, manual headers preserved, automatic send/store suppressed together and public getters unchanged PASS')
+	}
+}
+
+fn test_session_request_disables_cookies() {
+	api := DataHTTPApi{send: u64(unsafe { voidptr(C.ios_objc_msgsend) })}
+	for _ in 0 .. 2 {
+		objc_start(); system_data_start()!
+		all, _ := session_transfer_classes()
+		for policy in ['request-off', 'both-off', 'inherit-off']! {
+			for explicit in [false, true]! {
+				// Use separate sessions for two loads to detect accidental replay of
+				// the first response cookie. A manual header remains caller-owned.
+				for _ in 0 .. 2 {
+					pool := api.pool()
+					listener := data_http_listener()
+					server := spawn session_cookie_server(listener, 'HTTP/1.1 200 OK\r\nSet-Cookie: vinix_received=two; Path=/\r\nSet-Cookie: vinix_other=three; Path=/\r\nContent-Length: 4\r\n\r\nping')
+					address := 'http://localhost:${listener.port}/'
+					config, request := session_transfer_inputs(api, address, false)
+					api.msg(config, c'setHTTPShouldSetCookies:', u64(policy == 'request-off'))
+					if policy != 'inherit-off' { api.msg(request, c'setHTTPShouldHandleCookies:', 0) }
+					api.msg(config, c'setRequestCachePolicy:', 1); api.msg(request, c'setCachePolicy:', 1)
+					if explicit { api.header(request, 'Cookie', 'vinix_explicit=three') }
+					queue := api.msg(api.cls(c'NSOperationQueue'), c'new', 0)
+					delegate := objc_new(all)
+					mut p := unsafe { &SessionTransferProbe(C.calloc(1, sizeof(SessionTransferProbe))) }
+					unsafe { *p = SessionTransferProbe{queue: queue} }
+					session_transfer_probe = p
+					session := unsafe { TaskHTTPNative5(voidptr(api.send))(api.cls(c'NSURLSession'), u64(c'sessionWithConfiguration:delegate:delegateQueue:'), config, delegate, queue) }
+					task := api.msg(session, c'dataTaskWithRequest:', request)
+					// Neither setter can alter the session/task's independent copies.
+					api.msg(config, c'setHTTPShouldSetCookies:', 1)
+					api.msg(request, c'setHTTPShouldHandleCookies:', 1)
+					api.msg(task, c'resume', 0)
+					session_transfer_wait(p, task, queue, false)
+					wire := server.wait()
+					session_worker_require(wire == if explicit { 'vinix_explicit=three' } else { '' }, 'disabled automatic cookie handling changed the wire header')
+					session_worker_require(p.bad == 0 && p.error_code == 0 && p.status == 200 && p.length == 4
+						&& p.events == [u64(1), 2, 3, 0, 0, 0, 0, 0]!, 'cookie-disabled transfer failed')
+					// The stored request preserves the flag and the original header.
+					current := api.msg(task, c'currentRequest', 0)
+					session_worker_require(api.msg(current, c'HTTPShouldHandleCookies', 0) == u64(policy == 'inherit-off'), 'resume rewrote the public request cookie flag')
+					objc_release(delegate); objc_release(queue); api.drain(pool)
+					session_worker_require(ios_runtime.live == 0 && ios_runtime.block_refs.len == 0, 'cookie-disabled load retained objects or blocks')
+					session_transfer_probe = unsafe { nil }
+					unsafe { address.free(); wire.free(); C.free(p) }
+				}
+			}
+		}
+		objc_stop(); system_data_stop()
+	}
+	println('IOS-SESSION-COOKIES-DISABLED: explicit overrides and inherited defaults, copy isolation, manual headers preserved, duplicate response cookies not replayed, ordered callbacks and two drained runtimes PASS')
 }

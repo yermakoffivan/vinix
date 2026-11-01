@@ -100,7 +100,10 @@ fn request_cases(api RequestApi) {
 	api.message(r, c'setNetworkServiceType:', 8, 0); assert api.message(r, c'networkServiceType', 0, 0) == 8
 	api.message(r, c'setAttribution:', 1, 0); assert api.message(r, c'attribution', 0, 0) == 1
 	api.message(r, c'setCachePolicy:', 5, 0); assert api.message(r, c'cachePolicy', 0, 0) == 5
-	for verb in [c'options', c'trace', c'custom']! { api.message(r, c'setHTTPMethod:', api.string(verb), 0); assert api.text(api.message(r, c'HTTPMethod', 0, 0)) == ctext(u64(verb)) }
+	for pair in [[c'options', c'OPTIONS']!, [c'trace', c'trace']!, [c'custom', c'custom']!]! {
+		api.message(r, c'setHTTPMethod:', api.string(pair[0]), 0)
+		assert api.text(api.message(r, c'HTTPMethod', 0, 0)) == ctext(u64(pair[1]))
+	}
 	custom := api.mutable_string(c'custom'); api.message(r, c'setHTTPMethod:', custom, 0); api.change_string(custom, c'changed'); assert api.text(api.message(r, c'HTTPMethod', 0, 0)) == 'changed'
 	api.message(r, c'setHTTPMethod:', 0, 0); assert api.message(r, c'HTTPMethod', 0, 0) == 0
 	partition := api.mutable_string(c'partition'); api.message(r, c'setCookiePartitionIdentifier:', partition, 0); api.change_string(partition, c'changed'); assert api.text(api.message(r, c'cookiePartitionIdentifier', 0, 0)) == 'changed'
