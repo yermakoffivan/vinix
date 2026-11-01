@@ -114,7 +114,7 @@ const dialog_theme_apk_sha = '57e1bc1d8f1df2874be1c4837f169176e5fa88310f37ea99fd
 const dialog_theme_pass_marker = 'DIALOG-THEME-PASS explicit default inherited contexts inflation isolation missing-default'
 // Intent extras use the successor framework and verified retained native.
 const intent_extras_framework_sha = '02aefc8136cb87eb8e9ebd0928cb15f3e1c2042e47d2a687170a0f9309ac4b20'
-const intent_extras_apk_sha = 'fed8561ffe44b7562499a22dac8fc5e8e0e28607135bd44a835fefd5be347b5a'
+const intent_extras_apk_sha = 'b3e0278a185bb3f7f1a302c2f515fa7a4b98edf4cfcefd69ede3f45f85a5ba2c'
 const intent_extras_pass_marker = 'INTENT-EXTRAS-PASS merge precedence copies no-op nulls shallow controlled-intent'
 
 struct FixtureProfile {

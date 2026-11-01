@@ -19,7 +19,9 @@ clean child exit remain required. Host qualification establishes no ARM fixture,
 Maps, Play Services or authentication result. The SDK is the admitted r2; its
 earlier failed production remains separately preserved by the SDK producer.
 
-Paths are below `S=/Users/alex/.local/state/vinix/android`:
+Paths are below `S=/Users/alex/.local/state/vinix/android`. The original r1
+qualification follows; the corrected fixture and current r2 tools are recorded
+after it.
 
 | Input | Path below S | SHA-256 |
 | --- | --- | --- |
@@ -66,3 +68,53 @@ cleanup under the unchanged 600 MiB/300-second/64 MiB shared-growth/1 GiB reserv
 and file-size caps. Their controls remain in
 `S/intent-extras-api-tools-seal-controls-2026-11-01-r1`. Preserve all complete
 original bundles and unchanged auditors.
+
+## Corrected fixture refresh, r2
+
+The first ARM run exposed a fixture setup assumption: this framework's retained
+`Intent` constructor eagerly allocates a `Bundle`. The corrected fixture
+explicitly calls `replaceExtras(null)` and asserts the resulting null before
+testing a null source or destination. This refresh changes only the fixture pin
+and the transfer's runner/APK paths and pins. The framework, native library,
+marker, routes and strict health checks above remain unchanged. The original r1
+APK, runners, transfer and seal hashes were rechecked without modifying them.
+This host qualification does not establish an r2 ARM or Maps result.
+
+The corrected signed fixture is
+`S/intent-extras-fixture-2026-11-01-r2/probe.apk`, SHA-256
+`b3e0278a185bb3f7f1a302c2f515fa7a4b98edf4cfcefd69ede3f45f85a5ba2c`;
+its `build.json` SHA-256 is
+`1dd736fe7cf510edd122364b9fc3d179a559e4bac61936e9b98486c2a25f7f00`.
+All five refreshed checks passed on their first attempt, including 1,815 runner
+refusals, the transfer selftest and static AArch64 EXEC inspection without
+INTERP or DYNAMIC segments.
+
+| Check | Guard seconds | Sampled aggregate RSS bytes | Time maximum bytes |
+| --- | ---: | ---: | ---: |
+| Host runner compile | 2.958 | 343,490,560 | 372,375,552 |
+| Runner selftest | 1.482 | 22,429,696 | 17,743,872 |
+| Static ARM runner compile | 4.501 | 375,029,760 | 370,573,312 |
+| Host transfer compile | 3.764 | 376,963,072 | 379,928,576 |
+| Transfer selftest | 1.385 | 9,994,240 | 9,322,496 |
+
+All guard/child exits were zero with complete cleanup and zero swaps under the
+original 600 MiB/300-second/512 MiB shared-growth/1 GiB reserve/file-size caps.
+Runtime/tool/artifact pins were rehashed after checks. Frozen sources still
+match the checkout; captured source base is
+`57e765b0855e2a5564eac662c7a2587067be17ac`. Runner and transfer source hashes are
+`63354d913dc2acc5a4edaaf8012d1ac2c2672b72bcbbb5db32d47171a8de09e6`
+and `fae483f2da2eed04bfdf9ee5bdfcd2e1b5c0c12d230af10d7cefa503a2264231`.
+
+ARM runner `S/intent-extras-api-run-2026-11-01-r2/run` has SHA-256
+`cad7bf5ff030b01af3bcf9a7cfc4b0bd41d3b54d93a7a864bc19daade444cc12`.
+Transfer `S/intent-extras-api-transfer-build-2026-11-01-r2/transfer` has SHA-256
+`b5d7c4e4222307aa87e597e7c1c6a5b5f9905087742dae31ae3b17e52e2a0abf`.
+The four r2 tool/control roots are closed. Their complete seal and separate
+fresh-process readback passed for 35 entries at
+`S/intent-extras-api-tools-sealed-2026-11-01-r2/manifest.json`, SHA-256
+`a4a1e29489a55160a582c790638e9b0f2257900e4157af4656f1611730ea16ca`.
+Seal/readback took 0.114/0.279 seconds with zero guard/child exits, complete
+cleanup and zero swaps under the unchanged 600 MiB/300-second/64 MiB
+shared-growth/1 GiB reserve/file-size caps. Controls remain in
+`S/intent-extras-api-tools-seal-controls-2026-11-01-r2`. Independent refresh
+review confirmed the scoped pin changes and retained historical inputs.
