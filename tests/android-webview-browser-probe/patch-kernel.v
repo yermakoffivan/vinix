@@ -521,6 +521,30 @@ const paint_drawable_framework_helper = 'ea6d13f481d389e4d1c7a0504c5827bbe82be92
 const paint_drawable_provider_helper = '8ee20f2354c2a3cdad1c3b5ce94aa423ed93ac6bb26b6eedb39b42d97f0a971d'
 const paint_drawable_raw = 'eba47a450e64ba9c72b2032e3bb79782b084347c01915a79e2acb9816b3ac461'
 const paint_drawable_canonical = '55140f465a9b885ff13764060f451540850875f575fbc78f5e4e40ab06e4a9eb'
+const dialog_theme_base = '/Users/alex/.local/state/vinix/android/maps-paint-drawable-r1'
+const dialog_theme_base_seal = 'd835836d3ce75adde417df33ebbfc866705c2010c583fe15beb57bb9a4237fbe'
+const dialog_theme_boot = '8588b3a9fb911dbf4393e925b6ce61ba372bbe3b8201791fc00ec1e425de506e'
+const dialog_theme_base_overlay = 'fed81fa1c97ba7971c5e68c522e893179f7ad0de95a7b366a247050c860bdbb7'
+const dialog_theme_old_deployment = '536f7d6d3fd9b938280aec41470c42d4e33cb5017eaa0e004be709ef0bd73d58'
+const dialog_theme_old_headless = '7560fdae8be67c7ccbdf9491dfd3968bb8eb4269f58d8498f9292d3fb141c5f6'
+const dialog_theme_framework = '/Users/alex/.local/state/vinix/android/combined-account-webview-dialog-theme-framework-2026-11-01-r1'
+const dialog_theme_seal = 'a3547ad6477b3fb2eb7a9bcd7d73b8870c89a6bf69c4a84db03dc79e3222859f'
+const dialog_theme_build = '8da4edbd62080d545efc44071a43bd9451724f0559954acb80c5938654571787'
+const dialog_theme_jar = '9d8d2b1f59f80bf0d704daa65eaf3b479fa83458338f23d9fe17aa7a57b541b6'
+const dialog_theme_dex = '4e2c69c8f32f4ef77c92d68a1c3733d4a1ca3c8b8c960acf462ae508e20f84f8'
+const dialog_theme_native = '/Users/alex/.local/state/vinix/android/current-native-build-2026-11-01-dialog-theme-r1'
+const dialog_theme_native_seal = 'a293cfedb3fa2c7775af0cd15330b559ca4850c9ae7496e7e16717d520e2b0a4'
+const dialog_theme_native_build = '733f4c5137884a7bc551ad313495920932d6a3583084e51fbe9cc441a8ac9e95'
+const dialog_theme_native_pin = '280730c4166687394cf69e548cdd106e58c57ba9472f339dde2c80ebdee2595a'
+const dialog_theme_framework_helper = 'dafce2154198259c14f6279b69638cca6124307b35414e9c572a2d971ee6a79b'
+const dialog_theme_provider_helper = '28be91da8aa473ee3ca5650946cf44c5ed44a409a10a7769f79f4cb6c1eac26c'
+const dialog_theme_before = 'c8d540de367c81da168db8f4f9a6a7a5fdb4e891edab269675d34906ff02c82a'
+const dialog_theme_raw = '66a711e288271a52f5fe9d44b4fca75738ee882f60f869d12030c4ba3f8290f1'
+const dialog_theme_canonical = 'fb1951defc731f6f52b907aaa81fd94272662e9a7348d1b2dbf6caee32a59042'
+const dialog_theme_relink_guard = 'fe4f3cbad83b022fec315fcf44fa328abbaf94b395c773ca20b0c41fcc710d07'
+const dialog_theme_relink_log = 'c65322c3d46f44ecd55b1bfb43f9a48fb8e6f1a36a50e648f7ddd994ac43b8a5'
+const dialog_theme_relink_command = 'c615c2a394deb495c57fb3a864d4b4819abb9e825b942ce9edf022765c9aae61'
+const dialog_theme_relink_pins = 'd3fea9345cf955d75b5afe50b13828d32bce483f54fc8586e7f01da231898411'
 const source = $embed_file(@FILE).to_string()
 
 struct Profile {
@@ -4314,6 +4338,162 @@ fn paint_drawable_baseline(receipt map[string]json2.Any, stage Stage) !string {
 	return paint_drawable_base + '/boot.img'
 }
 
+fn dialog_theme_profile() Profile {
+	mut modules := paint_drawable_profile().modules.clone()
+	modules << 'maps-paint-drawable.tar'
+	return Profile{'maps-dialog-theme', dialog_theme_boot, 'maps-dialog-theme.tar', modules}
+}
+fn dialog_theme_modules() map[string]string {
+	mut modules := paint_drawable_modules()
+	modules['maps-paint-drawable.tar'] = dialog_theme_base_overlay
+	return modules
+}
+fn dialog_theme_fields() map[string]string {
+	mut fields := paint_drawable_fields()
+	fields['kind'] = 'vinix-maps-dialog-theme-v1'
+	fields['base_root'] = dialog_theme_base
+	fields['base_manifest_sha256'] = dialog_theme_base_seal
+	fields['framework_build_root'] = dialog_theme_framework
+	fields['framework_manifest_sha256'] = dialog_theme_seal
+	fields['framework_jar_sha256'] = dialog_theme_jar
+	fields['framework_dex_sha256'] = dialog_theme_dex
+	fields['retained_framework_manifest_sha256'] = paint_drawable_seal
+	fields['native_compatibility_framework_manifest_sha256'] = resources_float_seal
+	fields['native_build_root'] = dialog_theme_native
+	fields['native_manifest_sha256'] = dialog_theme_native_seal
+	fields['native_build_sha256'] = dialog_theme_native_build
+	fields['native_sha256'] = dialog_theme_native_pin
+	fields['retained_native_manifest_sha256'] = resources_float_native_seal
+	fields['native_framework_manifest_sha256'] = dialog_theme_seal
+	return fields
+}
+fn dialog_theme_relink_root() string {
+	return '/Users/alex/.local/state/vinix/android/dialog-theme-prefix-map-proof-2026-11-01-r1'
+}
+fn dialog_theme_relink_files() map[string]string {
+	return {'compile.guard.json': dialog_theme_relink_guard, 'compile.log': dialog_theme_relink_log,
+		'original-build-native.json': dialog_theme_relink_command, 'input-pins.sha256': dialog_theme_relink_pins,
+		'out/canonical.so': resources_float_native_pin}
+}
+fn dialog_theme_relink_inputs() map[string]string {
+	mut inputs := map[string]string{}
+	for name, pin in dialog_theme_relink_files() { inputs[dialog_theme_relink_root() + '/' + name] = pin }
+	return inputs
+}
+fn dialog_theme_relink_description() map[string]json2.Any {
+	mut files := map[string]json2.Any{}
+	for name, pin in dialog_theme_relink_files() { files[name] = json2.Any(pin) }
+	return {'root': json2.Any(dialog_theme_relink_root()), 'files_sha256': json2.Any(files),
+		'input_entry_count': json2.Any(5), 'canonical_native_sha256': json2.Any(resources_float_native_pin),
+		'scope': json2.Any('Only embedded source-root paths differ; exact successor command with one prefix-map flag reproduces the entire original Resources native DSO.')}
+}
+fn dialog_theme_inputs() map[string]string {
+	mut inputs := paint_drawable_inputs()
+	inputs[dialog_theme_base + '/sha256.json'] = dialog_theme_base_seal
+	inputs[dialog_theme_framework + '/sha256.json'] = dialog_theme_seal
+	inputs[dialog_theme_native + '/sha256.json'] = dialog_theme_native_seal
+	for path, pin in dialog_theme_relink_inputs() { inputs[path] = pin }
+	return inputs
+}
+fn dialog_theme_known_delta() map[string]string {
+	return {'/' + service_query_jar_path: dialog_theme_jar,
+		'/' + service_query_dex_path: dialog_theme_dex,
+		'/' + native_onboarding_trace_path: dialog_theme_native_pin,
+		'/' + service_query_headless + '/framework-build.json': dialog_theme_build,
+		'/' + service_query_headless + '/framework-sha256.json': dialog_theme_seal}
+}
+fn dialog_theme_native_helper_delta() map[string]string {
+	return {'tests/native-android-tools/androidtools/framework.v': dialog_theme_framework_helper,
+		'tests/native-android-tools/androidtools/framework_paint_drawable.v': paint_drawable_provider_helper,
+		'tests/native-android-tools/androidtools/framework_dialog_theme.v': dialog_theme_provider_helper}
+}
+fn dialog_theme_proofs() map[string]string {
+	mut proofs := paint_drawable_proofs()
+	proofs['headless_input_delta'] = json2.encode({'/' + service_query_jar_path: dialog_theme_jar})
+	proofs['deployment_top_level_delta'] = json2.encode(['inputs_sha256', 'framework_manifest_sha256', 'native_manifest_sha256'])
+	proofs['framework_source_delta'] = json2.encode({'smali/android/app/Dialog.smali': dialog_theme_raw})
+	proofs['framework_canonical_delta'] = json2.encode({'new-dex/android/app/Dialog.smali': dialog_theme_canonical})
+	proofs['framework_builder_helper_delta'] = json2.encode({'tests/native-android-tools/androidtools/framework.v': dialog_theme_framework_helper,
+		'tests/native-android-tools/androidtools/framework_dialog_theme.v': dialog_theme_provider_helper})
+	proofs['native_builder_helper_delta'] = json2.encode(dialog_theme_native_helper_delta())
+	proofs['native_consumed_raw_delta'] = json2.encode({
+		'smali/android/content/res/Resources.smali': [resources_float_raw, resources_float_canonical],
+		'smali/android/app/Dialog.smali': [dialog_theme_before, dialog_theme_raw]})
+	proofs['native_consumed_canonical_delta'] = json2.encode({'android/app/Dialog.smali': [dialog_theme_before, dialog_theme_canonical]})
+	proofs['native_relink_proof'] = json2.encode(dialog_theme_relink_description())
+	return proofs
+}
+fn dialog_theme_overlay_paths() []string {
+	mut paths := paint_drawable_overlay_paths()
+	paths << native_onboarding_trace_path
+	return paths
+}
+fn verify_dialog_theme_overlay(receipt map[string]json2.Any) ! {
+	if 'deployment_input_additions' in receipt || 'deployment_top_level_additions' in receipt { return error('Dialog theme changes existing framework/native inputs only') }
+	delta := json2.decode[map[string]string](json2.encode(receipt['deployment_input_delta'] or { return error('Dialog theme deployment delta absent') }))!
+	mut expected := dialog_theme_known_delta()
+	guest := '/' + service_query_headless + '/guest-inputs.json'
+	guest_pin := delta[guest] or { return error('Dialog theme headless pin absent') }
+	if !digest_valid(guest_pin) || guest_pin == dialog_theme_old_headless { return error('new Dialog theme headless receipt required') }
+	expected[guest] = guest_pin
+	if delta != expected { return error('Dialog theme exact deployment input changes differ') }
+	entries := json2.decode[[]ServiceQueryEntry](json2.encode(receipt['overlay_inventory'] or { return error('Dialog theme overlay inventory absent') }))!
+	paths := dialog_theme_overlay_paths()
+	mut regulars := map[string]string{}
+	mut seen := map[string]bool{}
+	for entry in entries {
+		if entry.name in seen || !relative(entry.name) || entry.mode & 0o7022 != 0 { return error('unsafe Dialog theme overlay inode') }
+		seen[entry.name] = true
+		if entry.kind == 'regular' {
+			mode := if entry.name == native_onboarding_trace_path { u32(0o755) } else { u32(0o644) }
+			if entry.name !in paths || !digest_valid(entry.sha256) || entry.mode != mode { return error('Dialog theme regular allowlist or mode differs') }
+			regulars[entry.name] = entry.sha256
+		} else if entry.kind != 'directory' || entry.mode != 0o755 || !paths.any(it.starts_with(entry.name + '/')) { return error('unexpected Dialog theme overlay inode') }
+	}
+	if regulars.len != 7 || regulars[service_query_deployment] or { '' } == dialog_theme_old_deployment { return error('exact seven Dialog theme files required') }
+	if regulars[native_onboarding_trace_path] or { '' } != dialog_theme_native_pin { return error('Dialog theme coupled DSO differs') }
+	for path, pin in expected { if regulars[path.trim_left('/')] or { '' } != pin { return error('Dialog theme input differs from inventory') } }
+}
+fn verify_dialog_theme_receipt(receipt map[string]json2.Any, stage Stage) ! {
+	for pin in [dialog_theme_base_seal, dialog_theme_boot, dialog_theme_base_overlay,
+		dialog_theme_old_deployment, dialog_theme_old_headless, dialog_theme_seal,
+		dialog_theme_build, dialog_theme_jar, dialog_theme_dex, dialog_theme_native_seal,
+		dialog_theme_native_build, dialog_theme_native_pin, dialog_theme_framework_helper,
+		dialog_theme_provider_helper, dialog_theme_before, dialog_theme_raw, dialog_theme_canonical] {
+		if !digest_valid(pin) { return error('completed Dialog theme producers required') }
+	}
+	for pin in dialog_theme_relink_files().values() { if !digest_valid(pin) { return error('completed exact Dialog theme relink proof required') } }
+	if dialog_theme_seal == paint_drawable_seal || dialog_theme_jar == paint_drawable_jar
+		|| dialog_theme_dex == paint_drawable_dex || dialog_theme_native_seal == resources_float_native_seal
+		|| dialog_theme_native_pin == resources_float_native_pin || dialog_theme_canonical == dialog_theme_before { return error('new Dialog theme SDK and coupled native required') }
+	for name, expected in dialog_theme_fields() { if receipt[name] or { json2.Any('absent') } != json2.Any(expected) { return error('Dialog theme receipt differs: ' + name) } }
+	for name, expected in dialog_theme_proofs() { if receipt[name] or { json2.Any('absent') } != json2.decode[json2.Any](expected)! { return error('Dialog theme proof differs: ' + name) } }
+	mut seals := map[string]string{}
+	for path, pin in stage.inputs_sha256 { if path.ends_with('/sha256.json') { seals[path] = pin } }
+	mut expected_seals := map[string]string{}
+	for path, pin in dialog_theme_inputs() { if path.ends_with('/sha256.json') { expected_seals[path] = pin } }
+	if seals.len != 94 || seals != expected_seals { return error('Dialog theme exact ninety-four dependency seals differ') }
+	mut relink := map[string]string{}
+	for path, pin in stage.inputs_sha256 { if path == dialog_theme_relink_root() || path.starts_with(dialog_theme_relink_root() + '/') { relink[path] = pin } }
+	if relink != dialog_theme_relink_inputs() { return error('Dialog theme exact relink proof inputs differ') }
+	for path in stage.inputs_sha256.keys() {
+		for root in [resources_float_relink_root(), layout_alignment_relink_root(), window_animations_relink_root()] {
+			if path == root || path.starts_with(root + '/') { return error('historical relink proof leaves are not new Dialog theme direct inputs') }
+		}
+	}
+	if stage.format != 1 || stage.original_modules_sha256 != dialog_theme_modules() || stage.preserved_modules_sha256 != dialog_theme_modules() { return error('Dialog theme original thirty-nine modules differ') }
+	verify_dialog_theme_overlay(receipt)!
+}
+fn dialog_theme_baseline(receipt map[string]json2.Any, stage Stage) !string {
+	verify_dialog_theme_receipt(receipt, stage)!
+	path := dialog_theme_base + '/sha256.json'
+	regular(path)!
+	if os.lstat(path)!.size > 8 * 1024 * 1024 || hash(path)! != dialog_theme_base_seal { return error('Dialog theme original PaintDrawable manifest differs') }
+	pins := json2.decode[map[string]string](os.read_file(path)!)!
+	if pins['boot.img'] or { '' } != dialog_theme_boot || pins['maps-paint-drawable.tar'] or { '' } != dialog_theme_base_overlay { return error('Dialog theme original boot or PaintDrawable overlay differs') }
+	return dialog_theme_base + '/boot.img'
+}
+
 fn service_query_modules() map[string]string {
 	mut modules := controller_modules()
 	modules['maps-controller-diagnostic.tar'] = 'bef5f25859e77a9671a6a144ccb56891da5ed2f7b4324a93a96da7fdcab1987a'
@@ -4944,6 +5124,8 @@ fn patch(root string, build_root string, receipt_sha string, profile Profile) ! 
 		baseline = resources_float_baseline(stage_map, stage)!
 	} else if profile.name == 'maps-paint-drawable' {
 		baseline = paint_drawable_baseline(stage_map, stage)!
+	} else if profile.name == 'maps-dialog-theme' {
+		baseline = dialog_theme_baseline(stage_map, stage)!
 	} else {
 		for path, expected in stage.inputs_sha256 {
 			if os.file_name(path) == 'boot.img' && expected == baseline_pin {
@@ -9489,6 +9671,220 @@ fn paint_drawable_profile_self_test() ! {
 	println('MAPS-PAINT-DRAWABLE KERNEL-PROFILE-SELF-TEST PASS six files ninety-one seals thirty-eight inherited modules one added class reused native with original Resources provenance and historical rejection')
 }
 
+fn dialog_theme_entries_fixture() []ServiceQueryEntry {
+	paths := dialog_theme_overlay_paths()
+	mut parents := map[string]bool{}
+	for path in paths {
+		mut parent := os.dir(path)
+		for parent !in ['', '.'] { parents[parent] = true; parent = os.dir(parent) }
+	}
+	mut entries := []ServiceQueryEntry{}
+	for name in parents.keys().sorted() { entries << ServiceQueryEntry{name: name, kind: 'directory', mode: 0o755} }
+	mut pins := dialog_theme_known_delta()
+	pins['/' + service_query_headless + '/guest-inputs.json'] = 'a'.repeat(64)
+	pins['/' + service_query_deployment] = 'b'.repeat(64)
+	for path in paths {
+		mode := if path == native_onboarding_trace_path { u32(0o755) } else { u32(0o644) }
+		entries << ServiceQueryEntry{name: path, kind: 'regular', mode: mode, sha256: pins['/' + path]!}
+	}
+	return entries
+}
+fn dialog_theme_receipt_fixture() !map[string]json2.Any {
+	mut receipt := map[string]json2.Any{}
+	for name, value in dialog_theme_fields() { receipt[name] = json2.Any(value) }
+	for name, value in dialog_theme_proofs() { receipt[name] = json2.decode[json2.Any](value)! }
+	mut delta := dialog_theme_known_delta()
+	delta['/' + service_query_headless + '/guest-inputs.json'] = 'a'.repeat(64)
+	receipt['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(delta))!
+	receipt['overlay_inventory'] = json2.decode[json2.Any](json2.encode(dialog_theme_entries_fixture()))!
+	return receipt
+}
+fn dialog_theme_profile_self_test() ! {
+	profile := dialog_theme_profile()
+	if profile.baseline_sha != dialog_theme_boot || profile.modules.len != 39 || profile.modules.last() != 'maps-paint-drawable.tar'
+		|| dialog_theme_inputs().keys().filter(it.ends_with('/sha256.json')).len != 94
+		|| dialog_theme_inputs().len != 99 { return error('Dialog theme strict profile differs') }
+	mut modules := profile.modules.clone()
+	modules << profile.overlay
+	if modules.len != 40 || dialog_theme_overlay_paths().len != 7 || dialog_theme_known_delta().len != 5 { return error('Dialog theme exact modules, files or actual changes differ') }
+	verify_modules(profile, Config{'vinix', profile.modules}, Config{'vinix', modules})!
+	for bad in [Config{'vinix', modules.reverse()}, Config{'vinix', profile.modules}, Config{'other', modules}] {
+		if _ := verify_modules(profile, Config{'vinix', profile.modules}, bad) { return error('wrong Dialog theme module order accepted') }
+	}
+	stage := Stage{format: 1, inputs_sha256: dialog_theme_inputs(), original_modules_sha256: dialog_theme_modules(), preserved_modules_sha256: dialog_theme_modules()}
+	receipt := dialog_theme_receipt_fixture()!
+	verify_dialog_theme_receipt(receipt, stage)!
+	mut fields := dialog_theme_fields().keys()
+	fields << dialog_theme_proofs().keys()
+	fields << ['deployment_input_delta', 'overlay_inventory']
+	for name in fields {
+		mut bad := dialog_theme_receipt_fixture()!
+		bad[name] = json2.Any('changed')
+		if _ := verify_dialog_theme_receipt(bad, stage) { return error('changed Dialog theme field/proof accepted') }
+		bad.delete(name)
+		if _ := verify_dialog_theme_receipt(bad, stage) { return error('missing Dialog theme field/proof accepted') }
+	}
+	for proof in ['framework_builder_helper_delta', 'native_builder_helper_delta', 'framework_source_delta', 'framework_canonical_delta', 'native_source_delta',
+		'native_bindings_delta', 'native_generated_jni_delta', 'native_consumed_raw_delta', 'native_consumed_canonical_delta',
+		'native_consumed_raw_additions', 'native_consumed_canonical_additions', 'headless_input_delta'] {
+		original := json2.decode[map[string]json2.Any](json2.encode(receipt[proof]!))!
+		for name in original.keys() {
+			mut changed := json2.decode[map[string]json2.Any](json2.encode(original))!
+			changed[name] = json2.Any('changed')
+			mut bad := dialog_theme_receipt_fixture()!
+			bad[proof] = json2.Any(changed)
+			if _ := verify_dialog_theme_receipt(bad, stage) { return error('changed Dialog theme proof member accepted') }
+			changed.delete(name)
+			bad[proof] = json2.Any(changed)
+			if _ := verify_dialog_theme_receipt(bad, stage) { return error('missing Dialog theme proof member accepted') }
+		}
+		mut extra := json2.decode[map[string]json2.Any](json2.encode(original))!
+		extra['unreviewed'] = json2.Any('a'.repeat(64))
+		mut bad := dialog_theme_receipt_fixture()!
+		bad[proof] = json2.Any(extra)
+		if _ := verify_dialog_theme_receipt(bad, stage) { return error('extra Dialog theme proof member accepted') }
+	}
+	for wrong in [paint_drawable_seal, dialog_theme_seal, layout_alignment_seal] {
+		mut bad := dialog_theme_receipt_fixture()!
+		bad['native_compatibility_framework_manifest_sha256'] = json2.Any(wrong)
+		if _ := verify_dialog_theme_receipt(bad, stage) { return error('Dialog theme original Resources native provenance replaced') }
+	}
+	for wrong in [resources_float_seal, paint_drawable_seal] {
+		mut bad := dialog_theme_receipt_fixture()!
+		bad['native_framework_manifest_sha256'] = json2.Any(wrong)
+		if _ := verify_dialog_theme_receipt(bad, stage) { return error('Dialog theme successor native provenance replaced') }
+	}
+	for field in dialog_theme_relink_description().keys() {
+		mut proof := dialog_theme_relink_description()
+		proof[field] = json2.Any('changed')
+		mut bad := dialog_theme_receipt_fixture()!
+		bad['native_relink_proof'] = json2.Any(proof)
+		if _ := verify_dialog_theme_receipt(bad, stage) { return error('changed Dialog theme relink description accepted') }
+		proof.delete(field)
+		bad['native_relink_proof'] = json2.Any(proof)
+		if _ := verify_dialog_theme_receipt(bad, stage) { return error('missing Dialog theme relink description field accepted') }
+	}
+	for path in dialog_theme_relink_files().keys() {
+		mut files := dialog_theme_relink_files()
+		files[path] = '0'.repeat(64)
+		mut proof := dialog_theme_relink_description()
+		proof['files_sha256'] = json2.decode[json2.Any](json2.encode(files))!
+		mut bad := dialog_theme_receipt_fixture()!
+		bad['native_relink_proof'] = json2.Any(proof)
+		if _ := verify_dialog_theme_receipt(bad, stage) { return error('changed Dialog theme relink file accepted') }
+		files.delete(path)
+		proof['files_sha256'] = json2.decode[json2.Any](json2.encode(files))!
+		bad['native_relink_proof'] = json2.Any(proof)
+		if _ := verify_dialog_theme_receipt(bad, stage) { return error('missing Dialog theme relink file accepted') }
+	}
+	for proof in ['native_consumed_raw_delta', 'native_consumed_canonical_delta'] {
+		original := json2.decode[map[string][]string](json2.encode(receipt[proof]!))!
+		for name, before_after in original {
+			for index in 0 .. 2 {
+				mut values := original.clone()
+				mut changed := before_after.clone()
+				changed[index] = '0'.repeat(64)
+				values[name] = changed
+				mut bad := dialog_theme_receipt_fixture()!
+				bad[proof] = json2.decode[json2.Any](json2.encode(values))!
+				if _ := verify_dialog_theme_receipt(bad, stage) { return error('changed Dialog theme consumed before/after value accepted') }
+			}
+		}
+	}
+	for path in stage.inputs_sha256.keys() {
+		mut pins := dialog_theme_inputs()
+		pins[path] = '0'.repeat(64)
+		if _ := verify_dialog_theme_receipt(receipt, Stage{...stage, inputs_sha256: pins}) { return error('changed Dialog theme input accepted') }
+		pins.delete(path)
+		if _ := verify_dialog_theme_receipt(receipt, Stage{...stage, inputs_sha256: pins}) { return error('missing Dialog theme input accepted') }
+	}
+	mut forbidden_inputs := ['/unreviewed/sha256.json', dialog_theme_relink_root(), dialog_theme_relink_root() + '/extra', resources_float_relink_root(), layout_alignment_relink_root(), window_animations_relink_root()]
+	for path in resources_float_relink_inputs().keys() { forbidden_inputs << path }
+	for path in [layout_alignment_relink_root() + '/out/canonical.so', window_animations_relink_root() + '/compile.log'] { forbidden_inputs << path }
+	for path in forbidden_inputs {
+		mut extra := dialog_theme_inputs()
+		extra[path] = 'a'.repeat(64)
+		if _ := verify_dialog_theme_receipt(receipt, Stage{...stage, inputs_sha256: extra}) { return error('extra Dialog theme seal or proof input accepted') }
+	}
+	for bad in [Stage{...stage, format: 0}, Stage{...stage, original_modules_sha256: paint_drawable_modules()}, Stage{...stage, preserved_modules_sha256: paint_drawable_modules()}] {
+		if _ := verify_dialog_theme_receipt(receipt, bad) { return error('wrong Dialog theme module inventory accepted') }
+	}
+	for addition in ['deployment_input_additions', 'deployment_top_level_additions'] {
+		mut bad := dialog_theme_receipt_fixture()!
+		bad[addition] = json2.Any(map[string]json2.Any{})
+		if _ := verify_dialog_theme_receipt(bad, stage) { return error('Dialog theme undeclared addition accepted') }
+	}
+	delta := json2.decode[map[string]string](json2.encode(receipt['deployment_input_delta']!))!
+	for path in delta.keys() {
+		mut changed := delta.clone()
+		changed.delete(path)
+		mut bad := dialog_theme_receipt_fixture()!
+		bad['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(changed))!
+		if _ := verify_dialog_theme_receipt(bad, stage) { return error('missing Dialog theme actual input change accepted') }
+	}
+	for path, pin in {'/opt/vinix-maps-account/bin/maps-account-guest': seed_companion_controller_pin, '/' + native_onboarding_trace_path: resources_float_native_pin} {
+		mut changed := delta.clone()
+		changed[path] = pin
+		mut bad := dialog_theme_receipt_fixture()!
+		bad['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(changed))!
+		if _ := verify_dialog_theme_receipt(bad, stage) { return error('unrelated or stale Dialog theme input accepted') }
+	}
+	entries := dialog_theme_entries_fixture()
+	for index, entry in entries {
+		for changed in [ServiceQueryEntry{...entry, name: '../escape'}, ServiceQueryEntry{...entry, kind: 'symlink'}, ServiceQueryEntry{...entry, mode: 0o777}, ServiceQueryEntry{...entry, mode: 0o4755}] {
+			mut bad_entries := entries.clone()
+			bad_entries[index] = changed
+			mut bad := dialog_theme_receipt_fixture()!
+			bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(bad_entries))!
+			if _ := verify_dialog_theme_receipt(bad, stage) { return error('unsafe Dialog theme overlay inode accepted') }
+		}
+		if entry.kind == 'regular' {
+			if entry.name == native_onboarding_trace_path {
+				mut changed := entries.clone()
+				changed[index] = ServiceQueryEntry{...entry, mode: 0o644}
+				mut bad := dialog_theme_receipt_fixture()!
+				bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(changed))!
+				if _ := verify_dialog_theme_receipt(bad, stage) { return error('nonexecutable Dialog theme native accepted') }
+			}
+			mut bad_entries := entries.clone()
+			bad_entries.delete(index)
+			mut bad := dialog_theme_receipt_fixture()!
+			bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(bad_entries))!
+			if _ := verify_dialog_theme_receipt(bad, stage) { return error('missing Dialog theme overlay file accepted') }
+			if entry.name != service_query_deployment {
+				mut changed := entries.clone()
+				changed[index] = ServiceQueryEntry{...entry, sha256: '0'.repeat(64)}
+				bad['overlay_inventory'] = json2.decode[json2.Any](json2.encode(changed))!
+				if _ := verify_dialog_theme_receipt(bad, stage) { return error('changed Dialog theme overlay pin accepted') }
+			}
+		}
+	}
+	mut duplicate_entries := entries.clone()
+	duplicate_entries << entries.last()
+	mut duplicate := dialog_theme_receipt_fixture()!
+	duplicate['overlay_inventory'] = json2.decode[json2.Any](json2.encode(duplicate_entries))!
+	if _ := verify_dialog_theme_receipt(duplicate, stage) { return error('duplicate Dialog theme overlay inode accepted') }
+	mut stale_delta := delta.clone()
+	stale_delta['/' + service_query_headless + '/guest-inputs.json'] = dialog_theme_old_headless
+	mut stale_entries := entries.clone()
+	for index, entry in stale_entries { if entry.name == service_query_headless + '/guest-inputs.json' { stale_entries[index] = ServiceQueryEntry{...entry, sha256: dialog_theme_old_headless} } }
+	mut stale := dialog_theme_receipt_fixture()!
+	stale['deployment_input_delta'] = json2.decode[json2.Any](json2.encode(stale_delta))!
+	stale['overlay_inventory'] = json2.decode[json2.Any](json2.encode(stale_entries))!
+	if _ := verify_dialog_theme_receipt(stale, stage) { return error('stale Dialog theme headless pin accepted') }
+	mut stale_deployment := entries.clone()
+	for index, entry in stale_deployment { if entry.name == service_query_deployment { stale_deployment[index] = ServiceQueryEntry{...entry, sha256: dialog_theme_old_deployment} } }
+	mut stale_receipt := dialog_theme_receipt_fixture()!
+	stale_receipt['overlay_inventory'] = json2.decode[json2.Any](json2.encode(stale_deployment))!
+	if _ := verify_dialog_theme_receipt(stale_receipt, stage) { return error('stale Dialog theme deployment accepted') }
+	for old in [paint_drawable_receipt_fixture()!, resources_float_receipt_fixture()!, bundle_cross_profile_receipt_fixture()!, user_restrictions_receipt_fixture()!] {
+		if _ := verify_dialog_theme_receipt(old, stage) { return error('historical receipt accepted by Dialog theme profile') }
+	}
+	if _ := verify_paint_drawable_receipt(receipt, stage) { return error('Dialog theme receipt accepted by PaintDrawable profile') }
+	if _ := verify_resources_float_receipt(receipt, stage) { return error('Dialog theme receipt accepted by Resources profile') }
+	println('MAPS-DIALOG-THEME KERNEL-PROFILE-SELF-TEST PASS seven files ninety-four seals thirty-nine inherited modules one Dialog constructor coupled native original Resources provenance exact path-only proof and historical rejection')
+}
+
 fn self_test() ! {
 	protected_profile_self_test()!
 	controller_profile_self_test()!
@@ -9522,6 +9918,7 @@ fn self_test() ! {
 	bundle_cross_profile_self_test()!
 	resources_float_profile_self_test()!
 	paint_drawable_profile_self_test()!
+	dialog_theme_profile_self_test()!
 	maps := maps_profile()
 	before := Config{'vinix', maps.modules}
 	mut modules := maps.modules.clone()
@@ -9599,6 +9996,7 @@ fn self_test() ! {
 	fat_self_test(root + '/bundle-cross-profile', 'maps-bundle-cross-profile.tar', bundle_cross_profile_profile().modules)!
 	fat_self_test(root + '/resources-float', 'maps-resources-float.tar', resources_float_profile().modules)!
 	fat_self_test(root + '/paint-drawable', 'maps-paint-drawable.tar', paint_drawable_profile().modules)!
+	fat_self_test(root + '/dialog-theme', 'maps-dialog-theme.tar', dialog_theme_profile().modules)!
 	println('BROWSER-KERNEL-PATCH SELF-TEST PASS configuration inventory digest symlink launched-stage guards')
 }
 
@@ -9643,9 +10041,10 @@ fn main() {
 	is_bundle_cross_profile := os.args.len == 5 && os.args[1] == '--maps-bundle-cross-profile'
 	is_resources_float := os.args.len == 5 && os.args[1] == '--maps-resources-float'
 	is_paint_drawable := os.args.len == 5 && os.args[1] == '--maps-paint-drawable'
-	is_selected := is_maps || is_protected || is_controller || is_service_query || is_controller_memory || is_direct_boot || is_context_storage || is_broadcast_result || is_onboarding_trace || is_native_onboarding_trace || is_onboarding_framework || is_native_heartbeat || is_browser_poll || is_account_pump || is_application_restrictions || is_account_handoff || is_auth_exception || is_auth_worker || is_binder_identity || is_service_lifecycle || is_platform_fragments || is_imageview_bounds || is_window_system_ui || is_broker_tail || is_seed_companion || is_persistent_data_block || is_bitmap_tiles || is_window_animations || is_layout_alignment || is_user_restrictions || is_bundle_cross_profile || is_resources_float || is_paint_drawable
+	is_dialog_theme := os.args.len == 5 && os.args[1] == '--maps-dialog-theme'
+	is_selected := is_maps || is_protected || is_controller || is_service_query || is_controller_memory || is_direct_boot || is_context_storage || is_broadcast_result || is_onboarding_trace || is_native_onboarding_trace || is_onboarding_framework || is_native_heartbeat || is_browser_poll || is_account_pump || is_application_restrictions || is_account_handoff || is_auth_exception || is_auth_worker || is_binder_identity || is_service_lifecycle || is_platform_fragments || is_imageview_bounds || is_window_system_ui || is_broker_tail || is_seed_companion || is_persistent_data_block || is_bitmap_tiles || is_window_animations || is_layout_alignment || is_user_restrictions || is_bundle_cross_profile || is_resources_float || is_paint_drawable || is_dialog_theme
 	if os.args.len != 4 && !is_selected {
-		eprintln('usage: patch-kernel [--maps-account|--protected-storage-maps|--maps-controller|--maps-service-query|--maps-controller-memory|--maps-direct-boot|--maps-context-storage|--maps-broadcast-result|--maps-onboarding-trace|--maps-native-onboarding-trace|--maps-onboarding-framework|--maps-native-heartbeat|--maps-browser-poll|--maps-account-pump|--maps-application-restrictions|--maps-account-handoff|--maps-auth-exception|--maps-auth-worker|--maps-binder-identity|--maps-service-lifecycle|--maps-platform-fragments|--maps-imageview-bounds|--maps-window-system-ui|--maps-broker-tail|--maps-seed-account-companion|--maps-persistent-data-block|--maps-bitmap-tiles|--maps-window-animations|--maps-layout-alignment|--maps-user-restrictions|--maps-bundle-cross-profile|--maps-resources-float|--maps-paint-drawable] FRESH_STAGE FROZEN_KERNEL_BUILD BUILD_JSON_SHA256')
+		eprintln('usage: patch-kernel [--maps-account|--protected-storage-maps|--maps-controller|--maps-service-query|--maps-controller-memory|--maps-direct-boot|--maps-context-storage|--maps-broadcast-result|--maps-onboarding-trace|--maps-native-onboarding-trace|--maps-onboarding-framework|--maps-native-heartbeat|--maps-browser-poll|--maps-account-pump|--maps-application-restrictions|--maps-account-handoff|--maps-auth-exception|--maps-auth-worker|--maps-binder-identity|--maps-service-lifecycle|--maps-platform-fragments|--maps-imageview-bounds|--maps-window-system-ui|--maps-broker-tail|--maps-seed-account-companion|--maps-persistent-data-block|--maps-bitmap-tiles|--maps-window-animations|--maps-layout-alignment|--maps-user-restrictions|--maps-bundle-cross-profile|--maps-resources-float|--maps-paint-drawable|--maps-dialog-theme] FRESH_STAGE FROZEN_KERNEL_BUILD BUILD_JSON_SHA256')
 		exit(2)
 	}
 	offset := if is_selected { 1 } else { 0 }
@@ -9658,7 +10057,7 @@ fn main() {
 		exit(1)
 	}
 	profile := if is_seed_companion { seed_companion_profile() } else if is_broker_tail { broker_tail_profile() } else if is_window_system_ui { window_system_ui_profile() } else if is_imageview_bounds { imageview_bounds_profile() } else if is_platform_fragments { platform_fragments_profile() } else if is_service_lifecycle { service_lifecycle_profile() } else if is_binder_identity { binder_identity_profile() } else if is_auth_worker { auth_worker_profile() } else if is_auth_exception { auth_exception_profile() } else if is_account_handoff { account_handoff_profile() } else if is_application_restrictions { application_restrictions_profile() } else if is_account_pump { account_pump_profile() } else if is_browser_poll { browser_poll_profile() } else if is_native_heartbeat { native_heartbeat_profile() } else if is_onboarding_framework { onboarding_framework_profile() } else if is_native_onboarding_trace { native_onboarding_trace_profile() } else if is_onboarding_trace { onboarding_trace_profile() } else if is_broadcast_result { broadcast_result_profile() } else if is_context_storage { context_storage_profile() } else if is_direct_boot { direct_boot_profile() } else if is_controller_memory { controller_memory_profile() } else if is_service_query { service_query_profile() } else if is_controller { controller_profile() } else if is_protected { protected_maps_profile() } else if is_maps { maps_profile() } else { browser_profile() }
-	selected_profile := if is_paint_drawable { paint_drawable_profile() } else if is_resources_float { resources_float_profile() } else if is_bundle_cross_profile { bundle_cross_profile_profile() } else if is_user_restrictions { user_restrictions_profile() } else if is_layout_alignment { layout_alignment_profile() } else if is_window_animations { window_animations_profile() } else if is_bitmap_tiles { bitmap_tiles_profile() } else if is_persistent_data_block { persistent_data_block_profile() } else { profile }
+	selected_profile := if is_dialog_theme { dialog_theme_profile() } else if is_paint_drawable { paint_drawable_profile() } else if is_resources_float { resources_float_profile() } else if is_bundle_cross_profile { bundle_cross_profile_profile() } else if is_user_restrictions { user_restrictions_profile() } else if is_layout_alignment { layout_alignment_profile() } else if is_window_animations { window_animations_profile() } else if is_bitmap_tiles { bitmap_tiles_profile() } else if is_persistent_data_block { persistent_data_block_profile() } else { profile }
 	patch(root, build_root, os.args[3 + offset], selected_profile) or {
 		eprintln(err)
 		exit(1)
