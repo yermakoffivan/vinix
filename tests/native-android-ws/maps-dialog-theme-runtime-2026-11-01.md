@@ -114,6 +114,17 @@ on 83,374,080 bytes of shared-volume growth against 64 MiB after 8.361 seconds,
 sampled RSS 27,312,128 bytes. Guard/child exits were125/137 with cleanup complete;
 `seal.guard.json` SHA-256 is
 `62c40a97ea821df0bd3a9015ec97981561b4bb6d841d8b394ce77abb9af5cb4c`.
-A manifest file exists but the guarded seal did not pass; no separate full
-readback was run and no final seal is admitted. Retain all originals, failed
-control and unchanged auditors/caps. Complete sealing remains pending.
+A manifest file exists but that guarded seal did not pass; no separate full
+readback was run for the failed attempt. Its complete control remains retained.
+
+A later coordinated retry passed complete sealing and separate fresh-process
+full readback for twelve roots: the eleven closed originals and failed control,
+781 typed entries. Manifest
+`S/maps-dialog-theme-runtime-sealed-2026-11-01-r2/sealed/manifest.json` has SHA-256
+`7a7c794100e8cce4128b4b49f3fcafecbea6e7862ac49e872f77e5608263de35`.
+Seal/readback took 9.610/3.598 seconds at sampled RSS 28,770,304/23,052,288 bytes,
+with guard/child exits zero, cleanup complete and process swaps zero. The
+unchanged qualified sealer and original 600 MiB/900-second/64 MiB-growth/
+1 GiB-reserve/file-size caps were used. This recovers evidence completeness;
+the recorded runtime outcomes remain unchanged. Retain all originals, both
+controls and unchanged auditors.
