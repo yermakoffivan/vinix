@@ -96,9 +96,11 @@ fn resource_scopes(source string) {
 }
 
 fn main() {
-	assert os.args.len in [5, 6], 'usage: check-resource-locks NEW_EXTERNAL_OUTPUT_DIR RETAINED_NATIVE_RESOURCES_V CONSUMED_ASSETMANAGER_SMALI RETAINED_NATIVE_ROOT [--initializer-only]'
-	initializer_only := os.args.len == 6
-	if initializer_only { assert os.args[5] == '--initializer-only' }
+	assert os.args.len in [5, 6], 'usage: check-resource-locks NEW_EXTERNAL_OUTPUT_DIR RETAINED_NATIVE_RESOURCES_V CONSUMED_ASSETMANAGER_SMALI RETAINED_NATIVE_ROOT [--initializer-only|--host-only]'
+	mode := if os.args.len == 6 { os.args[5] } else { 'all' }
+	assert mode in ['all', '--initializer-only', '--host-only']
+	initializer_only := mode == '--initializer-only'
+	host_only := mode == '--host-only'
 	repo := os.real_path(os.getwd())
 	work := os.abs_path(os.args[1])
 	assert !os.exists(work) && !os.is_link(work) && work != repo && !work.starts_with(repo + '/')
@@ -135,9 +137,11 @@ fn main() {
 		.replace('ws_resources_enter(manager)', 'probe_manager_lock(manager)')
 		.replace('ws_resources_leave(manager)', 'probe_manager_unlock(manager)')
 	pooled := resource_function(source, 'ws_pooled_string')
+	borrowed_copy := 'return ws_pool_string(e, voidptr(C.AssetManager_getStringPoolForCookie(manager, cookie - 1)), index)'
+	assert pooled.count(borrowed_copy) == 1, 'borrowed-string negative control changed'
 	code += '\n' + pooled.replace('fn ws_pooled_string(', 'fn early_string_unlock(')
 		.replace('defer { ws_resources_leave(manager) }', '')
-		.replace('return ws_pool_string(e, C.AssetManager_getStringPoolForCookie(manager, cookie - 1), index)',
+		.replace(borrowed_copy,
 			'pool := C.AssetManager_getStringPoolForCookie(manager, cookie - 1)\n\tws_resources_leave(manager)\n\treturn ws_pool_string(e, pool, index)')
 	code = code.replace('C.pthread_mutex_lock(', 'probe_global_lock(')
 		.replace('C.pthread_mutex_unlock(', 'probe_global_unlock(')
@@ -153,6 +157,7 @@ fn main() {
 		.replace('C.Theme_delete(', 'probe_delete_theme(')
 		.replace('C.AssetManager_setConfiguration(', 'probe_configuration(')
 		.replace('C.ResTable_config', 'ProbeConfig')
+		.replace('C.ResolvedBag', 'ProbeBag')
 		.replace('C.resource_name', 'ProbeName')
 		.replace('WsNewString(slot(e, 163))', 'probe_new_string')
 	os.write_file(work + '/main.v', probe_model + code + probe_cases)!
@@ -170,6 +175,7 @@ fn main() {
 	}
 	// Qualify the aggregate initializer through the exact freestanding generator
 	// and compiler used for the retained native library, then compile ARM C.
+	if !host_only {
 	native := os.real_path(os.args[4])
 	legacy := native + '/compiler-root/v'
 	assert sha256.sum(os.read_bytes(legacy)!).hex() == '109a0bad877cf42cd19382a87d3e3d62e9c153e3d74a566b2b3e650a1aec318e'
@@ -233,11 +239,13 @@ fn main() {
 	// The same production linker emits the same two CRT startup exports. Every
 	// adapter helper and the mutex itself must remain hidden.
 	assert exports.exit_code == 0 && exports.output.trim_space() == '_fini\n_init\nvinix_resource_lock_probe', exports.output
+	}
 	revision := resource_command(work, 'source-revision', ['git', 'rev-parse', 'HEAD'])
 	assert revision.exit_code == 0
 	os.write_file(work + '/evidence.json', json2.encode({
-		'scope': if initializer_only { 'Production-extracted mutex preamble/scopes; exact retained generator and compiler; static initializer and two-operand production ARM link replay. Earlier host contention proof is separate.' } else { 'Production-extracted scopes; real pthread mutexes; 4 workers, raw themes, borrowed copy, cleanup, three negative controls, and production ARM initializer/link replay. Instrumented C API/JNI; no ART or Maps claim.' }
+		'scope': if initializer_only { 'Production-extracted mutex preamble/scopes; exact retained generator and compiler; static initializer and two-operand production ARM link replay. Earlier host contention proof is separate.' } else if host_only { 'Production-extracted source coverage and host contention; real pthread mutexes; 4 workers, raw themes, borrowed copy, cleanup and three negative controls. ARM initializer/link replay is separate, retained at resource-locks-host-2026-11-01-r5. Instrumented C API/JNI; no ART or Maps claim.' } else { 'Production-extracted scopes; real pthread mutexes; 4 workers, raw themes, borrowed copy, cleanup, three negative controls, and production ARM initializer/link replay. Instrumented C API/JNI; no ART or Maps claim.' }
 		'source_revision': revision.output.trim_space()
+		'mode': mode
 		'source_sha256': sha256.hexhash(source)
 		'retained_source_sha256': sha256.hexhash(old)
 		'compiler': compiler
@@ -248,7 +256,7 @@ fn main() {
 		if os.is_file(path) { hashes[path[work.len + 1..]] = sha256.sum(os.read_bytes(path)!).hex() }
 	}
 	os.write_file(work + '/sha256.json', json2.encode(hashes, prettify: true))!
-	println(if initializer_only { 'RESOURCE-INITIALIZER-CHECK-PASS static-mutex exact-production-link' } else { 'RESOURCE-LOCKS-CHECK-PASS scopes concurrency negative-controls=3 static-mutex exact-production-link' })
+	println(if initializer_only { 'RESOURCE-INITIALIZER-CHECK-PASS static-mutex exact-production-link' } else if host_only { 'RESOURCE-LOCKS-CHECK-PASS scopes concurrency negative-controls=3' } else { 'RESOURCE-LOCKS-CHECK-PASS scopes concurrency negative-controls=3 static-mutex exact-production-link' })
 }
 
 const probe_model = '

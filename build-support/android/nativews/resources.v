@@ -414,7 +414,7 @@ fn ws_array_size(e voidptr, object voidptr, id i32) i32 {
 		manager := ws_manager(e, object)
 		ws_resources_enter(manager)
 		defer { ws_resources_leave(manager) }
-		bag := C.AssetManager_getBag(manager, u32(id))
+		bag := &C.ResolvedBag(C.AssetManager_getBag(manager, u32(id)))
 		return if bag == nil { 0 } else { i32(bag.entry_count) }
 	}
 }
@@ -425,7 +425,7 @@ fn ws_retrieve_array(e voidptr, object voidptr, id i32, output voidptr) i32 {
 		ws_resources_enter(manager)
 		defer { ws_resources_leave(manager) }
 		ws_resource_array_locked(e, manager, id, output, false)
-		bag := C.AssetManager_getBag(manager, u32(id))
+		bag := &C.ResolvedBag(C.AssetManager_getBag(manager, u32(id)))
 		return if bag == nil { 0 } else { i32(bag.entry_count) }
 	}
 }
@@ -434,7 +434,7 @@ fn ws_pooled_string(e voidptr, object voidptr, cookie i32, index i32) voidptr {
 	manager := ws_manager(e, object)
 	ws_resources_enter(manager)
 	defer { ws_resources_leave(manager) }
-	return ws_pool_string(e, C.AssetManager_getStringPoolForCookie(manager, cookie - 1), index)
+	return ws_pool_string(e, voidptr(C.AssetManager_getStringPoolForCookie(manager, cookie - 1)), index)
 }
 
 fn ws_set_configuration(e voidptr, object voidptr, config &C.ResTable_config) {

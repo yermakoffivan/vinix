@@ -78,3 +78,26 @@ production preamble and original command, rather than discovering compiler flags
 Full successor native/JNI/export auditing, bounded ARM resource stress, and Maps
 validation remain separate required gates. Host lock discipline and the small
 ARM link do not establish ARM resource behavior or Maps crash causation.
+
+The first full native successor generated the static initializer correctly but
+its unchanged `-Werror` link rejected three const-pointer conversions in the new
+array-count and pooled-string wrappers. The source now uses the same explicit
+`ResolvedBag` and `voidptr` casts as the established adapter. The host extraction
+and borrowed-string negative mutation retain those cast expressions. This does
+not change locking, resource lifetime, headers or compiler flags. The complete
+failed native attempt remains at `S/resource-lock-native-controls-2026-11-01-r1`;
+the native successor is unadmitted until the fresh full retry passes. Earlier
+host receipts retain their original source hashes.
+
+Changed-source host validation passed in
+`S/resource-locks-host-2026-11-01-r6`, including the same 24,000 operations and
+three specific negative controls. Compile/run guards passed in 3.450/2.494
+seconds at 304,037,888/183,500,800 bytes sampled aggregate RSS, exit zero and
+complete cleanup under unchanged limits. `--host-only` avoids repeating the
+unaffected r5 initializer/link proof. The cast-corrected `resources.v` SHA-256 is
+`a94e1d8fc8187b13603f8db205653e307b9c5fac82b6c524780c8ceec1820b5d`.
+The original r6 receipt is preserved: its explicit host-only mode and marker
+identify the checks run, while its generic scope text also mentions the skipped
+ARM replay. The maintained checker now emits an accurate host-only scope that
+references the separate r5 proof; this receipt-wording correction requires no
+rerun of unchanged computations.
