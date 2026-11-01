@@ -25,7 +25,8 @@ the registry and Dialog provider.
 | Coupled native manifest | `a293cfedb3fa2c7775af0cd15330b559ca4850c9ae7496e7e16717d520e2b0a4` |
 | Coupled native DSO | `280730c4166687394cf69e548cdd106e58c57ba9472f339dde2c80ebdee2595a` |
 | Canonical prior native DSO required by proof | `441ae035ec4b69c36635cc4521af3fafcb6a867305b0ba25d6e55df7ff0dadc9` |
-| Qualified stager | `fb38132949a18ca7f3f5161be3db8d96b4f694a7acbd9fd4e4ded0ac2dbd7e40` |
+| Initial stager (32-stage ancestry bound) | `fb38132949a18ca7f3f5161be3db8d96b4f694a7acbd9fd4e4ded0ac2dbd7e40` |
+| Corrected stager (33-stage ancestry bound) | `c84da671a34d132d9a4140793351b893c72cbe286c8f7c1f18edddb98ef82269` |
 | Qualified kernel patcher | `03a2be4a0572e758ba5bf5f73b2eba4920836bcb5cf2665922f76c8b5ae751f6` |
 
 The exact 91-root tests, split V/C tool builds, stager selftest, complete
@@ -58,3 +59,25 @@ All original limits remain: 600 MiB aggregate RSS, 300 seconds for builds/tests,
 900 seconds for full audits/preparation, 1 GiB reserve, 512 MiB tool growth,
 4 GiB outer image growth with a 512 MiB internal write budget, and shell file cap
 16777216. Complete raw evidence and rejected attempts remain outside Git.
+
+The first image preparation stopped after its original-module audit with
+`stage ancestry exceeds bound`, before creating an image. The retained V checker
+[maps-dialog-theme-ancestry.v](maps-dialog-theme-ancestry.v) verifies the pinned
+manifest/stage metadata along the actual 33-node chain: Startup is node 32 and
+the original inventory at `maps-account-r5` is node 33. The new Dialog walker now
+permits 33 stages. Its cycle, sealed-membership and overlay-order code is unchanged;
+historical profile walkers and the qualified kernel patcher are unchanged.
+
+Fresh r2 split builds, the actual metadata audit, existing stager selftests,
+discovery and original/copy/recheck capture of 865 inputs passed. All ten guarded
+phases exited zero with complete cleanup; maximum sampled aggregate RSS was
+319,750,144 bytes under the original limits. The original SDK/native, fixture,
+91-root tests and patcher qualification remain valid in their complete r1 bundles.
+The failed preparation and every r1 artifact remain untouched.
+
+The fresh stager is at
+`/Users/alex/.local/state/vinix/android/maps-dialog-theme-tools-2026-11-01-r2/stager-project/maps-dialog-theme-stage`.
+Its 1,100-entry single-root seal and separate fresh readback passed, manifest
+`maps-dialog-theme-tools-sealed-2026-11-01-r2/sealed/manifest.json`, SHA256
+`3cc1937b36d0feebef69d9682a5caf77fa05a9c049bd95024a69815b72daa407`.
+The parent task owns fresh r2 image preparation and runtime integration.

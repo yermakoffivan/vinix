@@ -424,7 +424,8 @@ fn original_inodes(deps map[string]string) ![]stage.Entry {
 	mut overlays := [][]stage.Entry{}
 	mut seen := map[string]bool{}
 	mut cursor := base_root
-	for _ in 0 .. 32 {
+	// The pinned Paint parent reaches the original inventory at stage 33.
+	for _ in 0 .. 33 {
 		if cursor in seen || (cursor != base_root && cursor !in deps) { return error('unsealed or cyclic stage ancestry') }
 		seen[cursor] = true
 		value := read_json(cursor + '/stage.json')!
