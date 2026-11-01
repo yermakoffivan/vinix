@@ -22,7 +22,9 @@ pub fn ndk_asset_open(manager voidptr, name &char, mode i32) voidptr {
 		path := &char(C.malloc(length))
 		if path == nil { return nil }
 		C.snprintf(path, length, c'assets/%s', name)
+		ws_resources_enter(manager)
 		asset := C.AssetManager_openNonAsset(manager, path, mode)
+		ws_resources_leave(manager)
 		C.free(path)
 		return asset
 	}

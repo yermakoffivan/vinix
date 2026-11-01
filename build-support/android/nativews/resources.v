@@ -8,6 +8,31 @@ module atlframework
 #include "androidfw_c_api.h"
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
+
+// libandroidfw's operation scopes mutate shared cached sp<> values even for
+// reads. The C API does not lock them. Serialize every adapter entry, including
+// raw Theme handles whose source manager is not passed to copyTheme.
+@[cinit]
+__global ws_resources_mutex C.pthread_mutex_t = C.PTHREAD_MUTEX_INITIALIZER
+
+fn C.abort()
+
+// Always acquire the adapter lock before the per-manager lock. Internal helpers
+// that borrow bags/string pools run within this scope and must not enter again.
+fn ws_resources_enter(manager voidptr) {
+	unsafe {
+		if C.pthread_mutex_lock(&ws_resources_mutex) != 0 { C.abort() }
+		C.AssetManager_lock(manager)
+	}
+}
+
+fn ws_resources_leave(manager voidptr) {
+	unsafe {
+		C.AssetManager_unlock(manager)
+		if C.pthread_mutex_unlock(&ws_resources_mutex) != 0 { C.abort() }
+	}
+}
 
 struct C.ResTable_config {
 mut:
@@ -223,7 +248,10 @@ fn ws_assets(e voidptr, object voidptr, paths voidptr, count i32, target i32) i3
 			Drop(slot(e, 23))(e, path)
 		}
 		if target >= 0 && cookie == 0 { return 0 }
-		if !C.AssetManager_setApkAssets(ws_manager(e, object), voidptr(assets), actual, true, true) { return 0 }
+		manager := ws_manager(e, object)
+		ws_resources_enter(manager)
+		defer { ws_resources_leave(manager) }
+		if !C.AssetManager_setApkAssets(manager, voidptr(assets), actual, true, true) { return 0 }
 		put_object(e, object, c'android/content/res/AssetManager', c'vinixCookiePaths', c'[Ljava/lang/Object;', cookie_paths)
 		return cookie
 	}
@@ -246,8 +274,8 @@ fn ws_value(e voidptr, manager voidptr, value &C.Res_value, cookie i32, referenc
 
 fn ws_resource(e voidptr, object voidptr, id i32, density i16, output voidptr, resolve u8) i32 {
 	manager := ws_manager(e, object)
-	C.AssetManager_lock(manager)
-	defer { C.AssetManager_unlock(manager) }
+	ws_resources_enter(manager)
+	defer { ws_resources_leave(manager) }
 	mut value := C.Res_value{}
 	mut config := C.ResTable_config{}
 	mut flags := u32(0)
@@ -261,8 +289,8 @@ fn ws_resource(e voidptr, object voidptr, id i32, density i16, output voidptr, r
 
 fn ws_theme_value(e voidptr, object voidptr, theme i64, id i32, output voidptr, resolve u8) i32 {
 	manager := ws_manager(e, object)
-	C.AssetManager_lock(manager)
-	defer { C.AssetManager_unlock(manager) }
+	ws_resources_enter(manager)
+	defer { ws_resources_leave(manager) }
 	mut value := C.Res_value{}
 	mut config := C.ResTable_config{}
 	mut flags := u32(0)
@@ -276,7 +304,10 @@ fn ws_theme_value(e voidptr, object voidptr, theme i64, id i32, output voidptr, 
 
 fn ws_resource_id(e voidptr, object voidptr, name voidptr, kind voidptr, package voidptr) i32 {
 	a, b, c := ws_utf(e, name), ws_utf(e, kind), ws_utf(e, package)
-	result := C.AssetManager_getResourceId(ws_manager(e, object), a, b, c)
+	manager := ws_manager(e, object)
+	ws_resources_enter(manager)
+	defer { ws_resources_leave(manager) }
+	result := C.AssetManager_getResourceId(manager, a, b, c)
 	ws_release(e, name, a)
 	ws_release(e, kind, b)
 	ws_release(e, package, c)
@@ -284,10 +315,18 @@ fn ws_resource_id(e voidptr, object voidptr, name voidptr, kind voidptr, package
 }
 
 fn ws_resource_name(e voidptr, object voidptr, id i32, kind i32) voidptr {
+	manager := ws_manager(e, object)
+	ws_resources_enter(manager)
+	defer { ws_resources_leave(manager) }
+	return ws_resource_name_locked(e, manager, id, kind)
+}
+
+// The caller holds both resource locks through every borrowed-name string copy.
+fn ws_resource_name_locked(e voidptr, manager voidptr, id i32, kind i32) voidptr {
 	unsafe {
 		name := &C.resource_name(C.alloca(sizeof(C.resource_name)))
 		C.memset(name, 0, sizeof(C.resource_name))
-		if C.AssetManager_getResourceName(ws_manager(e, object), u32(id), name) == 0 { return nil }
+		if C.AssetManager_getResourceName(manager, u32(id), name) == 0 { return nil }
 		if kind == 0 { return ws_string(e, &char(name.package)) }
 		if kind == 1 {
 			if name.@type != nil { return ws_string(e, &char(name.@type)) }
@@ -297,15 +336,15 @@ fn ws_resource_name(e voidptr, object voidptr, id i32, kind i32) voidptr {
 			if name.entry != nil { return ws_string(e, &char(name.entry)) }
 			return WsNewString(slot(e, 163))(e, &u16(name.entry16), i32(name.entry_len))
 		}
-		result := ws_resource_name(e, object, id, 0)
+		result := ws_resource_name_locked(e, manager, id, 0)
 		args := &Value(C.alloca(sizeof(Value)))
 		args[0] = Value{ l: ws_string(e, c':') }
 		result1 := obj(e, result, c'java/lang/String', c'concat', c'(Ljava/lang/String;)Ljava/lang/String;', args)
-		args[0] = Value{ l: ws_resource_name(e, object, id, 1) }
+		args[0] = Value{ l: ws_resource_name_locked(e, manager, id, 1) }
 		result2 := obj(e, result1, c'java/lang/String', c'concat', c'(Ljava/lang/String;)Ljava/lang/String;', args)
 		args[0] = Value{ l: ws_string(e, c'/') }
 		result3 := obj(e, result2, c'java/lang/String', c'concat', c'(Ljava/lang/String;)Ljava/lang/String;', args)
-		args[0] = Value{ l: ws_resource_name(e, object, id, 2) }
+		args[0] = Value{ l: ws_resource_name_locked(e, manager, id, 2) }
 		return obj(e, result3, c'java/lang/String', c'concat', c'(Ljava/lang/String;)Ljava/lang/String;', args)
 	}
 }
@@ -313,8 +352,8 @@ fn ws_resource_name(e voidptr, object voidptr, id i32, kind i32) voidptr {
 fn ws_bag_value(e voidptr, object voidptr, id i32, key i32, output voidptr) i32 {
 	unsafe {
 		manager := ws_manager(e, object)
-		C.AssetManager_lock(manager)
-		defer { C.AssetManager_unlock(manager) }
+		ws_resources_enter(manager)
+		defer { ws_resources_leave(manager) }
 		bag := &C.ResolvedBag(C.AssetManager_getBag(manager, u32(id)))
 		if bag == nil { return -1 }
 		for i := u32(0); i < bag.entry_count; i++ {
@@ -334,8 +373,14 @@ fn ws_bag_value(e voidptr, object voidptr, id i32, key i32, output voidptr) i32 
 fn ws_resource_array(e voidptr, object voidptr, id i32, output voidptr, strings bool) voidptr {
 	unsafe {
 		manager := ws_manager(e, object)
-		C.AssetManager_lock(manager)
-		defer { C.AssetManager_unlock(manager) }
+		ws_resources_enter(manager)
+		defer { ws_resources_leave(manager) }
+		return ws_resource_array_locked(e, manager, id, output, strings)
+	}
+}
+
+fn ws_resource_array_locked(e voidptr, manager voidptr, id i32, output voidptr, strings bool) voidptr {
+	unsafe {
 		bag := &C.ResolvedBag(C.AssetManager_getBag(manager, u32(id)))
 		if bag == nil { return nil }
 		array := if strings {
@@ -364,9 +409,77 @@ fn ws_resource_array(e voidptr, object voidptr, id i32, output voidptr, strings 
 	}
 }
 
+fn ws_array_size(e voidptr, object voidptr, id i32) i32 {
+	unsafe {
+		manager := ws_manager(e, object)
+		ws_resources_enter(manager)
+		defer { ws_resources_leave(manager) }
+		bag := C.AssetManager_getBag(manager, u32(id))
+		return if bag == nil { 0 } else { i32(bag.entry_count) }
+	}
+}
+
+fn ws_retrieve_array(e voidptr, object voidptr, id i32, output voidptr) i32 {
+	unsafe {
+		manager := ws_manager(e, object)
+		ws_resources_enter(manager)
+		defer { ws_resources_leave(manager) }
+		ws_resource_array_locked(e, manager, id, output, false)
+		bag := C.AssetManager_getBag(manager, u32(id))
+		return if bag == nil { 0 } else { i32(bag.entry_count) }
+	}
+}
+
+fn ws_pooled_string(e voidptr, object voidptr, cookie i32, index i32) voidptr {
+	manager := ws_manager(e, object)
+	ws_resources_enter(manager)
+	defer { ws_resources_leave(manager) }
+	return ws_pool_string(e, C.AssetManager_getStringPoolForCookie(manager, cookie - 1), index)
+}
+
+fn ws_set_configuration(e voidptr, object voidptr, config &C.ResTable_config) {
+	manager := ws_manager(e, object)
+	ws_resources_enter(manager)
+	defer { ws_resources_leave(manager) }
+	C.AssetManager_setConfiguration(manager, config)
+}
+
+fn ws_new_theme(e voidptr, object voidptr) i64 {
+	manager := ws_manager(e, object)
+	ws_resources_enter(manager)
+	defer { ws_resources_leave(manager) }
+	return i64(C.AssetManager_newTheme(manager))
+}
+
+fn ws_delete_theme(e voidptr, object voidptr, theme i64) {
+	manager := ws_manager(e, object)
+	ws_resources_enter(manager)
+	defer { ws_resources_leave(manager) }
+	C.Theme_delete(voidptr(theme))
+}
+
+fn ws_theme_apply(e voidptr, object voidptr, theme i64, id i32, force bool) {
+	manager := ws_manager(e, object)
+	ws_resources_enter(manager)
+	defer { ws_resources_leave(manager) }
+	C.Theme_applyStyle(voidptr(theme), u32(id), force)
+}
+
+fn ws_theme_copy(e voidptr, object voidptr, theme i64, source i64) {
+	manager := ws_manager(e, object)
+	ws_resources_enter(manager)
+	defer { ws_resources_leave(manager) }
+	// The global resource lock excludes all source-manager operations too. Never
+	// acquire a second manager lock, including when both themes share an owner.
+	C.Theme_setTo(voidptr(theme), voidptr(source))
+}
+
 fn ws_open_asset(e voidptr, object voidptr, name voidptr, mode i32) i64 {
 	text := ws_utf(e, name)
-	asset := C.AssetManager_openNonAsset(ws_manager(e, object), text, mode)
+	manager := ws_manager(e, object)
+	ws_resources_enter(manager)
+	defer { ws_resources_leave(manager) }
+	asset := C.AssetManager_openNonAsset(manager, text, mode)
 	ws_release(e, name, text)
 	return i64(asset)
 }
@@ -431,9 +544,12 @@ fn ws_xml_index(e voidptr, parser i64, namespace voidptr, name voidptr) i32 {
 	}
 }
 
-fn ws_apply_style(e voidptr, theme i64, parser i64, attr i32, style i32, array voidptr, count i32, values i64, indices i64) {
+fn ws_apply_style(e voidptr, object voidptr, theme i64, parser i64, attr i32, style i32, array voidptr, count i32, values i64, indices i64) {
 	unsafe {
 		attrs := WsIntElements(slot(e, 187))(e, array, nil)
+		manager := ws_manager(e, object)
+		ws_resources_enter(manager)
+		defer { ws_resources_leave(manager) }
 		C.ApplyStyle(voidptr(theme), voidptr(parser), attr, style, attrs, usize(count), &u32(values), &u32(indices))
 		WsIntRelease(slot(e, 195))(e, array, attrs, 2)
 	}
@@ -442,18 +558,24 @@ fn ws_apply_style(e voidptr, theme i64, parser i64, attr i32, style i32, array v
 fn ws_retrieve(e voidptr, object voidptr, parser i64, array voidptr, count i32, values i64, indices i64) u8 {
 	unsafe {
 		attrs := WsIntElements(slot(e, 187))(e, array, nil)
-		result := C.RetrieveAttributes(ws_manager(e, object), voidptr(parser), attrs, usize(count), &u32(values), &u32(indices))
+		manager := ws_manager(e, object)
+		ws_resources_enter(manager)
+		defer { ws_resources_leave(manager) }
+		result := C.RetrieveAttributes(manager, voidptr(parser), attrs, usize(count), &u32(values), &u32(indices))
 		WsIntRelease(slot(e, 195))(e, array, attrs, 2)
 		return u8(result)
 	}
 }
 
-fn ws_resolve_attrs(e voidptr, theme i64, attr i32, style i32, values voidptr, attrs voidptr, output voidptr, indices voidptr) u8 {
+fn ws_resolve_attrs(e voidptr, object voidptr, theme i64, attr i32, style i32, values voidptr, attrs voidptr, output voidptr, indices voidptr) u8 {
 	unsafe {
 		a := WsIntElements(slot(e, 187))(e, attrs, nil)
 		v := if values == nil { &u32(nil) } else { WsIntElements(slot(e, 187))(e, values, nil) }
 		o := WsIntElements(slot(e, 187))(e, output, nil)
 		ix := if indices == nil { &u32(nil) } else { WsIntElements(slot(e, 187))(e, indices, nil) }
+		manager := ws_manager(e, object)
+		ws_resources_enter(manager)
+		defer { ws_resources_leave(manager) }
 		result := C.ResolveAttrs(voidptr(theme), attr, style, v, usize(ws_array_len(e, values)), a, usize(ws_array_len(e, attrs)), o, ix)
 		if ix != nil { WsIntRelease(slot(e, 195))(e, indices, ix, 0) }
 		WsIntRelease(slot(e, 195))(e, output, o, 0)

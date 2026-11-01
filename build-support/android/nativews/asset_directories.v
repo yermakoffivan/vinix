@@ -16,7 +16,10 @@ fn ws_asset_list(e voidptr, object voidptr, path voidptr) voidptr {
   if path == nil { throw(e, c'java/lang/NullPointerException', c'asset path'); return nil }
   name := ws_utf(e, path)
   if name == nil { return nil }
-  directory := C.AssetManager_openDir(ws_manager(e, object), name)
+  manager := ws_manager(e, object)
+  ws_resources_enter(manager)
+  directory := C.AssetManager_openDir(manager, name)
+  ws_resources_leave(manager)
   ws_release(e, path, name)
   defer { if directory != nil { C.AssetDir_delete(directory) } }
   count := if directory == nil { usize(0) } else { C.AssetDir_getFileCount(directory) }
