@@ -69,6 +69,17 @@ exact representation expectation changed before the fresh r2 compile and full
 production run. The failed production guard exited one with complete cleanup;
 no resource oracle, artifact membership or historical evidence check was relaxed.
 
+The joint 16-root producer/source/caller/fixture seal and separate fresh-process
+full readback passed for 20,570 typed entries, including all four r1/r2 fixture
+roots and the original source/caller bundles. Manifest
+`/Users/alex/.local/state/vinix/android/dialog-theme-producers-sealed-2026-11-01-r1/sealed/manifest.json`,
+SHA-256 `21f05fa4110985523c32885b944da3fcceed2b45defae22370f2624b81b5582e`;
+the adjacent roots.txt records exact membership. Seal/check took 3.565/1.123
+seconds at sampled RSS 28,295,168/24,576,000 bytes. Both guards/children exited
+zero with complete cleanup under unchanged 600 MiB, 900-second, 64 MiB
+shared-growth, 1 GiB reserve and file-size caps. Every complete original bundle
+remains required by its historical auditor.
+
 The exact runtime marker is
 `DIALOG-THEME-PASS explicit default inherited contexts inflation isolation missing-default`.
 Host qualification does not establish ARM execution or a working Maps account
