@@ -1589,6 +1589,173 @@ fn dialog_theme_self_test() ! {
  }
 }
 
+fn intent_extras_profile() NarrowProfile {
+ intent := 'android/content/Intent.smali'
+ return NarrowProfile{
+  name: 'intent-extras'
+  baseline_name: 'combined-account-webview-dialog-theme-framework-2026-11-01-r1'
+  manifest_pin: 'a3547ad6477b3fb2eb7a9bcd7d73b8870c89a6bf69c4a84db03dc79e3222859f'
+  jar_pin: '9d8d2b1f59f80bf0d704daa65eaf3b479fa83458338f23d9fe17aa7a57b541b6'
+  baseline_classes: 2108
+  providers: ['framework_intent_extras.v']
+  directory_provider: 'framework_intent_extras'
+  methods: {intent: ['putExtras(Landroid/content/Intent;)Landroid/content/Intent;', 'putExtras(Landroid/os/Bundle;)Landroid/content/Intent;']}
+  changed: {intent: 2}
+  added: {intent: 0}
+ }
+}
+
+fn intent_extras_old_methods() map[string]string {
+ return {
+  'putExtras(Landroid/content/Intent;)Landroid/content/Intent;': '.method public putExtras(Landroid/content/Intent;)Landroid/content/Intent;
+.registers 3
+invoke-virtual {p1}, Landroid/content/Intent;->getExtras()Landroid/os/Bundle;
+move-result-object v0
+iput-object v0, p0, Landroid/content/Intent;->extras:Landroid/os/Bundle;
+return-object p0
+.end method'
+  'putExtras(Landroid/os/Bundle;)Landroid/content/Intent;': '.method public putExtras(Landroid/os/Bundle;)Landroid/content/Intent;
+.registers 2
+iput-object p1, p0, Landroid/content/Intent;->extras:Landroid/os/Bundle;
+return-object p0
+.end method'
+ }
+}
+
+fn intent_extras_expected_methods() map[string]string {
+ return {
+  'putExtras(Landroid/content/Intent;)Landroid/content/Intent;': '.method public putExtras(Landroid/content/Intent;)Landroid/content/Intent;
+.registers 4
+iget-object v0, p1, Landroid/content/Intent;->extras:Landroid/os/Bundle;
+if-eqz v0, :done
+iget-object v1, p0, Landroid/content/Intent;->extras:Landroid/os/Bundle;
+if-nez v1, :merge
+new-instance v1, Landroid/os/Bundle;
+invoke-direct {v1, v0}, Landroid/os/Bundle;-><init>(Landroid/os/Bundle;)V
+iput-object v1, p0, Landroid/content/Intent;->extras:Landroid/os/Bundle;
+goto :done
+:merge
+invoke-virtual {v1, v0}, Landroid/os/Bundle;->putAll(Landroid/os/Bundle;)V
+:done
+return-object p0
+.end method'
+  'putExtras(Landroid/os/Bundle;)Landroid/content/Intent;': '.method public putExtras(Landroid/os/Bundle;)Landroid/content/Intent;
+.registers 3
+iget-object v0, p0, Landroid/content/Intent;->extras:Landroid/os/Bundle;
+if-nez v0, :merge
+new-instance v0, Landroid/os/Bundle;
+invoke-direct {v0}, Landroid/os/Bundle;-><init>()V
+iput-object v0, p0, Landroid/content/Intent;->extras:Landroid/os/Bundle;
+:merge
+invoke-virtual {v0, p1}, Landroid/os/Bundle;->putAll(Landroid/os/Bundle;)V
+return-object p0
+.end method'
+ }
+}
+
+// Retain every instruction, register and directive; rebase only branch labels
+// to instruction ordinals, including aliases emitted at one DEX address.
+fn intent_extras_method(source string) !string {
+ lines := source.split_into_lines().map(it.trim_space()).filter(it != '' && !it.starts_with('#'))
+ mut labels := map[string]string{}
+ mut instruction := 0
+ for line in lines {
+  if line.starts_with(':') {
+   if line in labels { return error('duplicate Intent extras branch label') }
+   labels[line] = ':instruction_' + instruction.str()
+  } else if !line.starts_with('.') { instruction++ }
+ }
+ mut result := []string{}
+ for line in lines {
+  if line.starts_with(':') { continue }
+  mut parts := line.split(' ')
+  for i, part in parts {
+   if replacement := labels[part] { parts[i] = replacement }
+   else if part.starts_with(':') { return error('undefined Intent extras branch label') }
+  }
+  result << parts.join(' ')
+ }
+ return result.join('\n')
+}
+
+fn intent_extras_members(old string, updated string) ! {
+ before, after := store_parts(old)!, store_parts(updated)!
+ expected := intent_extras_expected_methods()
+ for signature, original in intent_extras_old_methods() {
+  previous := before.methods[signature] or { return error('missing retained Intent extras overload') }
+  next := after.methods[signature] or { return error('missing merged Intent extras overload') }
+  if intent_extras_method(previous)! != intent_extras_method(original)!
+   || intent_extras_method(next)! != intent_extras_method(expected[signature]!)! {
+   return error('Intent extras require exact copy/merge instructions and null-source control flow')
+  }
+ }
+}
+
+fn intent_extras_self_test() ! {
+ profile := intent_extras_profile()
+ intent := 'android/content/Intent.smali'
+ signatures := ['putExtras(Landroid/content/Intent;)Landroid/content/Intent;', 'putExtras(Landroid/os/Bundle;)Landroid/content/Intent;']
+ if profile.baseline_classes != 2108 || profile.methods != {intent: signatures}
+  || profile.calls.len != 0 || profile.changed != {intent: 2} || profile.added != {intent: 0}
+  || profile.providers != ['framework_intent_extras.v'] || profile.directory_provider != 'framework_intent_extras'
+  || profile.fields.len != 0 || profile.extra_classes.len != 0 || profile.class_provider != '' {
+  return error('Intent extras profile requires exactly two changed overload bodies')
+ }
+ narrow_method_self_test(signatures, 2, 0)!
+ previous := intent_extras_old_methods()
+ expected := intent_extras_expected_methods()
+ old := previous.values().join('\n')
+ good := expected.values().join('\n')
+ intent_extras_members(old, good)!
+ intent_extras_members(old, good.replace(':merge', ':cond_copy').replace(':done', ':goto_finish'))!
+ intent_extras_members(old, good.replace(':done\nreturn-object', ':done\n:alias_finish\nreturn-object').replace('goto :done', 'goto :alias_finish'))!
+ for signature, body in expected {
+  for invalid in [body.replace('.method public ', '.method private '),
+   body.replace('.registers 4', '.registers 5').replace('.registers 3', '.registers 4'), body.replace('return-object p0', 'return-object p1'),
+   body.replace('->putAll(Landroid/os/Bundle;)V', '->clear()V'),
+   body.replace('new-instance ', 'const/4 '), body.replace('->extras:Landroid/os/Bundle;', '->wrong:Landroid/os/Bundle;'),
+   body.replace('if-nez ', 'if-eqz '), body.replace('iput-object ', 'iget-object ')] {
+   mut changed := expected.clone()
+   changed[signature] = invalid
+   intent_extras_members(old, changed.values().join('\n')) or { continue }
+   return error('Intent extras method/register/copy/merge mutation accepted')
+  }
+ }
+ source := expected[signatures[0]]!
+ for invalid in [source.replace('iget-object v0, p1', 'iget-object v0, p0'),
+  source.replace('if-eqz v0, :done', 'if-eqz v0, :merge'),
+  source.replace('if-eqz v0, :done', 'if-eqz v0, :missing'),
+  source.replace('{v1, v0}, Landroid/os/Bundle;-><init>', '{v1, p0}, Landroid/os/Bundle;-><init>'),
+  source.replace('iput-object v1, p0', 'iput-object v0, p0'),
+  source.replace('{v1, v0}, Landroid/os/Bundle;->putAll', '{v0, v1}, Landroid/os/Bundle;->putAll'),
+  source.replace(':done\nreturn-object', ':done\n:done\nreturn-object')] {
+  intent_extras_members(old, invalid + '\n' + expected[signatures[1]]!) or { continue }
+  return error('Intent extras source aliasing/null-source/branch mutation accepted')
+ }
+ for invalid in [old.replace('move-result-object v0', 'move-result-object p0'),
+  old.replace('iput-object p1, p0', 'iput-object p0, p1')] {
+  intent_extras_members(invalid, good) or { continue }
+  return error('different original Intent extras body accepted')
+ }
+ mut before := {intent: 'old'}
+ for i in 0 .. 2107 { before['other/' + i.str() + '.smali'] = 'same' }
+ mut after := before.clone()
+ after[intent] = 'new'
+ narrow_profile_class_delta(before, after, [intent], []string{}, 2108)!
+ for case in 0 .. 5 {
+  mut bad := after.clone()
+  match case {
+   0 { bad[intent] = 'old' }
+   1 { bad['other/0.smali'] = 'changed' }
+   2 { bad.delete(intent) }
+   3 { bad['extra.smali'] = 'new' }
+   else { bad.delete(intent); bad['substituted.smali'] = 'new' }
+  }
+  narrow_profile_class_delta(before, bad, [intent], []string{}, 2108) or { continue }
+  return error('invalid Intent-only class delta accepted')
+ }
+}
+
 fn window_system_ui_self_test() ! {
  profile := window_system_ui_profile()
  layout := 'android/view/WindowManager$LayoutParams.smali'
@@ -2368,6 +2535,7 @@ fn self_test() ! {
  resources_float_self_test()!
  paint_drawable_self_test()!
  dialog_theme_self_test()!
+ intent_extras_self_test()!
  query_profile := service_query_profile()
  narrow_method_self_test(query_profile.methods['android/content/pm/PackageManager.smali']!, 1, 0)!
  boot_profile := direct_boot_profile()
@@ -2654,6 +2822,7 @@ fn build_narrow(profile NarrowProfile, baseline string, manifest_pin string, jar
   }
   if profile.name == 'resources-float' { resources_float_abi(os.read_file(root + '/smali/' + target)!)! }
   if profile.name == 'dialog-theme' { dialog_theme_members(os.read_file(root + '/old-dex/' + target)!, os.read_file(root + '/smali/' + target)!)! }
+  if profile.name == 'intent-extras' { intent_extras_members(os.read_file(root + '/old-dex/' + target)!, os.read_file(root + '/smali/' + target)!)! }
  }
  if profile.name == 'platform-fragments' {
   for target in profile.extra_classes { platform_fragments_abi(os.read_file(root + '/smali/' + target)!, target)! }
@@ -2696,6 +2865,7 @@ fn build_narrow(profile NarrowProfile, baseline string, manifest_pin string, jar
   }
   if profile.name == 'resources-float' { resources_float_abi(os.read_file(root + '/new-dex/' + target)!)! }
   if profile.name == 'dialog-theme' { dialog_theme_members(os.read_file(root + '/old-dex/' + target)!, os.read_file(root + '/new-dex/' + target)!)! }
+  if profile.name == 'intent-extras' { intent_extras_members(os.read_file(root + '/old-dex/' + target)!, os.read_file(root + '/new-dex/' + target)!)! }
  }
  if profile.name == 'platform-fragments' {
   for target in profile.extra_classes { platform_fragments_abi(os.read_file(root + '/new-dex/' + target)!, target)! }
@@ -3018,11 +3188,15 @@ fn main() {
   build_narrow(dialog_theme_profile(), os.abs_path(os.args[2]), os.args[3], os.args[4], os.abs_path(os.args[5])) or { eprintln(err); exit(1) }
   return
  }
+ if os.args.len == 6 && os.args[1] == '--intent-extras' {
+  build_narrow(intent_extras_profile(), os.abs_path(os.args[2]), os.args[3], os.args[4], os.abs_path(os.args[5])) or { eprintln(err); exit(1) }
+  return
+ }
  if os.args.len == 6 && os.args[1] in ['--store', '--auth', '--cache', '--descriptions', '--protected-storage', '--service-query', '--direct-boot', '--credential-storage', '--broadcast-result', '--onboarding', '--application-restrictions', '--auth-exception', '--binder-identity', '--service-lifecycle', '--platform-fragments', '--imageview-bounds', '--window-system-ui'] {
   profile := match os.args[1] { '--store' { storage_profile() } '--auth' { auth_profile() } '--cache' { cache_profile() } '--descriptions' { descriptions_profile() } '--protected-storage' { protected_storage_profile() } '--service-query' { service_query_profile() } '--direct-boot' { direct_boot_profile() } '--credential-storage' { credential_storage_profile() } '--broadcast-result' { broadcast_result_profile() } '--application-restrictions' { application_restrictions_profile() } '--auth-exception' { auth_exception_profile() } '--binder-identity' { binder_identity_profile() } '--service-lifecycle' { service_lifecycle_profile() } '--platform-fragments' { platform_fragments_profile() } '--imageview-bounds' { imageview_bounds_profile() } '--window-system-ui' { window_system_ui_profile() } else { onboarding_profile() } }
   build_narrow(profile, os.abs_path(os.args[2]), os.args[3], os.args[4], os.abs_path(os.args[5])) or { eprintln(err); exit(1) }
   return
  }
- if os.args.len != 5 { eprintln('usage: combined-account-webview-build [--store|--auth|--cache|--descriptions|--protected-storage|--service-query|--direct-boot|--credential-storage|--broadcast-result|--onboarding|--application-restrictions|--auth-exception|--binder-identity|--service-lifecycle|--platform-fragments|--imageview-bounds|--window-system-ui|--bitmap-tiles|--window-animations|--layout-alignment|--user-restrictions|--bundle-cross-profile|--resources-float|--paint-drawable|--dialog-theme] BASELINE BASELINE_MANIFEST_SHA256 BASELINE_JAR_SHA256 FRESH_OUTPUT | --self-test'); exit(2) }
+ if os.args.len != 5 { eprintln('usage: combined-account-webview-build [--store|--auth|--cache|--descriptions|--protected-storage|--service-query|--direct-boot|--credential-storage|--broadcast-result|--onboarding|--application-restrictions|--auth-exception|--binder-identity|--service-lifecycle|--platform-fragments|--imageview-bounds|--window-system-ui|--bitmap-tiles|--window-animations|--layout-alignment|--user-restrictions|--bundle-cross-profile|--resources-float|--paint-drawable|--dialog-theme|--intent-extras] BASELINE BASELINE_MANIFEST_SHA256 BASELINE_JAR_SHA256 FRESH_OUTPUT | --self-test'); exit(2) }
  build(os.abs_path(os.args[1]), os.args[2], os.args[3], os.abs_path(os.args[4])) or { eprintln(err); exit(1) }
 }
