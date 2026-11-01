@@ -112,6 +112,10 @@ const dialog_theme_framework_sha = '9d8d2b1f59f80bf0d704daa65eaf3b479fa83458338f
 const dialog_theme_native_sha = '280730c4166687394cf69e548cdd106e58c57ba9472f339dde2c80ebdee2595a'
 const dialog_theme_apk_sha = '57e1bc1d8f1df2874be1c4837f169176e5fa88310f37ea99fd726c5f839a2161'
 const dialog_theme_pass_marker = 'DIALOG-THEME-PASS explicit default inherited contexts inflation isolation missing-default'
+// Intent extras use the successor framework and verified retained native.
+const intent_extras_framework_sha = '02aefc8136cb87eb8e9ebd0928cb15f3e1c2042e47d2a687170a0f9309ac4b20'
+const intent_extras_apk_sha = 'fed8561ffe44b7562499a22dac8fc5e8e0e28607135bd44a835fefd5be347b5a'
+const intent_extras_pass_marker = 'INTENT-EXTRAS-PASS merge precedence copies no-op nulls shallow controlled-intent'
 
 struct FixtureProfile {
 	name          string
@@ -387,6 +391,17 @@ fn dialog_theme_profile() FixtureProfile {
 	}
 }
 
+fn intent_extras_profile() FixtureProfile {
+	return FixtureProfile{
+		name: 'intent-extras'
+		apk_sha: intent_extras_apk_sha
+		framework_sha: intent_extras_framework_sha
+		native_sha: dialog_theme_native_sha
+		pass_marker: intent_extras_pass_marker
+		scope: 'standalone Intent extras merge, copy, precedence, no-op, null and shallow-value regression with controlled-intent controls; Maps UI, GMS and authentication are not exercised'
+	}
+}
+
 struct Configuration {
 	runtime   string
 	apk       string
@@ -499,7 +514,8 @@ fn health(line string, expected_marker string) ! {
 		|| line.contains('CONNECTIVITY-TRUTH-PASS') || line.contains('WINDOW-ANIMATIONS-PASS')
 		|| line.contains('LAYOUT-ALIGNMENT-PASS') || line.contains('USER-RESTRICTIONS-PASS')
 		|| line.contains('BUNDLE-BOOLEAN-PASS') || line.contains('RESOURCES-FLOAT-PASS')
-		|| line.contains('PAINT-DRAWABLE-PASS') || line.contains('DIALOG-THEME-PASS')) && line != expected_marker {
+		|| line.contains('PAINT-DRAWABLE-PASS') || line.contains('DIALOG-THEME-PASS')
+		|| line.contains('INTENT-EXTRAS-PASS')) && line != expected_marker {
 		return error('conflicting fixture marker')
 	}
 }
@@ -700,7 +716,7 @@ fn export_evidence(output string) ! {
 
 fn selftest() ! {
 	mut cases := 0
-	profiles := [child_attach_profile(), settings_global_profile(), application_restrictions_profile(), authenticator_exception_profile(), maps_network_profile(), authenticator_worker_profile(), maps_network_v2_profile(), authenticator_binder_identity_profile(), maps_network_v3_profile(), service_lifecycle_profile(), platform_fragments_profile(), image_bounds_profile(), window_system_ui_profile(), seed_account_options_profile(), persistent_data_block_profile(), bitmap_tiles_profile(), connectivity_truth_profile(), window_animations_profile(), layout_alignment_profile(), user_restrictions_profile(), bundle_cross_profile_profile(), user_restrictions_bundle_profile(), resources_float_profile(), paint_drawable_profile(), dialog_theme_profile()]
+	profiles := [child_attach_profile(), settings_global_profile(), application_restrictions_profile(), authenticator_exception_profile(), maps_network_profile(), authenticator_worker_profile(), maps_network_v2_profile(), authenticator_binder_identity_profile(), maps_network_v3_profile(), service_lifecycle_profile(), platform_fragments_profile(), image_bounds_profile(), window_system_ui_profile(), seed_account_options_profile(), persistent_data_block_profile(), bitmap_tiles_profile(), connectivity_truth_profile(), window_animations_profile(), layout_alignment_profile(), user_restrictions_profile(), bundle_cross_profile_profile(), user_restrictions_bundle_profile(), resources_float_profile(), paint_drawable_profile(), dialog_theme_profile(), intent_extras_profile()]
 	require(child_attach_profile().framework_sha == framework_sha
 		&& settings_global_profile().framework_sha == framework_sha
 		&& application_restrictions_profile().framework_sha != framework_sha, 'exact per-profile framework identities')!
@@ -788,6 +804,10 @@ fn selftest() ! {
 		&& dialog_theme_profile().native_sha.len == 64
 		&& dialog_theme_profile().apk_sha != paint_drawable_profile().apk_sha,
 		'Dialog themes require their corrected framework, signed fixture and exact coupled native pin')!
+	require(intent_extras_profile().framework_sha != dialog_theme_profile().framework_sha
+		&& intent_extras_profile().native_sha == dialog_theme_profile().native_sha
+		&& intent_extras_profile().apk_sha != dialog_theme_profile().apk_sha,
+		'Intent extras require their new framework and fixture with the verified retained native pin')!
 	for profile in profiles {
 		mut pins := [profile.apk_sha, profile.framework_sha]
 		if profile.native_sha != '' { pins << profile.native_sha }
@@ -833,7 +853,7 @@ fn selftest() ! {
 		cases++
 	}
 	require(canonical('/var/lib/onboarding-api-r1'), 'canonical path rejected')!
-	for selector in ['--authenticator-binder-identity', '--maps-network-v3', '--service-lifecycle', '--platform-fragments', '--image-bounds', '--window-system-ui', '--seed-account-options', '--persistent-data-block', '--bitmap-tiles', '--connectivity-truth', '--window-animations', '--layout-alignment', '--user-restrictions', '--bundle-cross-profile', '--user-restrictions-bundle', '--resources-float', '--paint-drawable', '--dialog-theme'] {
+	for selector in ['--authenticator-binder-identity', '--maps-network-v3', '--service-lifecycle', '--platform-fragments', '--image-bounds', '--window-system-ui', '--seed-account-options', '--persistent-data-block', '--bitmap-tiles', '--connectivity-truth', '--window-animations', '--layout-alignment', '--user-restrictions', '--bundle-cross-profile', '--user-restrictions-bundle', '--resources-float', '--paint-drawable', '--dialog-theme', '--intent-extras'] {
 		full := [selector, '/runtime', '/fixture.apk', '10117', '10117', '/results']
 		for count in 1 .. full.len {
 			mut argv := [os.executable()]
@@ -862,9 +882,10 @@ fn run() ! {
 		return
 	}
 	mut arguments := os.args[1..]
-	require(arguments.len == 6 && arguments[0] in ['--child-attach', '--settings-global', '--application-restrictions', '--authenticator-private-exception', '--maps-network', '--authenticator-worker', '--maps-network-v2', '--authenticator-binder-identity', '--maps-network-v3', '--service-lifecycle', '--platform-fragments', '--image-bounds', '--window-system-ui', '--seed-account-options', '--persistent-data-block', '--bitmap-tiles', '--connectivity-truth', '--window-animations', '--layout-alignment', '--user-restrictions', '--bundle-cross-profile', '--user-restrictions-bundle', '--resources-float', '--paint-drawable', '--dialog-theme'],
-		'usage: onboarding-api-run (--child-attach|--settings-global|--application-restrictions|--authenticator-private-exception|--maps-network|--authenticator-worker|--maps-network-v2|--authenticator-binder-identity|--maps-network-v3|--service-lifecycle|--platform-fragments|--image-bounds|--window-system-ui|--seed-account-options|--persistent-data-block|--bitmap-tiles|--connectivity-truth|--window-animations|--layout-alignment|--user-restrictions|--bundle-cross-profile|--user-restrictions-bundle|--resources-float|--paint-drawable|--dialog-theme) RUNTIME APK UID GID FRESH_OUTPUT | selftest')!
+	require(arguments.len == 6 && arguments[0] in ['--child-attach', '--settings-global', '--application-restrictions', '--authenticator-private-exception', '--maps-network', '--authenticator-worker', '--maps-network-v2', '--authenticator-binder-identity', '--maps-network-v3', '--service-lifecycle', '--platform-fragments', '--image-bounds', '--window-system-ui', '--seed-account-options', '--persistent-data-block', '--bitmap-tiles', '--connectivity-truth', '--window-animations', '--layout-alignment', '--user-restrictions', '--bundle-cross-profile', '--user-restrictions-bundle', '--resources-float', '--paint-drawable', '--dialog-theme', '--intent-extras'],
+		'usage: onboarding-api-run (--child-attach|--settings-global|--application-restrictions|--authenticator-private-exception|--maps-network|--authenticator-worker|--maps-network-v2|--authenticator-binder-identity|--maps-network-v3|--service-lifecycle|--platform-fragments|--image-bounds|--window-system-ui|--seed-account-options|--persistent-data-block|--bitmap-tiles|--connectivity-truth|--window-animations|--layout-alignment|--user-restrictions|--bundle-cross-profile|--user-restrictions-bundle|--resources-float|--paint-drawable|--dialog-theme|--intent-extras) RUNTIME APK UID GID FRESH_OUTPUT | selftest')!
 	profile := if arguments[0] == '--authenticator-private-exception' { authenticator_exception_profile() }
+		else if arguments[0] == '--intent-extras' { intent_extras_profile() }
 		else if arguments[0] == '--dialog-theme' { dialog_theme_profile() }
 		else if arguments[0] == '--paint-drawable' { paint_drawable_profile() }
 		else if arguments[0] == '--resources-float' { resources_float_profile() }
