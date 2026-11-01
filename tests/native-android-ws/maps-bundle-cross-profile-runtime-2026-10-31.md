@@ -100,8 +100,8 @@ SIGTERM; foreign PID 91929 remained untouched.
 All ten original roots, including the four adjacent VM clone sidecars, are
 closed to writes. Final `A/operator-notes.md` SHA-256 is
 `95c82f5891a80bccf793f085550deba6e40c89f113dc45adba4b32b24835b5fa`.
-Complete sealing remains pending: the original attempt and one coordinated
-retry were stopped by the unchanged 64 MiB shared-volume growth guard. Controls
+The original sealing attempt and one coordinated retry were stopped by the
+unchanged 64 MiB shared-volume growth guard. Controls
 remain in `S/maps-bundle-cross-profile-runtime-sealed-2026-10-31-r1` and `-r2`;
 the retry includes the complete first failed control as its eleventh root.
 Observed growth was 88,174,592/1,074,167,808 bytes at 4.879/6.527 seconds, sampled
@@ -109,5 +109,13 @@ RSS 7,897,088/7,864,320 bytes. Both guard/child exits were 125/137 with complete
 cleanup, no manifest and no full-readback PASS. Guard receipt hashes are
 `4baac0116d17bc49d75e3108d98d171bb917779d00b234287cea4482f02212cf` and
 `4da66a17af2bcc24517e03ccca1721ffaf9c9ce646de12e1b0ef643f74d549d8`.
-Further retries are held while other qualified work proceeds. The 600 MiB/
-900-second/64 MiB-growth/1 GiB-reserve caps and all original auditors are intact.
+Both failures remain preserved. A third attempt during a later quiet window
+passed complete sealing and separate fresh-process full readback for 12 roots:
+the ten closed originals and both failed control roots, 705 typed entries.
+Manifest `S/maps-bundle-cross-profile-runtime-sealed-2026-11-01-r3/sealed/manifest.json`
+has SHA-256 `1af0d1e898c488ef5f032c672518903acd412bfbdb9239a4a3a31b1a6fedc485`.
+Seal/readback took 13.789/3.777 seconds at sampled RSS 15,564,800/12,599,296
+bytes, with guard/child exits zero, cleanup complete and process swaps zero.
+The unchanged qualified sealer and original 600 MiB/900-second/64 MiB-growth/
+1 GiB-reserve/file-size caps were used. This recovers evidence completeness;
+the failed controller and recorded runtime outcomes above remain unchanged.
