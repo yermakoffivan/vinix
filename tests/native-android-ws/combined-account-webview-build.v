@@ -1315,6 +1315,157 @@ fn resources_float_self_test() ! {
  }
 }
 
+fn paint_drawable_profile() NarrowProfile {
+ return NarrowProfile{
+  name: 'paint-drawable'
+  baseline_name: 'combined-account-webview-resources-float-framework-2026-10-31-r1'
+  manifest_pin: 'b88ea5adb85e7b5ea6ff70cdd7310fbb039e1922c4d3467b35ce6f71ebd0d38f'
+  jar_pin: 'aac12a41b70ce34c0893580431a28de81cb3476e7c6833cbe0c0ca8596db677d'
+  baseline_classes: 2107
+  providers: ['framework_paint_drawable.v']
+  directory_provider: 'framework_paint_drawable'
+  class_provider: 'framework_paint_drawable_classes'
+  extra_classes: ['android/graphics/drawable/PaintDrawable.smali']
+ }
+}
+
+fn paint_drawable_raw_pin() string { return 'eba47a450e64ba9c72b2032e3bb79782b084347c01915a79e2acb9816b3ac461' }
+
+fn paint_drawable_headers() map[string]string {
+ return {
+  '<init>()V': 'public constructor'
+  '<init>(I)V': 'public constructor'
+  'setCornerRadius(F)V': 'public'
+  'setCornerRadii([F)V': 'public'
+  'inflateTag(Ljava/lang/String;Landroid/content/res/Resources;Lorg/xmlpull/v1/XmlPullParser;Landroid/util/AttributeSet;)Z': 'protected'
+ }
+}
+
+// Compare all instructions while rebasing only labels to instruction ordinals
+// and the equivalent .locals/.registers spelling of this added class.
+fn paint_drawable_method(source string, parameters int) !string {
+ lines := source.split_into_lines().map(it.trim_space()).filter(it != '' && !it.starts_with('#'))
+ mut labels := map[string]string{}
+ mut instruction := 0
+ for line in lines {
+  if line.starts_with(':') {
+   if line in labels { return error('duplicate PaintDrawable branch label') }
+   labels[line] = ':instruction_' + instruction.str()
+  } else if !line.starts_with('.') { instruction++ }
+ }
+ mut result := []string{}
+ for line in lines {
+  if line.starts_with(':') { continue }
+  if line.starts_with('.locals ') {
+   result << '.registers ' + (line.all_after(' ').int() + parameters).str()
+   continue
+  }
+  mut parts := line.split(' ')
+  for i, part in parts {
+   if replacement := labels[part] { parts[i] = replacement }
+   else if part.starts_with(':') { return error('undefined PaintDrawable branch label') }
+  }
+  result << parts.join(' ')
+ }
+ return result.join('\n')
+}
+
+fn paint_drawable_members(raw string, assembled string) ! {
+ headers := paint_drawable_headers()
+ for source in [raw, assembled] {
+  parts := store_parts(source)!
+  if parts.methods.keys().sorted() != headers.keys().sorted()
+   || parts.metadata.split_into_lines().map(it.trim_space()).filter(it != '').join('\n') !=
+    '.class public Landroid/graphics/drawable/PaintDrawable;\n.super Landroid/graphics/drawable/ShapeDrawable;' {
+   return error('PaintDrawable must add only the exact public subclass and five methods')
+  }
+  for signature, flags in headers {
+   if parts.methods[signature]!.all_before('\n').trim_space() != '.method ' + flags + ' ' + signature {
+    return error('PaintDrawable method access or ABI changed: ' + signature)
+   }
+  }
+ }
+ before, after := store_parts(raw)!, store_parts(assembled)!
+ for name, body in before.methods {
+  parameters := if name == '<init>()V' { 1 } else if name.starts_with('inflateTag(') { 5 } else { 2 }
+  if paint_drawable_method(body, parameters)! != paint_drawable_method(after.methods[name]!, parameters)! {
+   return error('DEX changed PaintDrawable method instructions: ' + name)
+  }
+ }
+}
+
+fn paint_drawable_abi(raw string, assembled string) ! {
+ if !valid_pin(paint_drawable_raw_pin()) || sha256.sum(raw.bytes()).hex() != paint_drawable_raw_pin() {
+  return error('PaintDrawable raw class differs from the focused qualified provider')
+ }
+ paint_drawable_members(raw, assembled)!
+}
+
+fn paint_drawable_class_delta(old map[string]string, new map[string]string) ! {
+ added := 'android/graphics/drawable/PaintDrawable.smali'
+ if old.len != 2107 || new.len != 2108 || added in old || added !in new {
+  return error('PaintDrawable requires exactly one new class over the complete 2107-class parent')
+ }
+ for name, pin in old {
+  if name !in new || new[name]! != pin { return error('PaintDrawable changed existing class: ' + name) }
+ }
+}
+
+fn paint_drawable_self_test() ! {
+ profile := paint_drawable_profile()
+ added := 'android/graphics/drawable/PaintDrawable.smali'
+ if profile.baseline_classes != 2107 || profile.methods.len != 0 || profile.calls.len != 0
+  || profile.changed.len != 0 || profile.added.len != 0 || profile.fields.len != 0
+  || profile.providers != ['framework_paint_drawable.v'] || profile.extra_classes != [added]
+  || profile.class_provider != 'framework_paint_drawable_classes'
+  || profile.directory_provider != 'framework_paint_drawable' || !valid_pin(paint_drawable_raw_pin()) {
+  return error('PaintDrawable scope requires one complete added class and no existing changes')
+ }
+ mut raw := '.class public Landroid/graphics/drawable/PaintDrawable;\n.super Landroid/graphics/drawable/ShapeDrawable;\n'
+ for signature, flags in paint_drawable_headers() {
+  body := if signature.starts_with('inflateTag(') { 'const/4 v0, 0x0\nreturn v0' }
+   else if signature == 'setCornerRadius(F)V' { 'const/4 v0, 0x0\n:finish\nif-eqz v0, :finish\nreturn-void' }
+   else { 'return-void' }
+  raw += '.method ' + flags + ' ' + signature + '\n.locals 1\n' + body + '\n.end method\n'
+ }
+ paint_drawable_members(raw, raw)!
+ canonical := raw.replace(':finish', ':cond_1')
+  .replace('.method public constructor <init>()V\n.locals 1', '.method public constructor <init>()V\n.registers 2')
+ paint_drawable_members(raw, canonical)!
+ for bad in [canonical.replace('.class public ', '.class public final '),
+  canonical.replace('.super Landroid/graphics/drawable/ShapeDrawable;', '.super Ljava/lang/Object;'),
+  canonical + '.field public extra:I\n', canonical + '.implements Ljava/io/Serializable;\n',
+  canonical.replace('.method public setCornerRadius', '.method public final setCornerRadius'),
+  canonical.replace('.method protected inflateTag', '.method public inflateTag'),
+  canonical.replace('if-eqz v0', 'if-nez v0'), canonical.replace('const/4 v0, 0x0', 'const/4 v0, 0x1'),
+  canonical.replace('\n:cond_1\n', '\n:renamed\n'),
+  canonical.replace('.registers 2', '.registers 3'), canonical + store_parts(raw)!.methods['<init>()V']!,
+  canonical.replace(store_parts(canonical)!.methods['<init>(I)V']!, '')] {
+  paint_drawable_members(raw, bad) or { continue }
+  return error('changed PaintDrawable body, access or metadata accepted')
+ }
+ mut raw_refused := false
+ paint_drawable_abi(raw, raw) or { raw_refused = true }
+ if !raw_refused { return error('unqualified PaintDrawable raw body accepted') }
+ mut old := map[string]string{}
+ for i in 0 .. 2107 { old['other/' + i.str() + '.smali'] = 'same' }
+ mut good := old.clone()
+ good[added] = 'new'
+ paint_drawable_class_delta(old, good)!
+ for case in 0 .. 5 {
+  mut bad := good.clone()
+  match case {
+   0 { bad.delete(added) }
+   1 { bad['other/0.smali'] = 'changed' }
+   2 { bad.delete('other/0.smali') }
+   3 { bad['extra.smali'] = 'new' }
+   else { bad.delete(added); bad['substituted.smali'] = 'new' }
+  }
+  paint_drawable_class_delta(old, bad) or { continue }
+  return error('invalid PaintDrawable-only class addition accepted')
+ }
+}
+
 fn window_system_ui_self_test() ! {
  profile := window_system_ui_profile()
  layout := 'android/view/WindowManager$LayoutParams.smali'
@@ -2092,6 +2243,7 @@ fn self_test() ! {
  user_restrictions_self_test()!
  bundle_cross_profile_self_test()!
  resources_float_self_test()!
+ paint_drawable_self_test()!
  query_profile := service_query_profile()
  narrow_method_self_test(query_profile.methods['android/content/pm/PackageManager.smali']!, 1, 0)!
  boot_profile := direct_boot_profile()
@@ -2327,9 +2479,13 @@ fn build_narrow(profile NarrowProfile, baseline string, manifest_pin string, jar
    'expected := ' + json2.encode(profile.extra_classes.map(it.all_before_last('.smali'))) + '\n' +
    'if classes.len != expected.len { panic("unexpected added class count") }\n' +
    'for name, source in classes {\nif name !in expected { panic("unexpected added class") }\n' +
-   'path := os.args[1] + "/" + name + ".smali"\n' +
-   'if os.exists(path) { panic("added class already exists") }\n' +
-   'os.mkdir_all(os.dir(path))!\nos.write_file(path, source)!\n}\n'
+   'path := os.args[1] + "/" + name + ".smali"\n'
+  if profile.directory_provider != '' {
+   application += 'if os.is_link(path) || !os.is_file(path) || os.read_file(path)! != source { panic("directory provider added class differs") }\n}\n'
+  } else {
+   application += 'if os.exists(path) { panic("added class already exists") }\n' +
+    'os.mkdir_all(os.dir(path))!\nos.write_file(path, source)!\n}\n'
+  }
  } else if profile.extra_classes.len != 0 { return error('class additions require an explicit provider') }
  os.write_file(root + '/provider-source/main.v', application + '}\n')!
  os.setenv('VROOT', os.dir(store_compiler), true)
@@ -2350,7 +2506,8 @@ fn build_narrow(profile NarrowProfile, baseline string, manifest_pin string, jar
  command(root, 'apply-provider', [root + '/provider', root + '/smali'])!
  mut applied := map[string]string{}
  inventory(root + '/smali', '', mut applied)!
- narrow_profile_class_delta(old, applied, targets, profile.extra_classes, profile.baseline_classes)!
+ if profile.name == 'paint-drawable' { paint_drawable_class_delta(old, applied)! }
+ else { narrow_profile_class_delta(old, applied, targets, profile.extra_classes, profile.baseline_classes)! }
  for target in targets {
   narrow_member_delta(os.read_file(root + '/old-dex/' + target)!, os.read_file(root + '/smali/' + target)!,
    profile.methods[target]!, profile.changed[target]!, profile.added[target]!, profile.fields[target] or { []string{} })!
@@ -2380,13 +2537,18 @@ fn build_narrow(profile NarrowProfile, baseline string, manifest_pin string, jar
   for target in profile.extra_classes { persistent_data_block_abi(target, os.read_file(root + '/smali/' + target)!)! }
  }
  if profile.name == 'bundle-cross-profile' { cross_profile_type_abi(os.read_file(root + '/smali/' + profile.extra_classes[0])!)! }
+ if profile.name == 'paint-drawable' {
+  raw := os.read_file(root + '/smali/' + profile.extra_classes[0])!
+  paint_drawable_abi(raw, raw)!
+ }
  command(root, 'assemble', [java, '-Xmx512m', '-XX:ActiveProcessorCount=2', '-cp', classpath.join(':'), 'org.jf.smali.Main', 'assemble', '--jobs', '2', root + '/smali', '-o', root + '/classes.dex'])!
  if !os.is_file(root + '/classes.dex') || os.file_size(root + '/classes.dex') < 112 { return error('store assembly produced no fresh DEX') }
  command(root, 'replace-dex', ['/usr/bin/zip', '-q', '-j', root + '/api-impl.jar', root + '/classes.dex'])!
  command(root, 'new-disassemble', [java, '-Xmx512m', '-XX:ActiveProcessorCount=2', '-cp', classpath.join(':'), 'org.jf.baksmali.Main', 'disassemble', '--jobs', '2', root + '/api-impl.jar', '-o', root + '/new-dex'])!
  mut new := map[string]string{}
  inventory(root + '/new-dex', '', mut new)!
- narrow_profile_class_delta(old, new, targets, profile.extra_classes, profile.baseline_classes)!
+ if profile.name == 'paint-drawable' { paint_drawable_class_delta(old, new)! }
+ else { narrow_profile_class_delta(old, new, targets, profile.extra_classes, profile.baseline_classes)! }
  for target in targets {
   narrow_member_delta(os.read_file(root + '/old-dex/' + target)!, os.read_file(root + '/new-dex/' + target)!,
    profile.methods[target]!, profile.changed[target]!, profile.added[target]!, profile.fields[target] or { []string{} })!
@@ -2416,6 +2578,10 @@ fn build_narrow(profile NarrowProfile, baseline string, manifest_pin string, jar
   for target in profile.extra_classes { persistent_data_block_abi(target, os.read_file(root + '/new-dex/' + target)!)! }
  }
  if profile.name == 'bundle-cross-profile' { cross_profile_type_abi(os.read_file(root + '/new-dex/' + profile.extra_classes[0])!)! }
+ if profile.name == 'paint-drawable' {
+  paint_drawable_abi(os.read_file(root + '/smali/' + profile.extra_classes[0])!,
+   os.read_file(root + '/new-dex/' + profile.extra_classes[0])!)!
+ }
  write_json(root + '/framework-dex-before.json', old)!
  write_json(root + '/framework-dex-after.json', new)!
  for pair in [[baseline + '/api-impl.jar', 'old'], [root + '/api-impl.jar', 'new']] {
@@ -2718,11 +2884,15 @@ fn main() {
   build_narrow(resources_float_profile(), os.abs_path(os.args[2]), os.args[3], os.args[4], os.abs_path(os.args[5])) or { eprintln(err); exit(1) }
   return
  }
+ if os.args.len == 6 && os.args[1] == '--paint-drawable' {
+  build_narrow(paint_drawable_profile(), os.abs_path(os.args[2]), os.args[3], os.args[4], os.abs_path(os.args[5])) or { eprintln(err); exit(1) }
+  return
+ }
  if os.args.len == 6 && os.args[1] in ['--store', '--auth', '--cache', '--descriptions', '--protected-storage', '--service-query', '--direct-boot', '--credential-storage', '--broadcast-result', '--onboarding', '--application-restrictions', '--auth-exception', '--binder-identity', '--service-lifecycle', '--platform-fragments', '--imageview-bounds', '--window-system-ui'] {
   profile := match os.args[1] { '--store' { storage_profile() } '--auth' { auth_profile() } '--cache' { cache_profile() } '--descriptions' { descriptions_profile() } '--protected-storage' { protected_storage_profile() } '--service-query' { service_query_profile() } '--direct-boot' { direct_boot_profile() } '--credential-storage' { credential_storage_profile() } '--broadcast-result' { broadcast_result_profile() } '--application-restrictions' { application_restrictions_profile() } '--auth-exception' { auth_exception_profile() } '--binder-identity' { binder_identity_profile() } '--service-lifecycle' { service_lifecycle_profile() } '--platform-fragments' { platform_fragments_profile() } '--imageview-bounds' { imageview_bounds_profile() } '--window-system-ui' { window_system_ui_profile() } else { onboarding_profile() } }
   build_narrow(profile, os.abs_path(os.args[2]), os.args[3], os.args[4], os.abs_path(os.args[5])) or { eprintln(err); exit(1) }
   return
  }
- if os.args.len != 5 { eprintln('usage: combined-account-webview-build [--store|--auth|--cache|--descriptions|--protected-storage|--service-query|--direct-boot|--credential-storage|--broadcast-result|--onboarding|--application-restrictions|--auth-exception|--binder-identity|--service-lifecycle|--platform-fragments|--imageview-bounds|--window-system-ui|--bitmap-tiles|--window-animations|--layout-alignment|--user-restrictions|--bundle-cross-profile|--resources-float] BASELINE BASELINE_MANIFEST_SHA256 BASELINE_JAR_SHA256 FRESH_OUTPUT | --self-test'); exit(2) }
+ if os.args.len != 5 { eprintln('usage: combined-account-webview-build [--store|--auth|--cache|--descriptions|--protected-storage|--service-query|--direct-boot|--credential-storage|--broadcast-result|--onboarding|--application-restrictions|--auth-exception|--binder-identity|--service-lifecycle|--platform-fragments|--imageview-bounds|--window-system-ui|--bitmap-tiles|--window-animations|--layout-alignment|--user-restrictions|--bundle-cross-profile|--resources-float|--paint-drawable] BASELINE BASELINE_MANIFEST_SHA256 BASELINE_JAR_SHA256 FRESH_OUTPUT | --self-test'); exit(2) }
  build(os.abs_path(os.args[1]), os.args[2], os.args[3], os.abs_path(os.args[4])) or { eprintln(err); exit(1) }
 }
